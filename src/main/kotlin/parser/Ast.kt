@@ -16,6 +16,8 @@ sealed class Ast {
 
 sealed class Program: Ast()
 data class Fn(val name: Name, val parameters: List<Name>, val body: List<FnBody>): Program()
+data class ComponentValue(val name: Name, val type: Name)
+data class Component(val name: Name, val valueDefs: List<ComponentValue>): Program()
 
 sealed class FnBody: Ast()
 data class Let(val name: Name, val expression: Expression): FnBody()
@@ -25,10 +27,11 @@ sealed class Expression: Ast()
 data class Name(val name: NameToken): Expression()
 data class FnCall(val fn: Expression, val arguments: List<Expression>): Expression()
 
-data class RecordSelection(val record: Expression, val label: NameToken): Expression()
-data class RecordLabel(val label: NameToken, val expression: Expression): Expression()
-data class RecordDefinition(val labels: List<RecordLabel>, val row: Expression?): Expression()
-data class RecordRestriction(val record: Expression, val label: NameToken): Expression()
+data class ComponentSelection(val component: Expression, val label: Name): Expression()
+
+data class EntityDefinition(val expressions: List<Expression>): Expression()
+data class EntityRestriction(val entity: Expression, val label: Name): Expression()
+data class EntitySelection(val entity: Expression, val label: Name): Expression()
 
 data class IntConstant(val value: IntToken): Expression() {
     init {
@@ -54,6 +57,21 @@ data class CharConstant(val value: CharToken): Expression() {
 
 fun printWithTypes(ast: Ast, depth: Int = 0) {
     when(ast) {
+        is Component -> {
+            print("\t".repeat(depth))
+            print("component ${ast.name.name.value}(")
+            when(ast.valueDefs.size) {
+                0 -> {}
+                1 -> print("${ast.valueDefs.first().name.name.value}: ${ast.valueDefs.first().type.name.value}")
+                else -> {
+                    for(value in ast.valueDefs.dropLast(1)) {
+                        print("${value.name.name.value}: ${value.type.name.value}, ")
+                    }
+                    print("${ast.valueDefs.last().name.name.value}: ${ast.valueDefs.last().type.name.value}")
+                }
+            }
+            println(")")
+        }
         is Fn -> {
             print("\t".repeat(depth))
             print("fn ${ast.name.name.value}")
@@ -79,7 +97,7 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
             print("(")
             when(ast.parameters.size) {
                 0 -> {}
-                1 -> print("${ast.parameters.first()}: ${arrow.lhs}")
+                1 -> print("${ast.parameters.first().name.value}: ${arrow.lhs}")
                 else -> {
                     var sum = arrow.lhs
                     for(name in ast.parameters.dropLast(1)) {
@@ -114,35 +132,35 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
             print("(")
             if(ast.arguments.any()) printWithTypes(ast.arguments.first(), depth)
             for(e in ast.arguments.drop(1)) {
+                print(", ")
                 printWithTypes(e, depth)
             }
             print(")")
         }
 
-        is RecordSelection -> {
-            printWithTypes(ast.record, depth)
-            print(".${ast.label.value}")
-        }
-        is RecordLabel -> {
-            print("${ast.label.value}: ${ast.expression.type} = ")
-            printWithTypes(ast.expression, depth)
-        }
-        is RecordDefinition -> {
+        is EntityDefinition -> {
             print("{")
-            if(ast.labels.any()) printWithTypes(ast.labels.first(), depth)
-            for(def in ast.labels.drop(1)) {
+            if(ast.expressions.any()) printWithTypes(ast.expressions.first(), depth)
+            for(def in ast.expressions.drop(1)) {
                 print(", ")
                 printWithTypes(def, depth)
             }
-            if(ast.row != null) {
-                if(ast.labels.any()) print(", ")
-                printWithTypes(ast.row, depth)
-            }
             print("}")
         }
-        is RecordRestriction -> {
-            printWithTypes(ast.record, depth)
-            print("\\${ast.label}")
+
+        is EntitySelection -> {
+            printWithTypes(ast.entity, depth)
+            print(".${ast.label.name.value}")
+        }
+
+        is EntityRestriction -> {
+            printWithTypes(ast.entity, depth)
+            print("\\${ast.label.name.value}")
+        }
+
+        is ComponentSelection -> {
+            printWithTypes(ast.component, depth)
+            print(".${ast.label.name.value}")
         }
 
         is Name -> print(ast.name.value)
@@ -169,19 +187,23 @@ fun updateTypes(ast: Ast, substitutions: Map<TypeVariable, Type>) {
             updateTypes(ast.fn, substitutions)
             for(e in ast.arguments) updateTypes(e, substitutions)
         }
-        is RecordSelection -> {
+
+        is EntityDefinition -> {
             ast.updateType(substitutions)
-            updateTypes(ast.record, substitutions)
+            for(e in ast.expressions) updateTypes(e, substitutions)
         }
-        is RecordRestriction -> {
+        is EntityRestriction -> {
             ast.updateType(substitutions)
-            updateTypes(ast.record, substitutions)
+            updateTypes(ast.entity, substitutions)
         }
-        is RecordLabel -> updateTypes(ast.expression, substitutions)
-        is RecordDefinition -> {
+        is EntitySelection -> {
             ast.updateType(substitutions)
-            for(l in ast.labels) updateTypes(l, substitutions)
-            if(ast.row != null) updateTypes(ast.row, substitutions)
+            updateTypes(ast.entity, substitutions)
+        }
+
+        is ComponentSelection -> {
+            ast.updateType(substitutions)
+            updateTypes(ast.component, substitutions)
         }
 
         is Name -> ast.updateType(substitutions)

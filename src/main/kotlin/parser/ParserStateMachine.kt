@@ -1,9 +1,6 @@
 package parser
 
-import tokenizer.EofToken
-import tokenizer.FnToken
-import tokenizer.Token
-import tokenizer.WhitespaceToken
+import tokenizer.*
 
 internal class ParserState {
     private val stack = mutableListOf<ParserStateMachine>()
@@ -17,33 +14,7 @@ internal abstract class ParserStateMachine {
     abstract fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean>
 }
 
-internal object ProgramParserInitial: ParserStateMachine() {
-    override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
-        state.push(ProgramPaser(mutableListOf()))
-        return when(token) {
-            is FnToken -> Pair(FnParserKeyword, false)
-            is EofToken -> Pair(this, true)
-            else -> throw Exception()
-        }
-    }
-}
-
-internal data class ProgramPaser(val functions: MutableList<Fn>): ParserStateMachine() {
-    override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
-        when(val fn = state.pop()) {
-            is FnValue -> functions.add(fn.fn)
-            else -> throw Exception()
-        }
-        state.push(this)
-        return when(token) {
-            is FnToken -> Pair(FnParserKeyword, false)
-            is EofToken -> Pair(this, true)
-            else -> throw Exception()
-        }
-    }
-}
-
-fun parse(tokens: List<Token>): List<Fn> {
+fun parse(tokens: List<Token>): List<Program> {
     val state = ParserState()
     var stm: ParserStateMachine = ProgramParserInitial
     var i = 0
@@ -57,7 +28,7 @@ fun parse(tokens: List<Token>): List<Fn> {
     }
 
     return when(val s = state.pop()) {
-        is ProgramPaser -> s.functions
+        is ProgramPaser -> s.program
         else -> throw Exception()
     }
 }

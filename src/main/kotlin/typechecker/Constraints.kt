@@ -2,38 +2,63 @@ package typechecker
 
 import parser.*
 
-class Environment private constructor(private val backingMap: Map<String, Type>/*, val freeTypeVariables: Set<TypeVariable>*/) {
-    constructor(): this(mapOf()/*, setOf()*/)
+class Environment private constructor(private val names: Map<String, Type>, private val types: Map<String, Type>) {
+    constructor(): this(mapOf(), mapOf("Int" to IntType, "Float" to FloatType, "String" to StringType, "Char" to CharType))
     val freeTypeVariables: Set<TypeVariable>
-        get() = backingMap.values.fold(setOf()) { acc, type -> acc + type.freeTypeVariables }
+        get() = names.values.fold(setOf()) { acc, type -> acc + type.freeTypeVariables }
 
-    operator fun plus(rhs: Pair<Name, Type>) = Environment(backingMap + Pair(rhs.first.name.value, rhs.second)/*, freeTypeVariables + rhs.second.freeTypeVariables*/)
-    operator fun plus(rhs: Environment) = Environment(backingMap + rhs.backingMap/*, freeTypeVariables + rhs.second.freeTypeVariables*/)
-    operator fun plus(rhs: List<Pair<Name, Type>>) = Environment(backingMap + rhs.map{ Pair(it.first.name.value, it.second) }/*, freeTypeVariables + rhs.second.freeTypeVariables*/)
-    operator fun get(key: Name) = backingMap[key.name.value] ?: throw Exception("Name not bound $key")
+    operator fun plus(rhs: Pair<Name, Type>) = Environment(names + Pair(rhs.first.name.value, rhs.second), types)
+    operator fun plus(rhs: Environment) = Environment(names + rhs.names, types)
+    operator fun plus(rhs: List<Pair<Name, Type>>) = Environment(names + rhs.map{ Pair(it.first.name.value, it.second) }, types)
+    operator fun get(key: Name) = names[key.name.value] ?: throw Exception("Name not bound to value: $key")
+
+    fun registerType(name: Name, type: Type) = Environment(names, types + Pair(name.name.value, type))
+    fun lookupType(name: Name) = types[name.name.value] ?: throw Exception("Name not bound to type: $name")
+    fun containsType(name: Name) = types.containsKey(name.name.value)
 
     fun applySubstitutions(substitutions: Map<TypeVariable, Type>) =
-        Environment(backingMap.mapValues { applySubstitutions(it.value, substitutions) })
+        Environment(names.mapValues { applySubstitutions(it.value, substitutions) }, types)
 }
 
 data class Constraint(val lhs: Type, val rhs: Type)
 
 var nextTypeIndex = 0
-fun freshTypeVariable() = TypeVariable(nextTypeIndex++)
+fun freshTypeVariable(kind: Kind) = TypeVariable(nextTypeIndex++, kind)
 
-data class FnConstraints(val constraints: List<Constraint>, val environment: Environment)
+data class ProgramConstraints(val constraints: List<Constraint>, val environment: Environment)
 
-fun generateFnConstraints(environment: Environment, fn: Fn): FnConstraints {
-    val parameterTypes = List(fn.parameters.size) { freshTypeVariable() }
-    var env = environment + fn.parameters.zip(parameterTypes)
-    val constraints = mutableListOf<Constraint>()
-    val returnType = freshTypeVariable()
-
-    for(body in fn.body) {
-        val (c, e) = generateFnBodyConstraints(env, returnType, body)
-        env += e
-        constraints.addAll(c)
+fun generateProgramConstraints(environment: Environment, program: Program) =
+    when(program) {
+        is Component -> generateComponentConstraints(environment, program)
+        is Fn -> generateFnConstraints(environment, program)
     }
+
+fun generateComponentConstraints(environment: Environment, component: Component): ProgramConstraints {
+    if (component.valueDefs.isEmpty()) throw Exception()
+
+    val labels = component.valueDefs.associate {
+        it.name.name.value to environment.lookupType(it.type)
+    }
+
+    val componentType = ClosedRecordType(component.name.name.value, labels)
+
+    val type =
+        if(component.valueDefs.size == 1) Arrow(environment.lookupType(component.valueDefs.first().type), ComponentType(component.name.name.value))
+        else {
+            val sum =
+                component.valueDefs
+                    .dropLast(1)
+                    .foldRight(environment.lookupType(component.valueDefs.last().type)) { t, acc -> Sum(environment.lookupType(t.type), acc) }
+
+            Arrow(sum, componentType)
+        }
+
+    return ProgramConstraints(listOf(), environment.registerType(component.name, componentType) + Pair(component.name, type))
+}
+
+fun generateFnType(fn: Fn): Type {
+    val parameterTypes = List(fn.parameters.size) { freshTypeVariable(Undetermined) }
+    val returnType = freshTypeVariable(Undetermined)
 
     val type =
         when(parameterTypes.size) {
@@ -49,7 +74,36 @@ fun generateFnConstraints(environment: Environment, fn: Fn): FnConstraints {
             }
         }
 
+    return type
+}
 
+fun generateFnConstraints(environment: Environment, fn: Fn): ProgramConstraints {
+    val parameterTypes = List(fn.parameters.size) { freshTypeVariable(Undetermined) }
+
+    val constraints = mutableListOf<Constraint>()
+    val returnType = freshTypeVariable(Undetermined)
+
+    val type =
+        when(parameterTypes.size) {
+            0 -> Arrow(UnitType, returnType)
+            1 -> Arrow(parameterTypes.first(), returnType)
+            else -> {
+                val sum =
+                    parameterTypes
+                        .dropLast(1)
+                        .foldRight(parameterTypes.last() as Type) { t, acc -> Sum(t, acc) }
+
+                Arrow(sum, returnType)
+            }
+        }
+
+    var env = environment + fn.parameters.zip(parameterTypes) + (fn.name to type)
+
+    for(body in fn.body) {
+        val (c, e) = generateFnBodyConstraints(env, returnType, body)
+        env += e
+        constraints.addAll(c)
+    }
 
     val substitutions = unify(constraints)
     val newType = applySubstitutions(type, substitutions)
@@ -60,7 +114,7 @@ fun generateFnConstraints(environment: Environment, fn: Fn): FnConstraints {
 
     for(body in fn.body) updateTypes(body, substitutions)
 
-    return FnConstraints(constraints, newEnvironment + Pair(fn.name, typeScheme))
+    return ProgramConstraints(constraints, newEnvironment + Pair(fn.name, typeScheme))
 }
 
 data class FnBodyConstraints(val constraints: List<Constraint>, val envAdds: List<Pair<Name, Type>>)
@@ -86,10 +140,13 @@ fun generateReturnConstraints(environment: Environment, retType: Type, ret: Retu
 fun generateExpressionConstraints(environment: Environment, expression: Expression) =
     when(expression) {
         is FnCall -> generateFnCallConstraints(environment, expression)
-        is RecordDefinition -> generateRecordDefinitionConstraints(environment, expression)
-        is RecordLabel -> generateRecordLabelConstraints(environment, expression)
-        is RecordSelection -> generateRecordSelectionConstraints(environment, expression)
-        is RecordRestriction -> generateRecordRestritionConstraints(environment, expression)
+
+        is ComponentSelection -> generateComponentSelectionConstraints(environment, expression)
+
+        is EntityDefinition -> generateEntityDefinitionConstraints(environment, expression)
+        is EntitySelection -> generateEntitySelectionConstraints(environment, expression)
+        is EntityRestriction -> generateEntityRestritionConstraints(environment, expression)
+
         is Name -> generateNameConstraints(environment, expression)
         is IntConstant -> ExpressionConstraints(listOf(), IntType)
         is FloatConstant -> ExpressionConstraints(listOf(), FloatType)
@@ -107,7 +164,7 @@ fun generateNameConstraints(environment: Environment, name: Name): ExpressionCon
 }
 
 fun generateFnCallConstraints(environment: Environment, fnCall: FnCall): ExpressionConstraints {
-    val retType = freshTypeVariable()
+    val retType = freshTypeVariable(Undetermined)
     val (fc, ft) = generateExpressionConstraints(environment, fnCall.fn)
     val args = fnCall.arguments.map { generateExpressionConstraints(environment, it) }
     val argTypes =
@@ -121,63 +178,53 @@ fun generateFnCallConstraints(environment: Environment, fnCall: FnCall): Express
     return ExpressionConstraints(constraints, retType)
 }
 
-fun generateRecordDefinitionConstraints(environment: Environment, definition: RecordDefinition): ExpressionConstraints {
-    val labels = mutableMapOf<String, Type>()
-    val constraints = mutableListOf<Constraint>()
-    for(l in definition.labels) {
-        val (c, t) = generateExpressionConstraints(environment, l.expression)
+fun generateEntityDefinitionConstraints(environment: Environment, definition: EntityDefinition): ExpressionConstraints =
+    if(definition.expressions.isEmpty()) {
+        val entityType = ClosedEntityType(setOf())
+        definition._type = entityType
+        ExpressionConstraints(listOf(), entityType)
+    } else {
+        val constraints = mutableListOf<Constraint>()
+        val components = mutableSetOf<Type>()
+
+        for(e in definition.expressions.dropLast(1)) {
+            val (c, t) = generateExpressionConstraints(environment, e)
+            val componentType = OpenRecordType(mapOf(), freshTypeVariable(ComponentKind))
+            constraints.addAll(c)
+            constraints.add(Constraint(componentType, t))
+            components.add(componentType)
+        }
+        val l = definition.expressions.last()
+
+        val (c, t) = generateExpressionConstraints(environment, l)
+        val row = freshTypeVariable(RowOrComponent)
+        val entityType = OpenEntityType(components, row)
+        definition._type = entityType
         constraints.addAll(c)
-        labels[l.label.value] = t
+        constraints.add(Constraint(row, t))
+        ExpressionConstraints(constraints, entityType)
     }
 
-
-    val outputType =
-        if(definition.row != null) {
-            val record = OpenRecordType(labels, freshTypeVariable())
-            val (c, t) = generateExpressionConstraints(environment, definition.row)
-            constraints.addAll(c)
-            constraints.add(Constraint(t, record.row))
-            record
-        } else ClosedRecordType(labels)
-
-
-
-    //{a=1, b=2, x}
-    //{x, y}
-    //
-
-    /*val substitutions = unify(constraints)
-    val r = applySubstitutions(outputType, substitutions) as OpenRecordType
-    val newEnv = environment.applySubstitutions(substitutions)
-    return if(newEnv.freeTypeVariables.contains(r.row)) ExpressionConstraints(listOf(), r)
-    else ExpressionConstraints(listOf(), ClosedRecordType(r.labels))*/
-    //when closing, run unification, check if the row type is free or in the environment, if it's free, return open, else return closed
-
-    definition._type = outputType
-
-    return ExpressionConstraints(constraints, outputType)
-}
-
-fun generateRecordLabelConstraints(environment: Environment, label: RecordLabel): ExpressionConstraints {
-    val (c, t) = generateExpressionConstraints(environment, label.expression)
-    val type = ClosedRecordType(mapOf(label.label.value to t))
-    label._type = type
-    return ExpressionConstraints(c, type)
-}
-
-fun generateRecordSelectionConstraints(environment: Environment, selection: RecordSelection): ExpressionConstraints {
-    val (recordConstraints, recordType) = generateExpressionConstraints(environment, selection.record)
-    val outputType = freshTypeVariable()
-    val otherRecordType = OpenRecordType(mapOf(selection.label.value to outputType), freshTypeVariable())
+fun generateEntitySelectionConstraints(environment: Environment, selection: EntitySelection): ExpressionConstraints {
+    val (recordConstraints, recordType) = generateExpressionConstraints(environment, selection.entity)
+    val outputType = environment.lookupType(selection.label)
+    val inputType = OpenEntityType(setOf(environment.lookupType(selection.label)), freshTypeVariable(RowOrComponent))
     selection._type = outputType
-    return ExpressionConstraints(recordConstraints + Constraint(recordType, otherRecordType), outputType)
+    return ExpressionConstraints(recordConstraints + Constraint(recordType, inputType), outputType)
 }
 
-fun generateRecordRestritionConstraints(environment: Environment, restriction: RecordRestriction): ExpressionConstraints {
-    val f = freshTypeVariable()
-    val lt = freshTypeVariable()
-    val inputType = OpenRecordType(mapOf(restriction.label.value to lt), f)
-    val (recordConstraints, recordType) = generateExpressionConstraints(environment, restriction.record)
+fun generateEntityRestritionConstraints(environment: Environment, restriction: EntityRestriction): ExpressionConstraints {
+    val f = freshTypeVariable(RowOrComponent)
+    val inputType = OpenEntityType(setOf(environment.lookupType(restriction.label)), f)
+    val (c, t) = generateExpressionConstraints(environment, restriction.entity)
     restriction._type = f
-    return ExpressionConstraints(recordConstraints + Constraint(inputType, recordType), f)
+    return ExpressionConstraints(c + Constraint(inputType, t), f)
+}
+
+fun generateComponentSelectionConstraints(environment: Environment, selection: ComponentSelection): ExpressionConstraints {
+    val (c, t) = generateExpressionConstraints(environment, selection.component)
+    val outputType = freshTypeVariable(Undetermined)
+    val inputType = OpenRecordType(mapOf(selection.label.name.value to outputType), freshTypeVariable(ComponentKind))
+    selection._type = outputType
+    return ExpressionConstraints(c + Constraint(t, inputType), outputType)
 }

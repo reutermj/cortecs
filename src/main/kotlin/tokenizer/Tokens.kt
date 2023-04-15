@@ -46,6 +46,7 @@ fun writeName(value: String, line: Int, column: Int) =
         "let" -> LetToken(line, column)
         "fn" -> FnToken(line, column)
         "return" -> ReturnToken(line, column)
+        "component" -> ComponentToken(line, column)
         else -> NameToken(value, line, column)
     }
 data class NameToken(override val value: String, override val line: Int, override val column: Int): Token()
@@ -58,6 +59,9 @@ data class FnToken(override val line: Int, override val column: Int): Token() {
 data class ReturnToken(override val line: Int, override val column: Int): Token() {
     override val value = "return"
 }
+data class ComponentToken(override val line: Int, override val column: Int): Token() {
+    override val value = "component"
+}
 
 data class CommaToken(override val line: Int, override val column: Int): Token() {
     constructor(unused: String, line: Int, column: Int): this(line, column)
@@ -67,6 +71,11 @@ data class CommaToken(override val line: Int, override val column: Int): Token()
 data class DotToken(override val line: Int, override val column: Int): Token() {
     constructor(unused: String, line: Int, column: Int): this(line, column)
     override val value = "."
+}
+
+data class ColonToken(override val line: Int, override val column: Int): Token() {
+    constructor(unused: String, line: Int, column: Int): this(line, column)
+    override val value = ":"
 }
 
 data class BackSlashToken(override val line: Int, override val column: Int): Token() {

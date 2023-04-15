@@ -1,5 +1,15 @@
-fn bla(a, b) {
-    let d = a.y
-    let c = {x = 1}
-    return c
+component Position(x: Int, y: Int)
+component Velocity(dx: Int, dy: Int)
+
+fn foo() {
+    let a = {Position(1, 2), Velocity(3, 4)}
+    let b = a\Velocity
+    return b.Position
+}
+
+fn move(e) {
+    let x = e.Position.x
+    let y = e.Position.y
+    let p = Position(y, x)
+    return {p, e}
 }
