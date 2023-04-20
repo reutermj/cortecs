@@ -25,7 +25,7 @@ data class Constraint(val lhs: Type, val rhs: Type)
 var nextTypeIndex = 0
 fun freshTypeVariable(kind: Kind) = TypeVariable(nextTypeIndex++, kind)
 
-data class ProgramConstraints(val constraints: List<Constraint>, val environment: Environment)
+data class ProgramConstraints(val environment: Environment)
 
 fun generateProgramConstraints(environment: Environment, program: Program) =
     when(program) {
@@ -53,28 +53,73 @@ fun generateComponentConstraints(environment: Environment, component: Component)
             Arrow(sum, componentType)
         }
 
-    return ProgramConstraints(listOf(), environment.registerType(component.name, componentType) + Pair(component.name, type))
+    component._type = componentType
+    printWithTypes(component)
+
+    return ProgramConstraints(environment.registerType(component.name, componentType) + Pair(component.name, type))
 }
 
-fun generateFnType(fn: Fn): Type {
-    val parameterTypes = List(fn.parameters.size) { freshTypeVariable(Undetermined) }
-    val returnType = freshTypeVariable(Undetermined)
+fun generateFnClusterConstraints(environment: Environment, fns: List<Fn>): ProgramConstraints {
+    var env = environment
+    val parameterTypesLookup = mutableMapOf<String, List<Pair<Name, TypeVariable>>>()
+    val returnTypeLookup = mutableMapOf<String, TypeVariable>()
+    val typeLookup = mutableMapOf<String, Arrow>()
+    val constraints = mutableListOf<Constraint>()
 
-    val type =
-        when(parameterTypes.size) {
-            0 -> Arrow(UnitType, returnType)
-            1 -> Arrow(parameterTypes.first(), returnType)
-            else -> {
-                val sum =
-                    parameterTypes
-                        .dropLast(1)
-                        .foldRight(parameterTypes.last() as Type) { t, acc -> Sum(t, acc) }
+    for(fn in fns) {
+        val parameterTypes = List(fn.parameters.size) { freshTypeVariable(Undetermined) }
+        val returnType = freshTypeVariable(Undetermined)
+        val type =
+            when (parameterTypes.size) {
+                0 -> Arrow(UnitType, returnType)
+                1 -> Arrow(parameterTypes.first(), returnType)
+                else -> {
+                    val sum =
+                        parameterTypes
+                            .dropLast(1)
+                            .foldRight(parameterTypes.last() as Type) { t, acc -> Sum(t, acc) }
 
-                Arrow(sum, returnType)
+                    Arrow(sum, returnType)
+                }
             }
-        }
 
-    return type
+        parameterTypesLookup[fn.name.name.value] = fn.parameters.zip(parameterTypes)
+        returnTypeLookup[fn.name.name.value] = returnType
+        typeLookup[fn.name.name.value] = type
+        env += (fn.name to type)
+    }
+
+    for(fn in fns) {
+        val parameterTypes = parameterTypesLookup[fn.name.name.value]!!
+        val returnType = returnTypeLookup[fn.name.name.value]!!
+
+        var envp = env + parameterTypes
+
+        for (body in fn.body) {
+            val (c, e) = generateFnBodyConstraints(envp, returnType, body)
+            envp += e
+            constraints.addAll(c)
+        }
+    }
+
+    val substitutions = unify(constraints)
+    env = env.applySubstitutions(substitutions)
+
+    for(fn in fns) {
+        val type = typeLookup[fn.name.name.value]!!
+
+        val newType = applySubstitutions(type, substitutions)
+        val variablesToGeneralize = newType.freeTypeVariables - env.freeTypeVariables
+        val typeScheme = variablesToGeneralize.fold(newType) { acc, t -> TypeScheme(t, acc) }
+        env += Pair(fn.name, typeScheme)
+        fn._type = typeScheme
+
+        printWithTypes(fn)
+
+        for(body in fn.body) updateTypes(body, substitutions)
+    }
+
+    return ProgramConstraints(env)
 }
 
 fun generateFnConstraints(environment: Environment, fn: Fn): ProgramConstraints {
@@ -111,10 +156,11 @@ fun generateFnConstraints(environment: Environment, fn: Fn): ProgramConstraints 
     val variablesToGeneralize = newType.freeTypeVariables - newEnvironment.freeTypeVariables
     val typeScheme = variablesToGeneralize.fold(newType) { acc, t -> TypeScheme(t, acc) }
     fn._type = typeScheme
+    printWithTypes(fn)
 
     for(body in fn.body) updateTypes(body, substitutions)
 
-    return ProgramConstraints(constraints, newEnvironment + Pair(fn.name, typeScheme))
+    return ProgramConstraints(newEnvironment + Pair(fn.name, typeScheme))
 }
 
 data class FnBodyConstraints(val constraints: List<Constraint>, val envAdds: List<Pair<Name, Type>>)

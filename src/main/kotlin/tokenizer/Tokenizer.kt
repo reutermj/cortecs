@@ -93,13 +93,12 @@ fun main() {
     val s = file.readText()
     val defs = parse(tokenize(s))
     val dg = generateCallDependencyGraph(defs)
-    var env = Environment()
+    /*var env = Environment()
     for (def in defs) {
-        val (c, e) = generateProgramConstraints(env, def)
-        val substitutions = unify(c)
+        val (e) = generateProgramConstraints(env, def)
         printWithTypes(def)
         env = e
-    }
+    }*/
 }
 
 //region Name
