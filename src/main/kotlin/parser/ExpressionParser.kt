@@ -34,7 +34,7 @@ internal object ExpressionParserOperator: ParserStateMachine() {
         val expression = state.pop()
 
         return when(token) {
-            is PlusToken -> {
+            is PlusToken, is MinusToken -> {
                 when(expression) {
                     is ExpressionValue -> {
                         state.push(ExpressionParserAccumulate(token, expression.expression))
@@ -53,14 +53,14 @@ internal object ExpressionParserOperator: ParserStateMachine() {
     }
 }
 
-internal data class ExpressionParserAccumulate(val token: PlusToken, val lhs: Expression): ParserStateMachine() {
+internal data class ExpressionParserAccumulate(val operator: Token, val lhs: Expression): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         //this function should be called with a stack:
         //[..., Caller, ExpressionValue]
         return when(val rhs = state.pop()) {
             is ExpressionValue -> {
-                state.push(ExpressionParserOperator)//Arithmetic(ArithmeticKind.add, lhs, rhs.expression)
-                state.push(ExpressionValue(FnCall(Name(NameToken(token.value, token.line, token.column)), listOf(lhs, rhs.expression))))
+                state.push(ExpressionParserOperator)
+                state.push(ExpressionValue(FnCallAst(NameAst(NameToken(operator.value, operator.line, operator.column)), listOf(lhs, rhs.expression))))
                 Pair(TermParserOperator, false)
             }
             else -> throw Exception()
@@ -80,10 +80,10 @@ internal object TermParserOperator: ParserStateMachine() {
         val expression = state.pop()
 
         return when(token) {
-            is MulToken -> {
+            is MulToken, is DivToken-> {
                 when(expression) {
                     is ExpressionValue -> {
-                        state.push(TermParserAccumulate(expression.expression))
+                        state.push(TermParserAccumulate(token, expression.expression))
                         Pair(FactorParser, true)
                     }
                     else -> throw Exception()
@@ -98,13 +98,13 @@ internal object TermParserOperator: ParserStateMachine() {
     }
 }
 
-internal data class TermParserAccumulate(val lhs: Expression): ParserStateMachine() {
+internal data class TermParserAccumulate(val operator: Token, val lhs: Expression): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         //this function should be called with a stack:
         //[..., Caller, AddParser/AddPParser, ExpressionValue]
         return when(val rhs = state.pop()) {
             is ExpressionValue -> {
-                state.push(ExpressionValue(FnCall(Name(NameToken(token.value, token.line, token.column)), listOf(lhs, rhs.expression))))
+                state.push(ExpressionValue(FnCallAst(NameAst(NameToken(operator.value, operator.line, operator.column)), listOf(lhs, rhs.expression))))
                 Pair(TermParserOperator, false)
             }
             else -> throw Exception()
@@ -123,27 +123,27 @@ internal object FactorParser: ParserStateMachine() {
 
         return when(token) {
             is NameToken -> {
-                state.push(ExpressionValue(Name(token)))
+                state.push(ExpressionValue(NameAst(token)))
                 Pair(FactorParserFollowUp, true)
             }
             is IntToken -> {
                 val caller = state.pop()
-                state.push(ExpressionValue(IntConstant(token)))
+                state.push(ExpressionValue(IntConstantAst(token)))
                 Pair(caller, true)
             }
             is FloatToken -> {
                 val caller = state.pop()
-                state.push(ExpressionValue(FloatConstant(token)))
+                state.push(ExpressionValue(FloatConstantAst(token)))
                 Pair(caller, true)
             }
             is StringToken -> {
                 val caller = state.pop()
-                state.push(ExpressionValue(StringConstant(token)))
+                state.push(ExpressionValue(StringConstantAst(token)))
                 Pair(caller, true)
             }
             is CharToken -> {
                 val caller = state.pop()
-                state.push(ExpressionValue(CharConstant(token)))
+                state.push(ExpressionValue(CharConstantAst(token)))
                 Pair(caller, true)
             }
             is OpenParenToken -> {
@@ -219,7 +219,7 @@ internal data class FnCallCloseParen(val target: Expression, val args: List<Expr
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is CloseParenToken -> {
-                state.push(ExpressionValue(FnCall(target, args)))
+                state.push(ExpressionValue(FnCallAst(target, args)))
                 Pair(FactorParserFollowUp, true)
             }
             else -> throw Exception()
@@ -280,7 +280,7 @@ internal data class EntityParserCloseCurly(val expressions: List<Expression>): P
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is CloseCurlyToken -> {
-                state.push(ExpressionValue(EntityDefinition(expressions)))
+                state.push(ExpressionValue(EntityDefinitionAst(expressions)))
                 Pair(FactorParserFollowUp, true)
             }
             else -> throw Exception()
@@ -292,7 +292,7 @@ internal data class EntityRestrictionParserName(val record: Expression): ParserS
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is NameToken -> {
-                state.push(ExpressionValue(EntityRestriction(record, Name(token))))
+                state.push(ExpressionValue(EntityRestrictionAst(record, token)))
                 Pair(FactorParserFollowUp, true)
             }
             else -> throw Exception()
@@ -304,8 +304,8 @@ internal data class SelectionParserName(val record: Expression): ParserStateMach
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is NameToken -> {
-                if(token.value[0].isUpperCase()) state.push(ExpressionValue(EntitySelection(record, Name(token))))
-                else state.push(ExpressionValue(ComponentSelection(record, Name(token))))
+                if(token.value[0].isUpperCase()) state.push(ExpressionValue(EntitySelectionAst(record, token)))
+                else state.push(ExpressionValue(ComponentSelectionAst(record, token)))
                 Pair(FactorParserFollowUp, true)
             }
             else -> throw Exception()

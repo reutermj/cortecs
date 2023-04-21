@@ -16,7 +16,7 @@ internal object FnBodyParser: ParserStateMachine() {
     }
 }
 
-internal data class FnBodyValue(val body: FnBody): ParserStateMachine() {
+internal data class FnBodyValue(val body: FnBodyAst): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         throw Exception()
     }
@@ -36,13 +36,13 @@ internal object LetParserKeyword: ParserStateMachine() {
 internal object LetParserName: ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
-            is NameToken -> Pair(LetParserEqualSign(Name(token)), true)
+            is NameToken -> Pair(LetParserEqualSign(token), true)
             else -> throw Exception()
         }
     }
 }
 
-internal data class LetParserEqualSign(val name: Name): ParserStateMachine() {
+internal data class LetParserEqualSign(val name: NameToken): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is EqualSignToken -> {
@@ -54,7 +54,7 @@ internal data class LetParserEqualSign(val name: Name): ParserStateMachine() {
     }
 }
 
-internal data class LetParserExpression(val name: Name): ParserStateMachine() {
+internal data class LetParserExpression(val name: NameToken): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         //this function should be called with a stack:
         //[..., FnBodyParser, ExpressionValue]
@@ -62,7 +62,7 @@ internal data class LetParserExpression(val name: Name): ParserStateMachine() {
         return when(val expression = state.pop()) {
             is ExpressionValue -> {
                 val caller = state.pop()
-                state.push(FnBodyValue(Let(name, expression.expression)))
+                state.push(FnBodyValue(LetAst(name, expression.expression)))
                 Pair(caller, false)
             }
             else -> throw Exception()
@@ -94,7 +94,7 @@ internal object ReturnParserExpression: ParserStateMachine() {
         return when(val expression = state.pop()) {
             is ExpressionValue -> {
                 val caller = state.pop()
-                state.push(FnBodyValue(Return(expression.expression)))
+                state.push(FnBodyValue(ReturnAst(expression.expression)))
                 Pair(caller, false)
             }
             else -> throw Exception()

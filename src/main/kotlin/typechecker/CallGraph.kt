@@ -2,43 +2,33 @@ package typechecker
 
 import parser.*
 
-fun getFnDefs(fns: List<Program>): Pair<Set<String>, Map<String, Fn>> {
+fun generateCallDependencyGraph(defs: List<ProgramAst>) {
     val fnNames = mutableSetOf<String>()
-    val fnLookup = mutableMapOf<String, Fn>()
-    for(fn in fns) {
-        if(fn is Fn) {
-            fnNames.add(fn.name.name.value)
-            fnLookup[fn.name.name.value] = fn
-        }
-    }
-
-    return Pair(fnNames, fnLookup)
-}
-
-fun generateCallDependencyGraph(defs: List<Program>) {
-    val fnNames = mutableSetOf<String>()
-    val fnLookup = mutableMapOf<String, Fn>()
+    val fnLookup = mutableMapOf<String, FnAst>()
     val dependencyGraph = mutableMapOf<String, Set<String>>()
     var env = Environment()
 
     for(def in defs) {
-        if(def is Fn) {
-            fnNames.add(def.name.name.value)
-        } else if(def is Component) {
+        if(def is FnAst) {
+            fnNames.add(def.name.value)
+        } else if(def is ComponentAst) {
             env = generateComponentConstraints(env, def).environment
         }
     }
 
     for(def in defs) {
-        if(def is Fn) {
-            fnLookup[def.name.name.value] = def
-            dependencyGraph[def.name.name.value] = (def.body.fold(setOf<String>()) { acc, fnBody -> acc + getCalls(fnBody, fnNames) } - def.name.name.value )
+        if(def is FnAst) {
+            fnLookup[def.name.value] = def
+            dependencyGraph[def.name.value] = (def.body.fold(setOf<String>()) { acc, fnBody -> acc + getCalls(fnBody, fnNames) } - def.name.value )
         }
     }
 
     val visited = mutableSetOf<String>()
     for(fn in fnNames) {
-        dfs(fn, dependencyGraph, fnLookup, env, CallGraphState(listOf(), setOf(), setOf()), visited)
+        when(val envp = dfs(fn, dependencyGraph, fnLookup, env, CallGraphState(listOf(), setOf(), setOf()), visited)) {
+            is Yay -> env = envp.env
+            is Sad -> throw Exception()
+        }
     }
 }
 
@@ -48,7 +38,7 @@ data class Sad(val env: Environment, val state: CallGraphState): CallGraphThing
 
 data class CallGraphState(val stack: List<String>, val component: Set<String>, val backwards: Set<String>)
 
-fun dfs(fnName: String, dependencyGraph: Map<String, Set<String>>, fnLookup: Map<String, Fn>, env: Environment,
+fun dfs(fnName: String, dependencyGraph: Map<String, Set<String>>, fnLookup: Map<String, FnAst>, env: Environment,
         state: CallGraphState = CallGraphState(listOf(), setOf(), setOf()),
         visited: MutableSet<String> = mutableSetOf()): CallGraphThing {
     if(visited.contains(fnName)) return Yay(env)
@@ -134,21 +124,21 @@ fun dfs(fnName: String, dependencyGraph: Map<String, Set<String>>, fnLookup: Map
 
 fun getCalls(ast: Ast, fnDefs: Set<String>): Set<String> =
     when (ast) {
-        is Name -> if(fnDefs.contains(ast.name.value)) setOf(ast.name.value) else setOf()
-        is FnCall -> ast.arguments.fold(getCalls(ast.fn, fnDefs)) { acc, expression -> acc + getCalls(expression, fnDefs) }
+        is NameAst -> if(fnDefs.contains(ast.name.value)) setOf(ast.name.value) else setOf()
+        is FnCallAst -> ast.arguments.fold(getCalls(ast.fn, fnDefs)) { acc, expression -> acc + getCalls(expression, fnDefs) }
 
-        is EntityDefinition -> ast.expressions.fold(setOf()) { acc, expression -> acc + getCalls(expression, fnDefs) }
-        is EntitySelection -> getCalls(ast.entity, fnDefs)
-        is EntityRestriction -> getCalls(ast.entity, fnDefs)
-        is ComponentSelection -> getCalls(ast.component, fnDefs)
+        is EntityDefinitionAst -> ast.expressions.fold(setOf()) { acc, expression -> acc + getCalls(expression, fnDefs) }
+        is EntitySelectionAst -> getCalls(ast.entity, fnDefs)
+        is EntityRestrictionAst -> getCalls(ast.entity, fnDefs)
+        is ComponentSelectionAst -> getCalls(ast.component, fnDefs)
 
-        is Let -> getCalls(ast.expression, fnDefs)
-        is Return -> getCalls(ast.expression, fnDefs)
+        is LetAst -> getCalls(ast.expression, fnDefs)
+        is ReturnAst -> getCalls(ast.expression, fnDefs)
 
-        is IntConstant -> setOf()
-        is FloatConstant -> setOf()
-        is StringConstant -> setOf()
-        is CharConstant -> setOf()
+        is IntConstantAst -> setOf()
+        is FloatConstantAst -> setOf()
+        is StringConstantAst -> setOf()
+        is CharConstantAst -> setOf()
 
         else -> throw Exception()
     }

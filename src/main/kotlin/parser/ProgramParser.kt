@@ -18,7 +18,7 @@ internal object ProgramParserInitial: ParserStateMachine() {
     }
 }
 
-internal data class ProgramPaser(val program: MutableList<Program>): ParserStateMachine() {
+internal data class ProgramPaser(val program: MutableList<ProgramAst>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         when(val fn = state.pop()) {
             is ProgramValue -> program.add(fn.fn)
@@ -34,7 +34,7 @@ internal data class ProgramPaser(val program: MutableList<Program>): ParserState
     }
 }
 
-internal data class ProgramValue(val fn: Program): ParserStateMachine() {
+internal data class ProgramValue(val fn: ProgramAst): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         throw Exception()
     }
@@ -54,13 +54,13 @@ internal object FnParserKeyword: ParserStateMachine() {
 internal object FnParserName: ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
-            is NameToken -> Pair(FnParserOpenParen(Name(token)), true)
+            is NameToken -> Pair(FnParserOpenParen(token), true)
             else -> throw Exception()
         }
     }
 }
 
-internal data class FnParserOpenParen(val name: Name): ParserStateMachine() {
+internal data class FnParserOpenParen(val name: NameToken): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is OpenParenToken -> Pair(FnParserArgsOrLambda(name), true)
@@ -69,7 +69,7 @@ internal data class FnParserOpenParen(val name: Name): ParserStateMachine() {
     }
 }
 
-internal data class FnParserArgsOrLambda(val name: Name): ParserStateMachine() {
+internal data class FnParserArgsOrLambda(val name: NameToken): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is NameToken -> Pair(FnParserArgs(name, mutableListOf()), false)
@@ -79,11 +79,11 @@ internal data class FnParserArgsOrLambda(val name: Name): ParserStateMachine() {
     }
 }
 
-internal data class FnParserArgs(val name: Name, val args: MutableList<Name>): ParserStateMachine() {
+internal data class FnParserArgs(val name: NameToken, val args: MutableList<NameToken>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is NameToken -> {
-                args.add(Name(token))
+                args.add(token)
                 Pair(FnParserCommaOrLambda(this), true)
             }
             else -> throw Exception()
@@ -101,7 +101,7 @@ internal data class FnParserCommaOrLambda(val args: FnParserArgs): ParserStateMa
     }
 }
 
-internal data class FnParserCloseParen(val name: Name, val args: List<Name>): ParserStateMachine() {
+internal data class FnParserCloseParen(val name: NameToken, val args: List<NameToken>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is CloseParenToken -> Pair(FnParserOpenCurly(name, args), true)
@@ -110,7 +110,7 @@ internal data class FnParserCloseParen(val name: Name, val args: List<Name>): Pa
     }
 }
 
-internal data class FnParserOpenCurly(val name: Name, val args: List<Name>): ParserStateMachine() {
+internal data class FnParserOpenCurly(val name: NameToken, val args: List<NameToken>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is OpenCurlyToken -> Pair(FnParserBodyInit(name, args), true)
@@ -119,7 +119,7 @@ internal data class FnParserOpenCurly(val name: Name, val args: List<Name>): Par
     }
 }
 
-internal data class FnParserBodyInit(val name: Name, val args: List<Name>): ParserStateMachine() {
+internal data class FnParserBodyInit(val name: NameToken, val args: List<NameToken>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is CloseCurlyToken -> Pair(FnParserCloseCurly(name, args, mutableListOf()), false)
@@ -131,7 +131,7 @@ internal data class FnParserBodyInit(val name: Name, val args: List<Name>): Pars
     }
 }
 
-internal data class FnParserBody(val name: Name, val args: List<Name>, val body: MutableList<FnBody>): ParserStateMachine() {
+internal data class FnParserBody(val name: NameToken, val args: List<NameToken>, val body: MutableList<FnBodyAst>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         val fnBody = state.pop()
         when(fnBody) {
@@ -149,12 +149,12 @@ internal data class FnParserBody(val name: Name, val args: List<Name>, val body:
     }
 }
 
-internal data class FnParserCloseCurly(val name: Name, val args: List<Name>, val body: List<FnBody>): ParserStateMachine() {
+internal data class FnParserCloseCurly(val name: NameToken, val args: List<NameToken>, val body: List<FnBodyAst>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is CloseCurlyToken -> {
                 val caller = state.pop()
-                state.push(ProgramValue(Fn(name, args, body)))
+                state.push(ProgramValue(FnAst(name, args, body)))
                 Pair(caller, true)
             }
             else -> throw Exception()
@@ -178,13 +178,13 @@ internal object ComponentParserKeyword: ParserStateMachine() {
 internal object ComponentParserName: ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
-            is NameToken -> Pair(ComponentParserOpenParen(Name(token)), true)
+            is NameToken -> Pair(ComponentParserOpenParen(token), true)
             else -> throw Exception()
         }
     }
 }
 
-internal data class ComponentParserOpenParen(val name: Name): ParserStateMachine() {
+internal data class ComponentParserOpenParen(val name: NameToken): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is OpenParenToken -> Pair(ComponentParserArgs(name, mutableListOf()), true)
@@ -193,16 +193,16 @@ internal data class ComponentParserOpenParen(val name: Name): ParserStateMachine
     }
 }
 
-internal data class ComponentParserArgs(val name: Name, val args: MutableList<ComponentValue>): ParserStateMachine() {
+internal data class ComponentParserArgs(val name: NameToken, val args: MutableList<ComponentValue>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
-            is NameToken -> Pair(ComponentParserColon(Name(token), this), true)
+            is NameToken -> Pair(ComponentParserColon(token, this), true)
             else -> throw Exception()
         }
     }
 }
 
-internal data class ComponentParserColon(val name: Name, val args: ComponentParserArgs): ParserStateMachine() {
+internal data class ComponentParserColon(val name: NameToken, val args: ComponentParserArgs): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is ColonToken -> Pair(ComponentParserType(name, args), true)
@@ -211,11 +211,11 @@ internal data class ComponentParserColon(val name: Name, val args: ComponentPars
     }
 }
 
-internal data class ComponentParserType(val name: Name, val args: ComponentParserArgs): ParserStateMachine() {
+internal data class ComponentParserType(val name: NameToken, val args: ComponentParserArgs): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is NameToken -> {
-                args.args.add(ComponentValue(name, Name(token)))
+                args.args.add(ComponentValue(name, token))
                 Pair(ComponentParserCommaOrLambda(args), true)
             }
             else -> throw Exception()
@@ -233,12 +233,12 @@ internal data class ComponentParserCommaOrLambda(val args: ComponentParserArgs):
     }
 }
 
-internal data class ComponentParserCloseParen(val name: Name, val args: List<ComponentValue>): ParserStateMachine() {
+internal data class ComponentParserCloseParen(val name: NameToken, val args: List<ComponentValue>): ParserStateMachine() {
     override fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean> {
         return when(token) {
             is CloseParenToken -> {
                 val caller = state.pop()
-                state.push(ProgramValue(Component(name, args)))
+                state.push(ProgramValue(ComponentAst(name, args)))
                 Pair(caller, true)
             }
             else -> throw Exception()

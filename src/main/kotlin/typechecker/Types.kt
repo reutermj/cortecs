@@ -1,12 +1,11 @@
 package typechecker
 
 sealed interface Kind
-object Star: Kind
-object Row: Kind
+object TypeKind: Kind
+object EntityKind: Kind
 object ComponentKind: Kind
-object RowOrComponent: Kind
-object Undetermined: Kind
-data class ArrowKind(val lhs: Kind, val rhs: Kind): Kind
+object EntityOrComponentKind: Kind
+object UndeterminedKind: Kind
 
 sealed interface Type {
     val freeTypeVariables: Set<TypeVariable>
@@ -17,7 +16,7 @@ object IntType: Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = setOf()
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "Int"
 }
@@ -25,7 +24,7 @@ object FloatType: Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = setOf()
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "Float"
 }
@@ -33,7 +32,7 @@ object StringType: Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = setOf()
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "String"
 }
@@ -41,7 +40,7 @@ object CharType: Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = setOf()
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "Char"
 }
@@ -49,7 +48,7 @@ object UnitType: Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = setOf()
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "Unit"
 }
@@ -62,19 +61,19 @@ data class ComponentType(val name: String): Type {
     override fun toString() = name
 }
 
-data class Arrow(val lhs: Type, val rhs: Type): Type {
+data class FunctionType(val lhs: Type, val rhs: Type): Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = lhs.freeTypeVariables + rhs.freeTypeVariables
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "($lhs -> $rhs)"
 }
-data class Sum(val lhs: Type, val rhs: Type): Type {
+data class SumType(val lhs: Type, val rhs: Type): Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = lhs.freeTypeVariables + rhs.freeTypeVariables
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "($lhs x $rhs)"
 }
@@ -86,12 +85,11 @@ data class TypeVariable(val n: Int, override val kind: Kind): Type {
 
     override fun toString() =
         when(kind) {
-            is Undetermined -> "u$n"
-            is Star -> "t$n"
-            is RowOrComponent -> "rc$n"
-            is Row -> "r$n"
+            is UndeterminedKind -> "u$n"
+            is TypeKind -> "t$n"
+            is EntityOrComponentKind -> "rc$n"
+            is EntityKind -> "r$n"
             is ComponentKind -> "c$n"
-            else -> throw Exception()
         }
 }
 data class TypeScheme(val boundVariable: TypeVariable, val body: Type): Type {
@@ -99,7 +97,7 @@ data class TypeScheme(val boundVariable: TypeVariable, val body: Type): Type {
         get() = body.freeTypeVariables - boundVariable
 
     override val kind: Kind
-        get() = Star
+        get() = TypeKind
 
     override fun toString() = "$boundVariable.$body"
 }
@@ -109,7 +107,7 @@ data class OpenEntityType(val components: Set<Type>, val row: TypeVariable): Typ
         get() = components.fold(row.freeTypeVariables) { acc, type -> acc + type.freeTypeVariables }
 
     override val kind: Kind
-        get() = Row
+        get() = EntityKind
 
     override fun toString() =
         when(components.size) {
@@ -127,7 +125,7 @@ data class ClosedEntityType(val components: Set<Type>): Type {
         get() = components.fold(setOf()) { acc, type -> acc + type.freeTypeVariables }
 
     override val kind: Kind
-        get() = Row
+        get() = EntityKind
 
     override fun toString() =
         when(components.size) {

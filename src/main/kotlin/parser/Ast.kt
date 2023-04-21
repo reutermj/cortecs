@@ -14,41 +14,41 @@ sealed class Ast {
     }
 }
 
-sealed class Program: Ast()
-data class Fn(val name: Name, val parameters: List<Name>, val body: List<FnBody>): Program()
-data class ComponentValue(val name: Name, val type: Name)
-data class Component(val name: Name, val valueDefs: List<ComponentValue>): Program()
+sealed class ProgramAst: Ast()
+data class FnAst(val name: NameToken, val parameters: List<NameToken>, val body: List<FnBodyAst>): ProgramAst()
+data class ComponentValue(val name: NameToken, val type: NameToken)
+data class ComponentAst(val name: NameToken, val valueDefs: List<ComponentValue>): ProgramAst()
 
-sealed class FnBody: Ast()
-data class Let(val name: Name, val expression: Expression): FnBody()
-data class Return(val expression: Expression): FnBody()
+sealed class FnBodyAst: Ast()
+data class LetAst(val name: NameToken, val expression: Expression): FnBodyAst()
+data class ReturnAst(val expression: Expression): FnBodyAst()
 
 sealed class Expression: Ast()
-data class Name(val name: NameToken): Expression()
-data class FnCall(val fn: Expression, val arguments: List<Expression>): Expression()
+data class NameAst(val name: NameToken): Expression()
+data class FnCallAst(val fn: Expression, val arguments: List<Expression>): Expression()
 
-data class ComponentSelection(val component: Expression, val label: Name): Expression()
+data class ComponentSelectionAst(val component: Expression, val label: NameToken): Expression()
 
-data class EntityDefinition(val expressions: List<Expression>): Expression()
-data class EntityRestriction(val entity: Expression, val label: Name): Expression()
-data class EntitySelection(val entity: Expression, val label: Name): Expression()
+data class EntityDefinitionAst(val expressions: List<Expression>): Expression()
+data class EntityRestrictionAst(val entity: Expression, val label: NameToken): Expression()
+data class EntitySelectionAst(val entity: Expression, val label: NameToken): Expression()
 
-data class IntConstant(val value: IntToken): Expression() {
+data class IntConstantAst(val value: IntToken): Expression() {
     init {
         _type = IntType
     }
 }
-data class FloatConstant(val value: FloatToken): Expression() {
+data class FloatConstantAst(val value: FloatToken): Expression() {
     init {
         _type = FloatType
     }
 }
-data class StringConstant(val value: StringToken): Expression() {
+data class StringConstantAst(val value: StringToken): Expression() {
     init {
         _type = StringType
     }
 }
-data class CharConstant(val value: CharToken): Expression() {
+data class CharConstantAst(val value: CharToken): Expression() {
     init {
         _type = CharType
     }
@@ -57,24 +57,24 @@ data class CharConstant(val value: CharToken): Expression() {
 
 fun printWithTypes(ast: Ast, depth: Int = 0) {
     when(ast) {
-        is Component -> {
+        is ComponentAst -> {
             print("\t".repeat(depth))
-            print("component ${ast.name.name.value}(")
+            print("component ${ast.name.value}(")
             when(ast.valueDefs.size) {
                 0 -> {}
-                1 -> print("${ast.valueDefs.first().name.name.value}: ${ast.valueDefs.first().type.name.value}")
+                1 -> print("${ast.valueDefs.first().name.value}: ${ast.valueDefs.first().type.value}")
                 else -> {
                     for(value in ast.valueDefs.dropLast(1)) {
-                        print("${value.name.name.value}: ${value.type.name.value}, ")
+                        print("${value.name.value}: ${value.type.value}, ")
                     }
-                    print("${ast.valueDefs.last().name.name.value}: ${ast.valueDefs.last().type.name.value}")
+                    print("${ast.valueDefs.last().name.value}: ${ast.valueDefs.last().type.value}")
                 }
             }
             println(")")
         }
-        is Fn -> {
+        is FnAst -> {
             print("\t".repeat(depth))
-            print("fn ${ast.name.name.value}")
+            print("fn ${ast.name.value}")
             val ts = ast.type
             val arrow: Type
             if(ts is TypeScheme) {
@@ -92,19 +92,19 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
                 arrow = t
             } else arrow = ts
 
-            if(arrow !is Arrow) throw Exception()
+            if(arrow !is FunctionType) throw Exception()
 
             print("(")
             when(ast.parameters.size) {
                 0 -> {}
-                1 -> print("${ast.parameters.first().name.value}: ${arrow.lhs}")
+                1 -> print("${ast.parameters.first().value}: ${arrow.lhs}")
                 else -> {
                     var sum = arrow.lhs
                     for(name in ast.parameters.dropLast(1)) {
-                        print("${name.name.value}: ${(sum as Sum).lhs}, ")
-                        sum = (sum as Sum).rhs
+                        print("${name.value}: ${(sum as SumType).lhs}, ")
+                        sum = sum.rhs
                     }
-                    print("${ast.parameters.last().name.value}: $sum")
+                    print("${ast.parameters.last().value}: $sum")
                 }
             }
             println("): ${arrow.rhs} {")
@@ -114,20 +114,20 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
             }
             println("}")
         }
-        is Let -> {
+        is LetAst -> {
             print("\t".repeat(depth))
-            print("let ${ast.name.name.value}: ${ast.type} = ")
+            print("let ${ast.name.value}: ${ast.type} = ")
             printWithTypes(ast.expression, depth)
             println()
         }
-        is Return -> {
+        is ReturnAst -> {
             print("\t".repeat(depth))
             print("return ")
             printWithTypes(ast.expression, depth)
             println()
         }
 
-        is FnCall -> {
+        is FnCallAst -> {
             printWithTypes(ast.fn, depth)
             print("(")
             if(ast.arguments.any()) printWithTypes(ast.arguments.first(), depth)
@@ -138,7 +138,7 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
             print(")")
         }
 
-        is EntityDefinition -> {
+        is EntityDefinitionAst -> {
             print("{")
             if(ast.expressions.any()) printWithTypes(ast.expressions.first(), depth)
             for(def in ast.expressions.drop(1)) {
@@ -148,64 +148,64 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
             print("}")
         }
 
-        is EntitySelection -> {
+        is EntitySelectionAst -> {
             printWithTypes(ast.entity, depth)
-            print(".${ast.label.name.value}")
+            print(".${ast.label.value}")
         }
 
-        is EntityRestriction -> {
+        is EntityRestrictionAst -> {
             printWithTypes(ast.entity, depth)
-            print("\\${ast.label.name.value}")
+            print("\\${ast.label.value}")
         }
 
-        is ComponentSelection -> {
+        is ComponentSelectionAst -> {
             printWithTypes(ast.component, depth)
-            print(".${ast.label.name.value}")
+            print(".${ast.label.value}")
         }
 
-        is Name -> print(ast.name.value)
-        is IntConstant -> print(ast.value.value)
-        is FloatConstant -> print(ast.value.value)
-        is StringConstant -> print(ast.value.value)
-        is CharConstant -> print(ast.value.value)
+        is NameAst -> print(ast.name.value)
+        is IntConstantAst -> print(ast.value.value)
+        is FloatConstantAst -> print(ast.value.value)
+        is StringConstantAst -> print(ast.value.value)
+        is CharConstantAst -> print(ast.value.value)
     }
 }
 
 fun updateTypes(ast: Ast, substitutions: Map<TypeVariable, Type>) {
     when(ast) {
-        is Let -> {
+        is LetAst -> {
             ast.updateType(substitutions)
             updateTypes(ast.expression, substitutions)
         }
-        is Return -> {
+        is ReturnAst -> {
             ast.updateType(substitutions)
             updateTypes(ast.expression, substitutions)
         }
 
-        is FnCall -> {
+        is FnCallAst -> {
             ast.updateType(substitutions)
             updateTypes(ast.fn, substitutions)
             for(e in ast.arguments) updateTypes(e, substitutions)
         }
 
-        is EntityDefinition -> {
+        is EntityDefinitionAst -> {
             ast.updateType(substitutions)
             for(e in ast.expressions) updateTypes(e, substitutions)
         }
-        is EntityRestriction -> {
+        is EntityRestrictionAst -> {
             ast.updateType(substitutions)
             updateTypes(ast.entity, substitutions)
         }
-        is EntitySelection -> {
+        is EntitySelectionAst -> {
             ast.updateType(substitutions)
             updateTypes(ast.entity, substitutions)
         }
 
-        is ComponentSelection -> {
+        is ComponentSelectionAst -> {
             ast.updateType(substitutions)
             updateTypes(ast.component, substitutions)
         }
 
-        is Name -> ast.updateType(substitutions)
+        is NameAst -> ast.updateType(substitutions)
     }
 }

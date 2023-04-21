@@ -10,8 +10,8 @@ fun applySubstitutions(t: Type, substitutions: Map<TypeVariable, Type>): Type {
 
         is TypeScheme -> TypeScheme(t.boundVariable, applySubstitutions(t.body, substitutions - t.boundVariable))
 
-        is Arrow -> Arrow(applySubstitutions(t.lhs, substitutions), applySubstitutions(t.rhs, substitutions))
-        is Sum -> Sum(applySubstitutions(t.lhs, substitutions), applySubstitutions(t.rhs, substitutions))
+        is FunctionType -> FunctionType(applySubstitutions(t.lhs, substitutions), applySubstitutions(t.rhs, substitutions))
+        is SumType -> SumType(applySubstitutions(t.lhs, substitutions), applySubstitutions(t.rhs, substitutions))
 
         is UnitType -> t
         is IntType -> t
@@ -52,8 +52,6 @@ fun applySubstitutions(t: Type, substitutions: Map<TypeVariable, Type>): Type {
         }
 
         is ComponentType -> t
-
-        else -> throw Exception()
     }
 }
 
@@ -75,24 +73,20 @@ fun unify(constraints: List<Constraint>, substitutions: Map<TypeVariable, Type> 
         if(lhs == rhs) unify(tail, substitutions)
         else if(lhs is TypeVariable && !rhs.freeTypeVariables.contains(lhs)) {
             if (lhs.kind == rhs.kind) unify(tail, substitutions + Pair(lhs, rhs))
-            else if(lhs.kind == Undetermined) {
-                val v = freshTypeVariable(rhs.kind)
-                unify(tail, substitutions + Pair(lhs, v) + Pair(v, rhs))
-            } else if (lhs.kind == RowOrComponent && (rhs.kind == Row || rhs.kind == ComponentKind)) {
-                val v = freshTypeVariable(rhs.kind)
-                unify(tail, substitutions + Pair(lhs, v) + Pair(v, rhs))
-            } else throw Exception()
+            else if(lhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(lhs, rhs))
+            else if(rhs is TypeVariable && rhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(rhs, lhs))
+            else if (lhs.kind == EntityOrComponentKind && (rhs.kind == EntityKind || rhs.kind == ComponentKind)) unify(tail, substitutions + Pair(lhs, rhs))
+            else if (rhs is TypeVariable && rhs.kind == EntityOrComponentKind && (lhs.kind == EntityKind || lhs.kind == ComponentKind)) unify(tail, substitutions + Pair(rhs, lhs))
+            else throw Exception()
         } else if(rhs is TypeVariable && !lhs.freeTypeVariables.contains(rhs)) {
             if (lhs.kind == rhs.kind) unify(tail, substitutions + Pair(rhs, lhs))
-            else if(rhs.kind == Undetermined) {
-                val v = freshTypeVariable(lhs.kind)
-                unify(tail, substitutions + Pair(rhs, v) + Pair(v, lhs))
-            } else if (rhs.kind == RowOrComponent && (lhs.kind == Row || lhs.kind == ComponentKind)) {
-                val v = freshTypeVariable(rhs.kind)
-                unify(tail, substitutions + Pair(rhs, v) + Pair(v, lhs))
-            } else throw Exception()
-        } else if(lhs is Arrow && rhs is Arrow) unify(listOf(Constraint(lhs.lhs, rhs.lhs), Constraint(lhs.rhs, rhs.rhs)) + tail, substitutions)
-        else if(lhs is Sum && rhs is Sum) unify(listOf(Constraint(lhs.lhs, rhs.lhs), Constraint(lhs.rhs, rhs.rhs)) + tail, substitutions)
+            else if(rhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(rhs, lhs))
+            else if(lhs is TypeVariable && lhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(lhs, rhs))
+            else if (rhs.kind == EntityOrComponentKind && (lhs.kind == EntityKind || lhs.kind == ComponentKind)) unify(tail, substitutions + Pair(rhs, lhs))
+            else if (lhs is TypeVariable && lhs.kind == EntityOrComponentKind && (rhs.kind == EntityKind || rhs.kind == ComponentKind)) unify(tail, substitutions + Pair(lhs, rhs))
+            else throw Exception()
+        } else if(lhs is FunctionType && rhs is FunctionType) unify(listOf(Constraint(lhs.lhs, rhs.lhs), Constraint(lhs.rhs, rhs.rhs)) + tail, substitutions)
+        else if(lhs is SumType && rhs is SumType) unify(listOf(Constraint(lhs.lhs, rhs.lhs), Constraint(lhs.rhs, rhs.rhs)) + tail, substitutions)
         else if(lhs is OpenRecordType && rhs is OpenRecordType) unify(lhs, rhs, tail, substitutions)
         else if(lhs is ClosedRecordType && rhs is OpenRecordType) unify(rhs, lhs, tail, substitutions)
         else if(lhs is OpenRecordType && rhs is ClosedRecordType) unify(lhs, rhs, tail, substitutions)
@@ -109,10 +103,10 @@ fun unify(lhs: OpenEntityType, rhs: OpenEntityType, tail: List<Constraint>, subs
     val constraints = mutableListOf<Constraint>()
 
     val mlhs = lhs.components - rhs.components
-    constraints.add(Constraint(rhs.row, OpenEntityType(mlhs, freshTypeVariable(RowOrComponent))))
+    constraints.add(Constraint(rhs.row, OpenEntityType(mlhs, freshTypeVariable(EntityOrComponentKind))))
 
     val mrhs = (rhs.components - lhs.components)
-    constraints.add(Constraint(lhs.row, OpenEntityType(mrhs, freshTypeVariable(RowOrComponent))))
+    constraints.add(Constraint(lhs.row, OpenEntityType(mrhs, freshTypeVariable(EntityOrComponentKind))))
 
     return unify(constraints + tail, substitutions)
 }
@@ -138,10 +132,10 @@ fun unify(lhs: OpenRecordType, rhs: OpenRecordType, tail: List<Constraint>, subs
     for(label in lhs.labels.keys.intersect(rhs.labels.keys)) constraints.add(Constraint(lhs.labels[label]!!, rhs.labels[label]!!))
 
     val mlhs = (lhs.labels.keys - rhs.labels.keys).associateWith { lhs.labels[it]!! }
-    constraints.add(Constraint(rhs.row, OpenRecordType(mlhs, freshTypeVariable(Row))))
+    constraints.add(Constraint(rhs.row, OpenRecordType(mlhs, freshTypeVariable(EntityKind))))
 
     val mrhs = (rhs.labels.keys - lhs.labels.keys).associateWith { rhs.labels[it]!! }
-    constraints.add(Constraint(lhs.row, OpenRecordType(mrhs, freshTypeVariable(Row))))
+    constraints.add(Constraint(lhs.row, OpenRecordType(mrhs, freshTypeVariable(EntityKind))))
 
     return unify(constraints + tail, substitutions)
 }
@@ -165,13 +159,4 @@ fun unify(lhs: ClosedRecordType, rhs: ClosedRecordType, tail: List<Constraint>, 
     for(label in lhs.labels.keys) constraints.add(Constraint(lhs.labels[label]!!, rhs.labels[label]!!))
 
     return unify(constraints + tail, substitutions)
-}
-
-fun generalize(constraints: List<Constraint>, environment: Environment, type: Type): Pair<Environment, Type> {
-    val substitutions = unify(constraints)
-    val newType = applySubstitutions(type, substitutions)
-    val newEnvironment = environment.applySubstitutions(substitutions)
-    val variablesToGeneralize = newType.freeTypeVariables - newEnvironment.freeTypeVariables
-    val typeScheme = variablesToGeneralize.fold(newType) { acc, t -> TypeScheme(t, acc) }
-    return Pair(newEnvironment, typeScheme)
 }

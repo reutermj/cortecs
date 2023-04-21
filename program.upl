@@ -1,13 +1,12 @@
 component Position(x: Int, y: Int)
-
-fn foo(e) {
-    let a = e.Velocity
-    return move(e)
-}
-
 component Velocity(x: Int, y: Int)
 
-fn move(e) {
-    let a = e.Position
-    return foo(e)
+fn foo(e) {
+    let a = {Position(1, 2), e}
+    return a
+}
+
+fn move() {
+    let a = foo(Velocity(3, 4))
+    let b = foo({Velocity(3, 4)})
 }

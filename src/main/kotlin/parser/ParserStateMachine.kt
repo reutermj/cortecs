@@ -14,7 +14,7 @@ internal abstract class ParserStateMachine {
     abstract fun process(token: Token, state: ParserState): Pair<ParserStateMachine, Boolean>
 }
 
-fun parse(tokens: List<Token>): List<Program> {
+fun parse(tokens: List<Token>): List<ProgramAst> {
     val state = ParserState()
     var stm: ParserStateMachine = ProgramParserInitial
     var i = 0

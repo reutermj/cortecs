@@ -1,10 +1,5 @@
 package tokenizer
 
-import parser.parse
-import parser.printWithTypes
-import typechecker.*
-import java.io.File
-
 internal class TokenizationState {
     private val buf = StringBuilder()
     private val tokens = mutableListOf<Token>()
@@ -81,24 +76,6 @@ fun tokenize(s: String): List<Token> {
     stm.finalize(state)
     state.writeToken(::EofToken)
     return state.getTokens()
-}
-
-fun main() {
-    val x = mapOf("a" to 1, "b" to 2)
-    val y = mapOf("a" to 3)
-    println(x + y)
-
-    val parent = File(".").absolutePath.dropLast(1)
-    val file = File(parent + File.separator + "program.upl")
-    val s = file.readText()
-    val defs = parse(tokenize(s))
-    val dg = generateCallDependencyGraph(defs)
-    /*var env = Environment()
-    for (def in defs) {
-        val (e) = generateProgramConstraints(env, def)
-        printWithTypes(def)
-        env = e
-    }*/
 }
 
 //region Name
