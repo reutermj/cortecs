@@ -25,15 +25,7 @@ data class Constraint(val lhs: Type, val rhs: Type)
 var nextTypeIndex = 0
 fun freshTypeVariable(kind: Kind) = TypeVariable(nextTypeIndex++, kind)
 
-data class ProgramConstraints(val environment: Environment)
-
-fun generateProgramConstraints(environment: Environment, program: ProgramAst) =
-    when(program) {
-        is ComponentAst -> generateComponentConstraints(environment, program)
-        is FnAst -> generateFnConstraints(environment, program)
-    }
-
-fun generateComponentConstraints(environment: Environment, component: ComponentAst): ProgramConstraints {
+fun addComponentToEnvironment(environment: Environment, component: ComponentAst): Environment {
     if (component.valueDefs.isEmpty()) throw Exception()
 
     val labels = component.valueDefs.associate {
@@ -56,10 +48,10 @@ fun generateComponentConstraints(environment: Environment, component: ComponentA
     component._type = componentType
     printWithTypes(component)
 
-    return ProgramConstraints(environment.registerType(component.name, componentType) + Pair(component.name, type))
+    return environment.registerType(component.name, componentType) + Pair(component.name, type)
 }
 
-fun generateFnClusterConstraints(environment: Environment, fns: List<FnAst>): ProgramConstraints {
+fun addFnClusterToEnvironment(environment: Environment, fns: Set<FnAst>): Environment {
     var env = environment
     val parameterTypesLookup = mutableMapOf<String, List<Pair<NameToken, TypeVariable>>>()
     val returnTypeLookup = mutableMapOf<String, TypeVariable>()
@@ -118,10 +110,10 @@ fun generateFnClusterConstraints(environment: Environment, fns: List<FnAst>): Pr
         printWithTypes(fn)
     }
 
-    return ProgramConstraints(env)
+    return env
 }
 
-fun generateFnConstraints(environment: Environment, fn: FnAst): ProgramConstraints {
+fun addFnToEnvironment(environment: Environment, fn: FnAst): Environment {
     val parameterTypes = List(fn.parameters.size) { freshTypeVariable(UndeterminedKind) }
 
     val constraints = mutableListOf<Constraint>()
@@ -160,7 +152,7 @@ fun generateFnConstraints(environment: Environment, fn: FnAst): ProgramConstrain
     for(body in fn.body) updateTypes(body, substitutions)
     printWithTypes(fn)
 
-    return ProgramConstraints(newEnvironment + Pair(fn.name, typeScheme))
+    return newEnvironment + Pair(fn.name, typeScheme)
 }
 
 data class FnBodyConstraints(val constraints: List<Constraint>, val envAdds: List<Pair<NameToken, Type>>)
@@ -239,11 +231,12 @@ fun generateEntityDefinitionConstraints(environment: Environment, definition: En
             constraints.add(Constraint(componentType, t))
             components.add(componentType)
         }
-        val l = definition.expressions.last()
 
+        val l = definition.expressions.last()
         val (c, t) = generateExpressionConstraints(environment, l)
         val row = freshTypeVariable(EntityOrComponentKind)
         val entityType = OpenEntityType(components, row)
+
         definition._type = entityType
         constraints.addAll(c)
         constraints.add(Constraint(row, t))

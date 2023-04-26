@@ -4,10 +4,6 @@ import typechecker.*
 import java.io.File
 
 fun main() {
-    val x = mapOf("a" to 1, "b" to 2)
-    val y = mapOf("a" to 3)
-    println(x + y)
-
     val parent = File(".").absolutePath.dropLast(1)
     val file = File(parent + File.separator + "program.upl")
     val s = file.readText()
