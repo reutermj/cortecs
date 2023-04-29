@@ -1,6 +1,11 @@
 package typechecker
 
 import parser.*
+import codegen.*
+import ir.ComponentMfir
+import ir.FunctionMfir
+import ir.constructMfir
+import tokenizer.NameToken
 
 //Definitions:
 // An overlapping cycle in G is defined recursively:
@@ -28,7 +33,17 @@ data class MaximalOverlappingCycleNode(val cycle: Set<FnAst>): Thing
 
 fun generateCallDependencyGraph(defs: List<ProgramAst>) {
     //create base environment with all components added to it
-    var env = defs.filterIsInstance<ComponentAst>().fold(Environment()) { acc, ast -> addComponentToEnvironment(acc, ast) }
+    val monomorphicLookup = mutableMapOf<Pair<String, Type>, FunctionMfir>()
+    val components = defs.filterIsInstance<ComponentAst>()
+    var env = components.fold(Environment()) { acc, ast ->
+        val env = addComponentToEnvironment(acc, ast)
+        env
+    }
+
+    val componentsMfir = mutableListOf<ComponentMfir>()
+    for(component in components) {
+        constructMfir(component, monomorphicLookup, componentsMfir)
+    }
 
     //construct dependency graph
     val fnNodes = defs.filterIsInstance<FnAst>()
@@ -66,6 +81,17 @@ fun generateCallDependencyGraph(defs: List<ProgramAst>) {
     for(thing in dependencyDag.keys) {
         env = typeCheck(env, thing, dependencyDag, visitedThings)
     }
+
+    for(node in fnNodes) {
+        constructMfir(node, fnLookup, monomorphicLookup)
+    }
+
+    for(component in componentsMfir) {
+        generateCode(lower(component))
+    }
+    for(fn in monomorphicLookup.values.toSet()) {
+        generateCode(lower(fn))
+    }
 }
 
 fun typeCheck(environment: Environment, thing: Thing, dependencyDag: MutableMap<Thing, MutableSet<Thing>>, visited: MutableSet<Thing>): Environment {
@@ -74,9 +100,9 @@ fun typeCheck(environment: Environment, thing: Thing, dependencyDag: MutableMap<
     var env = environment
     for(dependency in dependencyDag[thing]!!) env = typeCheck(env, dependency, dependencyDag, visited)
 
-    when(thing) {
-        is IndividualNode -> env = addFnToEnvironment(env, thing.fn)
-        is MaximalOverlappingCycleNode -> env = addFnClusterToEnvironment(env, thing.cycle)
+    env = when(thing) {
+        is IndividualNode -> addFnToEnvironment(env, thing.fn)
+        is MaximalOverlappingCycleNode -> addFnClusterToEnvironment(env, thing.cycle)
     }
 
     visited.add(thing)

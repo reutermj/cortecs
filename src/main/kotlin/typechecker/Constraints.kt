@@ -29,24 +29,17 @@ fun addComponentToEnvironment(environment: Environment, component: ComponentAst)
     if (component.valueDefs.isEmpty()) throw Exception()
 
     val labels = component.valueDefs.associate {
-        it.name.value to environment.lookupType(it.type)
+        it.name.value to environment.lookupType(it.typeName)
     }
 
     val componentType = ClosedRecordType(component.name.value, labels)
 
     val type =
-        if(component.valueDefs.size == 1) FunctionType(environment.lookupType(component.valueDefs.first().type), ComponentType(component.name.value))
-        else {
-            val sum =
-                component.valueDefs
-                    .dropLast(1)
-                    .foldRight(environment.lookupType(component.valueDefs.last().type)) { t, acc -> SumType(environment.lookupType(t.type), acc) }
-
-            FunctionType(sum, componentType)
-        }
+        if(component.valueDefs.size == 1) FunctionType(environment.lookupType(component.valueDefs.first().typeName), componentType)
+        else FunctionType(SumType(component.valueDefs.map {environment.lookupType(it.typeName) }), componentType)
 
     component._type = componentType
-    printWithTypes(component)
+    component._fnType = type
 
     return environment.registerType(component.name, componentType) + Pair(component.name, type)
 }
@@ -65,14 +58,7 @@ fun addFnClusterToEnvironment(environment: Environment, fns: Set<FnAst>): Enviro
             when (parameterTypes.size) {
                 0 -> FunctionType(UnitType, returnType)
                 1 -> FunctionType(parameterTypes.first(), returnType)
-                else -> {
-                    val sum =
-                        parameterTypes
-                            .dropLast(1)
-                            .foldRight(parameterTypes.last() as Type) { t, acc -> SumType(t, acc) }
-
-                    FunctionType(sum, returnType)
-                }
+                else -> FunctionType(SumType(parameterTypes), returnType)
             }
 
         parameterTypesLookup[fn.name.value] = fn.parameters.zip(parameterTypes)
@@ -102,9 +88,11 @@ fun addFnClusterToEnvironment(environment: Environment, fns: Set<FnAst>): Enviro
 
         val newType = applySubstitutions(type, substitutions)
         val variablesToGeneralize = newType.freeTypeVariables - env.freeTypeVariables
-        val typeScheme = variablesToGeneralize.fold(newType) { acc, t -> TypeScheme(t, acc) }
-        env += Pair(fn.name, typeScheme)
-        fn._type = typeScheme
+        val fnType =
+            if(variablesToGeneralize.any()) TypeScheme(variablesToGeneralize, newType)
+            else newType
+        env += Pair(fn.name, fnType)
+        fn._type = fnType
 
         for(body in fn.body) updateTypes(body, substitutions)
         printWithTypes(fn)
@@ -123,14 +111,7 @@ fun addFnToEnvironment(environment: Environment, fn: FnAst): Environment {
         when(parameterTypes.size) {
             0 -> FunctionType(UnitType, returnType)
             1 -> FunctionType(parameterTypes.first(), returnType)
-            else -> {
-                val sum =
-                    parameterTypes
-                        .dropLast(1)
-                        .foldRight(parameterTypes.last() as Type) { t, acc -> SumType(t, acc) }
-
-                FunctionType(sum, returnType)
-            }
+            else -> FunctionType(SumType(parameterTypes), returnType)
         }
 
     var env = environment + fn.parameters.zip(parameterTypes) + (fn.name to type)
@@ -145,14 +126,16 @@ fun addFnToEnvironment(environment: Environment, fn: FnAst): Environment {
     val newType = applySubstitutions(type, substitutions)
     val newEnvironment = environment.applySubstitutions(substitutions)
     val variablesToGeneralize = newType.freeTypeVariables - newEnvironment.freeTypeVariables
-    val typeScheme = variablesToGeneralize.fold(newType) { acc, t -> TypeScheme(t, acc) }
-    fn._type = typeScheme
+    val fnType =
+        if(variablesToGeneralize.any()) TypeScheme(variablesToGeneralize, newType)
+        else newType
 
+    fn._type = fnType
 
     for(body in fn.body) updateTypes(body, substitutions)
     printWithTypes(fn)
 
-    return newEnvironment + Pair(fn.name, typeScheme)
+    return newEnvironment + Pair(fn.name, fnType)
 }
 
 data class FnBodyConstraints(val constraints: List<Constraint>, val envAdds: List<Pair<NameToken, Type>>)
@@ -208,7 +191,7 @@ fun generateFnCallConstraints(environment: Environment, fnCall: FnCallAst): Expr
         when(args.size) {
             0 -> UnitType
             1 -> args.first().type
-            else -> args.dropLast(1).foldRight(args.first().type) { stuff, acc -> SumType(stuff.type, acc) }
+            else -> SumType(args.map { it.type })
         }
     val constraints = args.fold(fc) { acc, stuff -> acc + stuff.constraints } + Constraint(ft, FunctionType(argTypes, retType))
     fnCall._type = retType

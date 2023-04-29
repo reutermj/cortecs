@@ -1,17 +1,18 @@
 package typechecker
 
 fun applySubstitutions(t: Type, substitutions: Map<TypeVariable, Type>): Type {
-    return when(t) {
+    return if(substitutions.isEmpty()) t
+    else when(t) {
         is TypeVariable -> {
             val substitution = substitutions[t]
             if(substitution == null) t
             else applySubstitutions(substitution, substitutions)
         }
 
-        is TypeScheme -> TypeScheme(t.boundVariable, applySubstitutions(t.body, substitutions - t.boundVariable))
+        is TypeScheme -> TypeScheme(t.boundVariables, applySubstitutions(t.body, substitutions - t.boundVariables))
 
         is FunctionType -> FunctionType(applySubstitutions(t.lhs, substitutions), applySubstitutions(t.rhs, substitutions))
-        is SumType -> SumType(applySubstitutions(t.lhs, substitutions), applySubstitutions(t.rhs, substitutions))
+        is SumType -> SumType(t.types.map { applySubstitutions(it, substitutions) })
 
         is UnitType -> t
         is IntType -> t
@@ -50,14 +51,12 @@ fun applySubstitutions(t: Type, substitutions: Map<TypeVariable, Type>): Type {
             val labels = t.labels.mapValues { applySubstitutions(it.value, substitutions) }
             ClosedRecordType(t.name, labels)
         }
-
-        is ComponentType -> t
     }
 }
 
 fun instantiate(t: Type, substitutions: Map<TypeVariable, Type> = mapOf()): Type {
     return when(t) {
-        is TypeScheme -> instantiate(t.body, substitutions + (t.boundVariable to freshTypeVariable(t.boundVariable.kind)))
+        is TypeScheme -> applySubstitutions(t.body, substitutions + t.boundVariables.map { it to freshTypeVariable(it.kind) })
         else -> applySubstitutions(t, substitutions)
     }
 }
@@ -86,8 +85,10 @@ fun unify(constraints: List<Constraint>, substitutions: Map<TypeVariable, Type> 
             else if (lhs is TypeVariable && lhs.kind == EntityOrComponentKind && (rhs.kind == EntityKind || rhs.kind == ComponentKind)) unify(tail, substitutions + Pair(lhs, rhs))
             else throw Exception()
         } else if(lhs is FunctionType && rhs is FunctionType) unify(listOf(Constraint(lhs.lhs, rhs.lhs), Constraint(lhs.rhs, rhs.rhs)) + tail, substitutions)
-        else if(lhs is SumType && rhs is SumType) unify(listOf(Constraint(lhs.lhs, rhs.lhs), Constraint(lhs.rhs, rhs.rhs)) + tail, substitutions)
-        else if(lhs is OpenRecordType && rhs is OpenRecordType) unify(lhs, rhs, tail, substitutions)
+        else if(lhs is SumType && rhs is SumType) {
+            if(lhs.types.size != rhs.types.size) throw Exception()
+            unify(lhs.types.zip(rhs.types) { l, r -> Constraint(l, r) } + tail, substitutions)
+        } else if(lhs is OpenRecordType && rhs is OpenRecordType) unify(lhs, rhs, tail, substitutions)
         else if(lhs is ClosedRecordType && rhs is OpenRecordType) unify(rhs, lhs, tail, substitutions)
         else if(lhs is OpenRecordType && rhs is ClosedRecordType) unify(lhs, rhs, tail, substitutions)
         else if(lhs is ClosedRecordType && rhs is ClosedRecordType) unify(lhs, rhs, tail, substitutions)

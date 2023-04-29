@@ -1,23 +1,13 @@
 component Position(x: Int, y: Int)
 component Velocity(x: Int, y: Int)
+component Shape(x: Int, y: Int)
 
-fn a() {
-    let x = b()
+fn foo(e) {
+    return {Shape(1, 2), e}
 }
 
-fn b() {
-    let x = a()
-}
-
-fn c() {
-    let x = d()
-}
-
-fn d() {
-    let x = c()
-    let y = e()
-}
-
-fn e() {
-    let x = d()
+fn bar() {
+    let x = foo(Position(1, 2))
+    let z = foo({Velocity(1, 2)})
+    return 1
 }

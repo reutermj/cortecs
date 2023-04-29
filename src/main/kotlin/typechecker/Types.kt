@@ -6,61 +6,50 @@ object EntityKind: Kind
 object ComponentKind: Kind
 object EntityOrComponentKind: Kind
 object UndeterminedKind: Kind
-
 sealed interface Type {
     val freeTypeVariables: Set<TypeVariable>
     val kind: Kind
 }
-
-object IntType: Type {
+sealed interface MonomorphicType: Type {
     override val freeTypeVariables: Set<TypeVariable>
-        get() = setOf()
+        get() = emptySet()
+}
+object IntType: MonomorphicType {
     override val kind: Kind
         get() = TypeKind
 
     override fun toString() = "Int"
 }
-object FloatType: Type {
-    override val freeTypeVariables: Set<TypeVariable>
-        get() = setOf()
+object FloatType: MonomorphicType {
     override val kind: Kind
         get() = TypeKind
 
     override fun toString() = "Float"
 }
-object StringType: Type {
-    override val freeTypeVariables: Set<TypeVariable>
-        get() = setOf()
+object StringType: MonomorphicType {
     override val kind: Kind
         get() = TypeKind
 
     override fun toString() = "String"
 }
-object CharType: Type {
-    override val freeTypeVariables: Set<TypeVariable>
-        get() = setOf()
+object CharType: MonomorphicType {
     override val kind: Kind
         get() = TypeKind
 
     override fun toString() = "Char"
 }
-object UnitType: Type {
-    override val freeTypeVariables: Set<TypeVariable>
-        get() = setOf()
+object UnitType: MonomorphicType {
     override val kind: Kind
         get() = TypeKind
 
     override fun toString() = "Unit"
 }
-data class ComponentType(val name: String): Type {
-    override val freeTypeVariables: Set<TypeVariable>
-        get() = setOf()
+/*data class MonomorphicFunctionType(val lhs: MonomorphicType, val rhs: MonomorphicType): MonomorphicType {
     override val kind: Kind
-        get() = ComponentKind
+        get() = TypeKind
 
-    override fun toString() = name
-}
-
+    override fun toString() = "($lhs -> $rhs)"
+}*/
 data class FunctionType(val lhs: Type, val rhs: Type): Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = lhs.freeTypeVariables + rhs.freeTypeVariables
@@ -69,16 +58,20 @@ data class FunctionType(val lhs: Type, val rhs: Type): Type {
 
     override fun toString() = "($lhs -> $rhs)"
 }
-data class SumType(val lhs: Type, val rhs: Type): Type {
-    override val freeTypeVariables: Set<TypeVariable>
-        get() = lhs.freeTypeVariables + rhs.freeTypeVariables
+/*data class MonomorphicSumType(val types: List<MonomorphicType>): MonomorphicType {
     override val kind: Kind
         get() = TypeKind
 
-    override fun toString() = "($lhs x $rhs)"
+    override fun toString() = types.joinToString(" x ", "(", ")") { it.toString() }
+}*/
+data class SumType(val types: List<Type>): Type {
+    override val freeTypeVariables: Set<TypeVariable>
+        get() = types.fold(emptySet()) { acc, type -> acc + type.freeTypeVariables }
+    override val kind: Kind
+        get() = TypeKind
+
+    override fun toString() = types.joinToString(" x ", "(", ")") { it.toString() }
 }
-
-
 data class TypeVariable(val n: Int, override val kind: Kind): Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = setOf(this)
@@ -92,16 +85,15 @@ data class TypeVariable(val n: Int, override val kind: Kind): Type {
             is ComponentKind -> "c$n"
         }
 }
-data class TypeScheme(val boundVariable: TypeVariable, val body: Type): Type {
+data class TypeScheme(val boundVariables: Set<TypeVariable>, val body: Type): Type {
     override val freeTypeVariables: Set<TypeVariable>
-        get() = body.freeTypeVariables - boundVariable
+        get() = body.freeTypeVariables - boundVariables
 
     override val kind: Kind
         get() = TypeKind
 
-    override fun toString() = "$boundVariable.$body"
+    override fun toString() = "${boundVariables.joinToString(",")}.$body"
 }
-
 data class OpenEntityType(val components: Set<Type>, val row: TypeVariable): Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = components.fold(row.freeTypeVariables) { acc, type -> acc + type.freeTypeVariables }
@@ -119,8 +111,7 @@ data class OpenEntityType(val components: Set<Type>, val row: TypeVariable): Typ
             else -> components.fold("{") { acc, type -> "$acc$type, " } + "row=$row}"
         }
 }
-
-data class ClosedEntityType(val components: Set<Type>): Type {
+data class ClosedEntityType(val components: Set<Type>): MonomorphicType { //todo hmmmm
     override val freeTypeVariables: Set<TypeVariable>
         get() = components.fold(setOf()) { acc, type -> acc + type.freeTypeVariables }
 
@@ -137,7 +128,6 @@ data class ClosedEntityType(val components: Set<Type>): Type {
             else -> components.fold("{") { acc, type -> "$acc$type, " }.dropLast(2) + "}"
         }
 }
-
 data class OpenRecordType(val labels: Map<String, Type>, val row: TypeVariable): Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = labels.values.fold(setOf(row)) { acc, type -> acc + type.freeTypeVariables }
@@ -155,7 +145,7 @@ data class OpenRecordType(val labels: Map<String, Type>, val row: TypeVariable):
             else -> labels.toList().fold("{") { acc, pair -> acc + "${pair.first}: ${pair.second}, " }.dropLast(2) + ", row=$row}"
         }
 }
-data class ClosedRecordType(val name: String, val labels: Map<String, Type>): Type {
+data class ClosedRecordType(val name: String, val labels: Map<String, Type>): MonomorphicType { //todo hmmm
     override val freeTypeVariables: Set<TypeVariable>
         get() = labels.values.fold(setOf()) { acc, type -> acc + type.freeTypeVariables }
 

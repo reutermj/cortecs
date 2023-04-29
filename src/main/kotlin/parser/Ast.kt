@@ -16,8 +16,10 @@ sealed class Ast {
 
 sealed class ProgramAst: Ast()
 data class FnAst(val name: NameToken, val parameters: List<NameToken>, val body: List<FnBodyAst>): ProgramAst()
-data class ComponentValue(val name: NameToken, val type: NameToken)
-data class ComponentAst(val name: NameToken, val valueDefs: List<ComponentValue>): ProgramAst()
+data class ComponentValue(val name: NameToken, val typeName: NameToken)
+data class ComponentAst(val name: NameToken, val valueDefs: List<ComponentValue>): ProgramAst() {
+    var _fnType: FunctionType? = null
+}
 
 sealed class FnBodyAst: Ast()
 data class LetAst(val name: NameToken, val expression: Expression): FnBodyAst()
@@ -62,12 +64,12 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
             print("component ${ast.name.value}(")
             when(ast.valueDefs.size) {
                 0 -> {}
-                1 -> print("${ast.valueDefs.first().name.value}: ${ast.valueDefs.first().type.value}")
+                1 -> print("${ast.valueDefs.first().name.value}: ${ast.valueDefs.first().typeName.value}")
                 else -> {
                     for(value in ast.valueDefs.dropLast(1)) {
-                        print("${value.name.value}: ${value.type.value}, ")
+                        print("${value.name.value}: ${value.typeName.value}, ")
                     }
-                    print("${ast.valueDefs.last().name.value}: ${ast.valueDefs.last().type.value}")
+                    print("${ast.valueDefs.last().name.value}: ${ast.valueDefs.last().typeName.value}")
                 }
             }
             println(")")
@@ -76,36 +78,18 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
             print("\t".repeat(depth))
             print("fn ${ast.name.value}")
             val ts = ast.type
-            val arrow: Type
-            if(ts is TypeScheme) {
-                var t = ts
-                print("[")
-                while(true) {
-                    val tp = t
-                    if(tp is TypeScheme) {
-                        print("${tp.boundVariable}")
-                        if(tp.body is TypeScheme) print(", ")
-                        t = tp.body
-                    } else break
-                }
-                print("]")
-                arrow = t
-            } else arrow = ts
-
+            val arrow =
+                if(ts is TypeScheme) {
+                    print(ts.boundVariables.joinToString(", ", "[", "]"))
+                    ts.body
+                } else ts
             if(arrow !is FunctionType) throw Exception()
 
             print("(")
             when(ast.parameters.size) {
                 0 -> {}
                 1 -> print("${ast.parameters.first().value}: ${arrow.lhs}")
-                else -> {
-                    var sum = arrow.lhs
-                    for(name in ast.parameters.dropLast(1)) {
-                        print("${name.value}: ${(sum as SumType).lhs}, ")
-                        sum = sum.rhs
-                    }
-                    print("${ast.parameters.last().value}: $sum")
-                }
+                else -> print(ast.parameters.zip((arrow.lhs as SumType).types) { name, type -> "$name: $type" }.joinToString(", "))
             }
             println("): ${arrow.rhs} {")
 
@@ -170,6 +154,7 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
         is CharConstantAst -> print(ast.value.value)
     }
 }
+
 
 fun updateTypes(ast: Ast, substitutions: Map<TypeVariable, Type>) {
     when(ast) {
