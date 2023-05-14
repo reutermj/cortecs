@@ -8,7 +8,7 @@ sealed class Ast {
     val type: Type
         get() = _type!!
 
-    fun updateType(substitutions: Map<TypeVariable, Type>) {
+    fun updateType(substitutions: Map<Type, Type>) {
         val t = _type
         if(t != null) _type = applySubstitutions(t, substitutions)
     }
@@ -156,7 +156,7 @@ fun printWithTypes(ast: Ast, depth: Int = 0) {
 }
 
 
-fun updateTypes(ast: Ast, substitutions: Map<TypeVariable, Type>) {
+fun updateTypes(ast: Ast, substitutions: Map<Type, Type>) {
     when(ast) {
         is LetAst -> {
             ast.updateType(substitutions)

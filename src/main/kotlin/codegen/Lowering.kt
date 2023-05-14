@@ -13,7 +13,7 @@ data class PointerType(val type: TypeLowered): TypeLowered {
 
 fun lower(type: Type): TypeLowered {
     return when(type) {
-        is ClosedRecordType -> BasicType("${type.name}_t")
+        is ClosedComponentType -> BasicType("${type.name}_t")
         is ClosedEntityType -> BasicType("ecs_entity_t")
         is OpenEntityType -> BasicType("ecs_entity_t")
         is IntType -> BasicType("int32_t")

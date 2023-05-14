@@ -5,7 +5,6 @@ import codegen.*
 import ir.ComponentMfir
 import ir.FunctionMfir
 import ir.constructMfir
-import tokenizer.NameToken
 
 //Definitions:
 // An overlapping cycle in G is defined recursively:
@@ -35,9 +34,9 @@ fun generateCallDependencyGraph(defs: List<ProgramAst>) {
     //create base environment with all components added to it
     val monomorphicLookup = mutableMapOf<Pair<String, Type>, FunctionMfir>()
     val components = defs.filterIsInstance<ComponentAst>()
-    var env = components.fold(Environment()) { acc, ast ->
-        val env = addComponentToEnvironment(acc, ast)
-        env
+    val environment = Environment()
+    for(component in components) {
+        addComponentToEnvironment(environment, component)
     }
 
     val componentsMfir = mutableListOf<ComponentMfir>()
@@ -79,7 +78,7 @@ fun generateCallDependencyGraph(defs: List<ProgramAst>) {
 
     val visitedThings = mutableSetOf<Thing>()
     for(thing in dependencyDag.keys) {
-        env = typeCheck(env, thing, dependencyDag, visitedThings)
+        typeCheck(environment, thing, dependencyDag, visitedThings)
     }
 
     for(node in fnNodes) {
@@ -94,19 +93,17 @@ fun generateCallDependencyGraph(defs: List<ProgramAst>) {
     }
 }
 
-fun typeCheck(environment: Environment, thing: Thing, dependencyDag: MutableMap<Thing, MutableSet<Thing>>, visited: MutableSet<Thing>): Environment {
-    if(visited.contains(thing)) return environment
+fun typeCheck(environment: Environment, thing: Thing, dependencyDag: MutableMap<Thing, MutableSet<Thing>>, visited: MutableSet<Thing>) {
+    if(visited.contains(thing)) return
 
-    var env = environment
-    for(dependency in dependencyDag[thing]!!) env = typeCheck(env, dependency, dependencyDag, visited)
+    for(dependency in dependencyDag[thing]!!) typeCheck(environment, dependency, dependencyDag, visited)
 
-    env = when(thing) {
-        is IndividualNode -> addFnToEnvironment(env, thing.fn)
-        is MaximalOverlappingCycleNode -> addFnClusterToEnvironment(env, thing.cycle)
+    when(thing) {
+        is IndividualNode -> addFnToEnvironment(environment, thing.fn)
+        is MaximalOverlappingCycleNode -> addFnClusterToEnvironment(environment, thing.cycle)
     }
 
     visited.add(thing)
-    return env
 }
 
 fun addAll(start: Int, stack: List<FnAst>, cycle: MutableSet<FnAst>, foundCycles: MutableMap<FnAst, MutableSet<FnAst>>) {

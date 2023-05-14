@@ -4,7 +4,7 @@ import parser.*
 import typechecker.*
 
 data class FunctionMfir(val name: String, val returnType: Type, val args: List<DefinitionIr>, val body: MutableList<BodyMfir>)
-data class ComponentMfir(val type: ClosedRecordType)
+data class ComponentMfir(val type: ClosedComponentType)
 sealed interface BodyMfir {
     val name: String
     val type: Type
@@ -17,11 +17,11 @@ data class ReturnIr(val retVal: BodyMfir): BodyMfir {
 }
 data class DefinitionIr(override val name: String, override val type: Type): BodyMfir
 data class FunctionCallIr(override val name: String, override val type: Type, val fn: FunctionMfir, val args: List<BodyMfir>): BodyMfir
-data class ComponentConstructorIr(override val name: String, override val type: ClosedRecordType, val arguments: List<BodyMfir>): BodyMfir
+data class ComponentConstructorIr(override val name: String, override val type: ClosedComponentType, val arguments: List<BodyMfir>): BodyMfir
 data class ComponentSelectionIr(override val name: String, override val type: Type, val component: BodyMfir, val label: String): BodyMfir
 data class EntityDefinitionIr(override val name: String, override val type: ClosedEntityType, val expressions: List<BodyMfir>): BodyMfir
-data class EntityRestrictionIr(override val name: String, override val type: ClosedEntityType, val entity: BodyMfir, val component: ClosedRecordType): BodyMfir
-data class EntitySelectionIr(override val name: String, override val type: ClosedRecordType, val entity: BodyMfir): BodyMfir
+data class EntityRestrictionIr(override val name: String, override val type: ClosedEntityType, val entity: BodyMfir, val component: ClosedComponentType): BodyMfir
+data class EntitySelectionIr(override val name: String, override val type: ClosedComponentType, val entity: BodyMfir): BodyMfir
 data class IntConstantIr(override val name: String, val value: String): BodyMfir {
     override val type: Type
         get() = IntType
@@ -41,7 +41,7 @@ data class CharConstantIr(override val name: String, val value: String): BodyMfi
 
 fun constructMfir(component: ComponentAst, nameToFn: MutableMap<Pair<String, Type>, FunctionMfir>, components: MutableList<ComponentMfir>) {
     val fnType = component._fnType as FunctionType
-    val componentType = component.type as ClosedRecordType
+    val componentType = component.type as ClosedComponentType
     val defs =
         when(component.valueDefs.size) {
             1 -> listOf(DefinitionIr(component.valueDefs.first().name.value, fnType.lhs))
@@ -76,7 +76,7 @@ fun constructMfir(fn: FnAst, nameToAst: Map<String, FnAst>, nameToFn: MutableMap
     }
 }
 
-fun constructMfir(fn: FnAst, substitutions: Map<TypeVariable, Type>, nameToAst: Map<String, FnAst>, nameToFn: MutableMap<Pair<String, Type>, FunctionMfir>): FunctionMfir {
+fun constructMfir(fn: FnAst, substitutions: Map<Type, Type>, nameToAst: Map<String, FnAst>, nameToFn: MutableMap<Pair<String, Type>, FunctionMfir>): FunctionMfir {
     val fnType = applySubstitutions((fn.type as TypeScheme).body, substitutions) as FunctionType
     val args =
         when(fn.parameters.size) {
@@ -100,7 +100,7 @@ fun constructMfir(fnName: String, type: Type, nameToAst: Map<String, FnAst>, nam
             if(fn.type is FunctionType) constructMfir(fn, nameToAst, nameToFn)!!
             else {
                 val fnType = (fn.type as TypeScheme).body
-                val substitutions = unify(listOf(Constraint(type, fnType)))
+                val substitutions = unify(mutableListOf(Constraint(type, fnType)))
                 constructMfir(fn, substitutions, nameToAst, nameToFn)
             }
         nameToFn[Pair(fnName, type)] = fnMfir
@@ -108,14 +108,14 @@ fun constructMfir(fnName: String, type: Type, nameToAst: Map<String, FnAst>, nam
     }
 }
 
-fun constructMfir(fnBody: FnBodyAst, substitutions: Map<TypeVariable, Type>, bodyIr: MutableList<BodyMfir>, nameToAst: Map<String, FnAst>, nameToIr: MutableMap<String, BodyMfir>, nameToFn: MutableMap<Pair<String, Type>, FunctionMfir>) {
+fun constructMfir(fnBody: FnBodyAst, substitutions: Map<Type, Type>, bodyIr: MutableList<BodyMfir>, nameToAst: Map<String, FnAst>, nameToIr: MutableMap<String, BodyMfir>, nameToFn: MutableMap<Pair<String, Type>, FunctionMfir>) {
     when(fnBody) {
         is ReturnAst -> bodyIr.add(ReturnIr(constructMfir(fnBody.expression, "ret_val", substitutions, bodyIr, nameToAst, nameToIr, nameToFn)))
         is LetAst -> constructMfir(fnBody.expression, fnBody.name.value, substitutions, bodyIr, nameToAst, nameToIr, nameToFn)
     }
 }
 
-fun constructMfir(expression: Expression, name: String, substitutions: Map<TypeVariable, Type>, bodyIr: MutableList<BodyMfir>, nameToAst: Map<String, FnAst>, nameToIr: MutableMap<String, BodyMfir>, nameToFn: MutableMap<Pair<String, Type>, FunctionMfir>): BodyMfir {
+fun constructMfir(expression: Expression, name: String, substitutions: Map<Type, Type>, bodyIr: MutableList<BodyMfir>, nameToAst: Map<String, FnAst>, nameToIr: MutableMap<String, BodyMfir>, nameToFn: MutableMap<Pair<String, Type>, FunctionMfir>): BodyMfir {
     return when(expression) {
         is FnCallAst -> {
             val dependencies = mutableListOf<BodyMfir>()
@@ -140,7 +140,7 @@ fun constructMfir(expression: Expression, name: String, substitutions: Map<TypeV
         }
         is EntitySelectionAst -> {
             val entity = constructMfir(expression.entity, "${name}_0", substitutions, bodyIr, nameToAst, nameToIr, nameToFn)
-            val nir = EntitySelectionIr(name, applySubstitutions(expression.type, substitutions) as ClosedRecordType, entity)
+            val nir = EntitySelectionIr(name, applySubstitutions(expression.type, substitutions) as ClosedComponentType, entity)
             nameToIr[name] = nir
             bodyIr.add(nir)
             nir
@@ -151,7 +151,7 @@ fun constructMfir(expression: Expression, name: String, substitutions: Map<TypeV
             val resType = applySubstitutions(expression.type, substitutions) as ClosedEntityType
             val entityType = (applySubstitutions(expression.entity.type, substitutions) as ClosedEntityType)
             val t = (entityType.components - resType.components).first()
-            val nir = EntityRestrictionIr(name, resType, entity, t as ClosedRecordType)
+            val nir = EntityRestrictionIr(name, resType, entity, t as ClosedComponentType)
             nameToIr[name] = nir
             bodyIr.add(nir)
             nir

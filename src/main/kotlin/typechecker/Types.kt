@@ -80,8 +80,8 @@ data class TypeVariable(val n: Int, override val kind: Kind): Type {
         when(kind) {
             is UndeterminedKind -> "u$n"
             is TypeKind -> "t$n"
-            is EntityOrComponentKind -> "rc$n"
-            is EntityKind -> "r$n"
+            is EntityOrComponentKind -> "ec$n"
+            is EntityKind -> "e$n"
             is ComponentKind -> "c$n"
         }
 }
@@ -128,7 +128,7 @@ data class ClosedEntityType(val components: Set<Type>): MonomorphicType { //todo
             else -> components.fold("{") { acc, type -> "$acc$type, " }.dropLast(2) + "}"
         }
 }
-data class OpenRecordType(val labels: Map<String, Type>, val row: TypeVariable): Type {
+data class OpenComponentType(val labels: Map<String, Type>, val row: TypeVariable): Type {
     override val freeTypeVariables: Set<TypeVariable>
         get() = labels.values.fold(setOf(row)) { acc, type -> acc + type.freeTypeVariables }
 
@@ -145,7 +145,7 @@ data class OpenRecordType(val labels: Map<String, Type>, val row: TypeVariable):
             else -> labels.toList().fold("{") { acc, pair -> acc + "${pair.first}: ${pair.second}, " }.dropLast(2) + ", row=$row}"
         }
 }
-data class ClosedRecordType(val name: String, val labels: Map<String, Type>): MonomorphicType { //todo hmmm
+data class ClosedComponentType(val name: String, val labels: Map<String, Type>): MonomorphicType { //todo hmmm
     override val freeTypeVariables: Set<TypeVariable>
         get() = labels.values.fold(setOf()) { acc, type -> acc + type.freeTypeVariables }
 
@@ -153,4 +153,12 @@ data class ClosedRecordType(val name: String, val labels: Map<String, Type>): Mo
         get() = ComponentKind
 
     override fun toString() = name
+}
+
+data class EntityOrComponentType(val component: Type): Type {
+    override val freeTypeVariables: Set<TypeVariable>
+        get() = component.freeTypeVariables
+
+    override val kind: Kind
+        get() = EntityOrComponentKind
 }

@@ -1,14 +1,9 @@
 package typechecker
 
-fun applySubstitutions(t: Type, substitutions: Map<TypeVariable, Type>): Type {
+fun applySubstitutions(t: Type, substitutions: Map<Type, Type>): Type {
     return if(substitutions.isEmpty()) t
     else when(t) {
-        is TypeVariable -> {
-            val substitution = substitutions[t]
-            if(substitution == null) t
-            else applySubstitutions(substitution, substitutions)
-        }
-
+        is TypeVariable -> applySubstitutions(substitutions[t] ?: return t, substitutions)
         is TypeScheme -> TypeScheme(t.boundVariables, applySubstitutions(t.body, substitutions - t.boundVariables))
 
         is FunctionType -> FunctionType(applySubstitutions(t.lhs, substitutions), applySubstitutions(t.rhs, substitutions))
@@ -22,12 +17,14 @@ fun applySubstitutions(t: Type, substitutions: Map<TypeVariable, Type>): Type {
 
         is OpenEntityType -> {
             val components = t.components.map { applySubstitutions(it, substitutions) }.toSet()
-            when(val bla = applySubstitutions(t.row, substitutions)) {
-                is OpenEntityType -> OpenEntityType(bla.components + components, bla.row) //bla.labels + labels is important because kotlin prioritizes rhs when creating the new map
-                is ClosedEntityType -> ClosedEntityType(bla.components + components)
-                is TypeVariable -> OpenEntityType(components, bla)
-                is OpenRecordType -> ClosedEntityType(components + bla)
-                is ClosedRecordType -> ClosedEntityType(components + bla)
+
+            when(val type = applySubstitutions(t.row, substitutions)) {
+                is OpenEntityType -> OpenEntityType(type.components + components, type.row) //order of type.components + components is important because kotlin prioritizes rhs when creating the new map
+                is ClosedEntityType -> ClosedEntityType(type.components + components)
+                is TypeVariable -> OpenEntityType(components, type)
+                is OpenComponentType -> ClosedEntityType(components + type)
+                is ClosedComponentType -> ClosedEntityType(components + type)
+                is EntityOrComponentType -> ClosedEntityType(components + type.component)
                 else -> throw Exception()
             }
         }
@@ -37,127 +34,128 @@ fun applySubstitutions(t: Type, substitutions: Map<TypeVariable, Type>): Type {
             ClosedEntityType(components)
         }
 
-        is OpenRecordType -> {
+        is OpenComponentType -> {
             val labels = t.labels.mapValues { applySubstitutions(it.value, substitutions) }
-            when(val bla = applySubstitutions(t.row, substitutions)) {
-                is OpenRecordType -> OpenRecordType(bla.labels + labels, bla.row) //bla.labels + labels is important because kotlin prioritizes rhs when creating the new map
-                is ClosedRecordType -> ClosedRecordType(bla.name, bla.labels + labels)
-                is TypeVariable -> OpenRecordType(labels, bla)
+            when(val type = applySubstitutions(t.row, substitutions)) {
+                is OpenComponentType -> OpenComponentType(type.labels + labels, type.row) //type.labels + labels is important because kotlin prioritizes rhs when creating the new map
+                is ClosedComponentType -> ClosedComponentType(type.name, type.labels + labels)
+                is TypeVariable -> OpenComponentType(labels, type)
                 else -> throw Exception()
             }
         }
 
-        is ClosedRecordType -> {
+        is ClosedComponentType -> {
             val labels = t.labels.mapValues { applySubstitutions(it.value, substitutions) }
-            ClosedRecordType(t.name, labels)
+            ClosedComponentType(t.name, labels)
         }
+
+        is EntityOrComponentType -> applySubstitutions(substitutions[t] ?: return EntityOrComponentType(applySubstitutions(t.component, substitutions)), substitutions)
     }
 }
 
-fun instantiate(t: Type, substitutions: Map<TypeVariable, Type> = mapOf()): Type {
+fun instantiate(t: Type, substitutions: Map<Type, Type> = mapOf()): Type {
     return when(t) {
         is TypeScheme -> applySubstitutions(t.body, substitutions + t.boundVariables.map { it to freshTypeVariable(it.kind) })
         else -> applySubstitutions(t, substitutions)
     }
 }
 
-fun unify(constraints: List<Constraint>, substitutions: Map<TypeVariable, Type> = mapOf()): Map<TypeVariable, Type> {
-    return if(constraints.isEmpty()) substitutions
-    else {
-        val head = constraints.first()
-        val tail = constraints.drop(1)
-        val lhs = applySubstitutions(head.lhs, substitutions)
-        val rhs = applySubstitutions(head.rhs, substitutions)
+fun unify(constraints: MutableList<Constraint>): Map<Type, Type> {
+    val substitutions = mutableMapOf<Type, Type>()
+    while(constraints.any()) {
+        val constraint = constraints.removeLast()
+        val lhs = applySubstitutions(constraint.lhs, substitutions)
+        val rhs = applySubstitutions(constraint.rhs, substitutions)
+        when {
+            lhs == rhs -> continue
+            lhs is TypeVariable && !rhs.freeTypeVariables.contains(lhs) -> unify(lhs, rhs, substitutions)
+            rhs is TypeVariable && !lhs.freeTypeVariables.contains(rhs) -> unify(rhs, lhs, substitutions)
+            lhs is FunctionType && rhs is FunctionType -> unify(lhs, rhs, constraints)
+            lhs is SumType && rhs is SumType -> unify(lhs, rhs, constraints)
+            lhs is OpenComponentType && rhs is OpenComponentType -> unify(lhs, rhs, constraints)
+            lhs is OpenComponentType && rhs is ClosedComponentType -> unify(lhs, rhs, constraints)
+            lhs is ClosedComponentType && rhs is OpenComponentType -> unify(rhs, lhs, constraints)
+            lhs is ClosedComponentType && rhs is ClosedComponentType -> unify(rhs, lhs, constraints)
+            lhs is OpenEntityType && rhs is OpenEntityType -> unify(lhs, rhs, constraints)
+            lhs is OpenEntityType && rhs is ClosedEntityType -> unify(lhs, rhs, constraints)
+            lhs is ClosedEntityType && rhs is OpenEntityType -> unify(rhs, lhs, constraints)
+            lhs is ClosedEntityType && rhs is ClosedEntityType -> unify(lhs, rhs)
+            lhs is EntityOrComponentType && rhs is EntityOrComponentType -> unify(rhs, lhs, constraints)
+            lhs is EntityOrComponentType && rhs is ClosedComponentType -> unify(lhs, rhs, constraints, substitutions)
+            lhs is ClosedComponentType && rhs is EntityOrComponentType -> unify(rhs, lhs, constraints, substitutions)
+            lhs is EntityOrComponentType && rhs is ClosedEntityType -> unify(lhs, rhs, constraints, substitutions)
+            lhs is ClosedEntityType && rhs is EntityOrComponentType -> unify(rhs, lhs, constraints, substitutions)
+            else -> throw Exception()
+        }
+    }
 
-        if(lhs == rhs) unify(tail, substitutions)
-        else if(lhs is TypeVariable && !rhs.freeTypeVariables.contains(lhs)) {
-            if (lhs.kind == rhs.kind) unify(tail, substitutions + Pair(lhs, rhs))
-            else if(lhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(lhs, rhs))
-            else if(rhs is TypeVariable && rhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(rhs, lhs))
-            else if (lhs.kind == EntityOrComponentKind && (rhs.kind == EntityKind || rhs.kind == ComponentKind)) unify(tail, substitutions + Pair(lhs, rhs))
-            else if (rhs is TypeVariable && rhs.kind == EntityOrComponentKind && (lhs.kind == EntityKind || lhs.kind == ComponentKind)) unify(tail, substitutions + Pair(rhs, lhs))
-            else throw Exception()
-        } else if(rhs is TypeVariable && !lhs.freeTypeVariables.contains(rhs)) {
-            if (lhs.kind == rhs.kind) unify(tail, substitutions + Pair(rhs, lhs))
-            else if(rhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(rhs, lhs))
-            else if(lhs is TypeVariable && lhs.kind == UndeterminedKind) unify(tail, substitutions + Pair(lhs, rhs))
-            else if (rhs.kind == EntityOrComponentKind && (lhs.kind == EntityKind || lhs.kind == ComponentKind)) unify(tail, substitutions + Pair(rhs, lhs))
-            else if (lhs is TypeVariable && lhs.kind == EntityOrComponentKind && (rhs.kind == EntityKind || rhs.kind == ComponentKind)) unify(tail, substitutions + Pair(lhs, rhs))
-            else throw Exception()
-        } else if(lhs is FunctionType && rhs is FunctionType) unify(listOf(Constraint(lhs.lhs, rhs.lhs), Constraint(lhs.rhs, rhs.rhs)) + tail, substitutions)
-        else if(lhs is SumType && rhs is SumType) {
-            if(lhs.types.size != rhs.types.size) throw Exception()
-            unify(lhs.types.zip(rhs.types) { l, r -> Constraint(l, r) } + tail, substitutions)
-        } else if(lhs is OpenRecordType && rhs is OpenRecordType) unify(lhs, rhs, tail, substitutions)
-        else if(lhs is ClosedRecordType && rhs is OpenRecordType) unify(rhs, lhs, tail, substitutions)
-        else if(lhs is OpenRecordType && rhs is ClosedRecordType) unify(lhs, rhs, tail, substitutions)
-        else if(lhs is ClosedRecordType && rhs is ClosedRecordType) unify(lhs, rhs, tail, substitutions)
-        else if(lhs is OpenEntityType && rhs is OpenEntityType) unify(lhs, rhs, tail, substitutions)
-        else if(lhs is ClosedEntityType && rhs is OpenEntityType) unify(rhs, lhs, tail, substitutions)
-        else if(lhs is OpenEntityType && rhs is ClosedEntityType) unify(lhs, rhs, tail, substitutions)
-        else if(lhs is ClosedEntityType && rhs is ClosedEntityType) unify(lhs, rhs, tail, substitutions)
-        else throw Exception()
+    return substitutions
+}
+
+fun unify(typeVar: TypeVariable, type: Type, substitutions: MutableMap<Type, Type>) {
+    when {
+        typeVar.kind == type.kind -> substitutions[typeVar] = type
+        typeVar.kind == UndeterminedKind -> substitutions[typeVar] = type
+        type is TypeVariable && type.kind == UndeterminedKind -> substitutions[type] = typeVar
+        typeVar.kind == EntityOrComponentKind && (type.kind == EntityKind || type.kind == ComponentKind) -> substitutions[typeVar] = type
+        type is TypeVariable && type.kind == EntityOrComponentKind && (typeVar.kind == EntityKind || typeVar.kind == ComponentKind) -> substitutions[type] = typeVar
+        else -> throw Exception()
     }
 }
 
-fun unify(lhs: OpenEntityType, rhs: OpenEntityType, tail: List<Constraint>, substitutions: Map<TypeVariable, Type>): Map<TypeVariable, Type> {
-    val constraints = mutableListOf<Constraint>()
-
-    val mlhs = lhs.components - rhs.components
-    constraints.add(Constraint(rhs.row, OpenEntityType(mlhs, freshTypeVariable(EntityOrComponentKind))))
-
-    val mrhs = (rhs.components - lhs.components)
-    constraints.add(Constraint(lhs.row, OpenEntityType(mrhs, freshTypeVariable(EntityOrComponentKind))))
-
-    return unify(constraints + tail, substitutions)
+fun unify(lhs: FunctionType, rhs: FunctionType, constraints: MutableList<Constraint>) {
+    constraints.add(Constraint(lhs.lhs, rhs.lhs))
+    constraints.add(Constraint(lhs.rhs, rhs.rhs))
 }
 
-fun unify(lhs: OpenEntityType, rhs: ClosedEntityType, tail: List<Constraint>, substitutions: Map<TypeVariable, Type>): Map<TypeVariable, Type> {
-    if((lhs.components - rhs.components).any()) throw Exception()
-
-    val constraints = mutableListOf<Constraint>()
-
-    val mrhs = rhs.components - lhs.components
-    constraints.add(Constraint(lhs.row, ClosedEntityType(mrhs)))
-
-    return unify(constraints + tail, substitutions)
+fun unify(lhs: SumType, rhs: SumType, constraints: MutableList<Constraint>) {
+    if(lhs.types.size != rhs.types.size) throw Exception()
+    for(i in lhs.types.indices) constraints.add(Constraint(lhs.types[i], rhs.types[i]))
+}
+fun unify(lhs: OpenComponentType, rhs: OpenComponentType, constraints: MutableList<Constraint>) {
+    for((k, v) in lhs.labels) constraints.add(Constraint(v, rhs.labels[k] ?: continue))
+    constraints.add(Constraint(rhs.row, OpenComponentType(lhs.labels - rhs.labels.keys, freshTypeVariable(EntityKind))))
+    constraints.add(Constraint(lhs.row, OpenComponentType(rhs.labels - lhs.labels.keys, freshTypeVariable(EntityKind))))
 }
 
-fun unify(lhs: ClosedEntityType, rhs: ClosedEntityType, tail: List<Constraint>, substitutions: Map<TypeVariable, Type>): Map<TypeVariable, Type> {
-    if(lhs.components != rhs.components) throw Exception()
-    return unify(tail, substitutions)
-}
-
-fun unify(lhs: OpenRecordType, rhs: OpenRecordType, tail: List<Constraint>, substitutions: Map<TypeVariable, Type>): Map<TypeVariable, Type> {
-    val constraints = mutableListOf<Constraint>()
-    for(label in lhs.labels.keys.intersect(rhs.labels.keys)) constraints.add(Constraint(lhs.labels[label]!!, rhs.labels[label]!!))
-
-    val mlhs = (lhs.labels.keys - rhs.labels.keys).associateWith { lhs.labels[it]!! }
-    constraints.add(Constraint(rhs.row, OpenRecordType(mlhs, freshTypeVariable(EntityKind))))
-
-    val mrhs = (rhs.labels.keys - lhs.labels.keys).associateWith { rhs.labels[it]!! }
-    constraints.add(Constraint(lhs.row, OpenRecordType(mrhs, freshTypeVariable(EntityKind))))
-
-    return unify(constraints + tail, substitutions)
-}
-
-fun unify(lhs: OpenRecordType, rhs: ClosedRecordType, tail: List<Constraint>, substitutions: Map<TypeVariable, Type>): Map<TypeVariable, Type> {
+fun unify(lhs: OpenComponentType, rhs: ClosedComponentType, constraints: MutableList<Constraint>) {
     if((lhs.labels.keys - rhs.labels.keys).any()) throw Exception()
-
-    val constraints = mutableListOf<Constraint>()
-    for(label in lhs.labels.keys.intersect(rhs.labels.keys)) constraints.add(Constraint(lhs.labels[label]!!, rhs.labels[label]!!))
-
-    val mrhs = (rhs.labels.keys - lhs.labels.keys).associateWith { rhs.labels[it]!! }
-    constraints.add(Constraint(lhs.row, ClosedRecordType(rhs.name, mrhs)))
-
-    return unify(constraints + tail, substitutions)
+    for((k, v) in lhs.labels) constraints.add(Constraint(v, rhs.labels[k] ?: continue))
+    constraints.add(Constraint(lhs.row, ClosedComponentType(rhs.name, rhs.labels - lhs.labels.keys)))
 }
 
-fun unify(lhs: ClosedRecordType, rhs: ClosedRecordType, tail: List<Constraint>, substitutions: Map<TypeVariable, Type>): Map<TypeVariable, Type> {
+fun unify(lhs: ClosedComponentType, rhs: ClosedComponentType, constraints: MutableList<Constraint>) {
     if(lhs.labels.keys != rhs.labels.keys) throw Exception()
+    for((k, v) in lhs.labels) constraints.add(Constraint(v, rhs.labels[k] ?: continue))
+}
 
-    val constraints = mutableListOf<Constraint>()
-    for(label in lhs.labels.keys) constraints.add(Constraint(lhs.labels[label]!!, rhs.labels[label]!!))
+fun unify(lhs: OpenEntityType, rhs: OpenEntityType, constraints: MutableList<Constraint>) {
+    constraints.add(Constraint(rhs.row, OpenEntityType(lhs.components - rhs.components, freshTypeVariable(EntityOrComponentKind))))
+    constraints.add(Constraint(lhs.row, OpenEntityType(rhs.components - lhs.components, freshTypeVariable(EntityOrComponentKind))))
+}
 
-    return unify(constraints + tail, substitutions)
+fun unify(lhs: OpenEntityType, rhs: ClosedEntityType, constraints: MutableList<Constraint>) {
+    if(!rhs.components.containsAll(lhs.components)) throw Exception()
+    val components = rhs.components - lhs.components
+    if(components.size == 1) constraints.add(Constraint(lhs.row, EntityOrComponentType(components.first())))
+    else constraints.add(Constraint(lhs.row, ClosedEntityType(components)))
+}
+
+fun unify(lhs: ClosedEntityType, rhs: ClosedEntityType) {
+    if(lhs.components != rhs.components) throw Exception()
+}
+
+fun unify(lhs: EntityOrComponentType, rhs: EntityOrComponentType, constraints: MutableList<Constraint>) {
+    constraints.add(Constraint(lhs.component, rhs.component))
+}
+
+fun unify(lhs: EntityOrComponentType, rhs: ClosedComponentType, constraints: MutableList<Constraint>, substitutions: MutableMap<Type, Type>) {
+    constraints.add(Constraint(lhs.component, rhs))
+    substitutions[lhs] = rhs
+}
+
+fun unify(lhs: EntityOrComponentType, rhs: ClosedEntityType, constraints: MutableList<Constraint>, substitutions: MutableMap<Type, Type>) {
+    if(rhs.components.size != 1) throw Exception()
+    constraints.add(Constraint(lhs.component, rhs.components.first()))
+    substitutions[lhs] = rhs
 }
