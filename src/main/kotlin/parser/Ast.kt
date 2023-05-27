@@ -192,5 +192,7 @@ fun updateTypes(ast: Ast, substitutions: Map<Type, Type>) {
         }
 
         is NameAst -> ast.updateType(substitutions)
+
+        else -> TODO()
     }
 }
