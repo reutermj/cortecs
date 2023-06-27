@@ -25,7 +25,8 @@ class CortecsFile private constructor(val file: CortecsFileTree) {
         var updatedFile = file.replace(start.line, replaceList)
         updatedFile =
             if(n > m) updatedFile.insert(start.line + m, lines.subList(m, n))
-            else updatedFile.delete(start.line + n, m - n)
+            else if(n < m) updatedFile.delete(start.line + n, m - n)
+            else updatedFile
 
         return CortecsFile(updatedFile)
     }
@@ -86,6 +87,7 @@ sealed interface CortecsFileTree {
     fun insertToTheLeft(trees: List<CortecsFileTree>): List<CortecsFileTree>
     fun insertToTheRight(trees: List<CortecsFileTree>): List<CortecsFileTree>
     fun delete(line: Int, numLines: Int): CortecsFileTree {
+        if(numLines == 0) return this
         val took = take(line, 0)
         val dropped = drop(line + numLines, 0)
 
@@ -213,6 +215,7 @@ data class CortecsFileNode(val children: List<CortecsFileTree>): CortecsFileTree
     }
 
     override fun drop(line: Int, leftMostLineNumber: Int): List<CortecsFileTree> {
+        if(leftMostLineNumber + size <= line) return emptyList()
         val index = pickChild(line, leftMostLineNumber)
         val src = mutableListOf<CortecsFileTree>()
 
@@ -232,6 +235,7 @@ data class CortecsFileNode(val children: List<CortecsFileTree>): CortecsFileTree
     }
 
     override fun take(line: Int, leftMostLineNumber: Int): List<CortecsFileTree> {
+        if(line < leftMostLineNumber) return emptyList()
         val index = pickChild(line, leftMostLineNumber)
         val src = mutableListOf<CortecsFileTree>()
 

@@ -201,10 +201,10 @@ fun main() {
 
     /*for(i in 1 until 100000) {
         for(j in 1 until i) {
-            for(k in 1 until (i - j)) {
+            *//*for(k in 1 until (i - j)) {
                 test(i, j, k)
                 test2(i, j, k)
-            }
+            }*//*
             test3(i, j)
             test4(i, j)
         }
