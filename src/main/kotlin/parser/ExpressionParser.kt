@@ -1,3 +1,4 @@
+/*
 package parser
 
 import tokenizer.*
@@ -314,3 +315,4 @@ internal data class SelectionParserName(val record: Expression): ParserStateMach
 }
 
 //endregion <entity>
+*/

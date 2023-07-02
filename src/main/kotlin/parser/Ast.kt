@@ -1,3 +1,4 @@
+/*
 package parser
 
 import tokenizer.*
@@ -195,4 +196,4 @@ fun updateTypes(ast: Ast, substitutions: Map<Type, Type>) {
 
         else -> TODO()
     }
-}
+}*/

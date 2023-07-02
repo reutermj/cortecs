@@ -2,29 +2,30 @@ package tokenizer
 
 internal class TokenizationState {
     private val buf = StringBuilder()
-    private val tokens = mutableListOf<Token>()
-    private var line = 0
-    private var column = 0
-    private var tokenLine = 0
-    private var tokenColumn = 0
+    private val lines = mutableListOf<List<Token>>()
+    private var tokens = mutableListOf<Token>()
 
-    fun <T : Token>writeToken(f: (String, Int, Int) -> T) {
-        tokens.add(f(buf.toString(), tokenLine, tokenColumn))
+    fun <T : Token>writeToken(f: (String) -> T) {
+        writeToken(f(buf.toString()))
+    }
+
+    fun <T : Token>writeToken(token: T) {
+        tokens.add(token)
         buf.clear()
-        tokenLine = line
-        tokenColumn = column
+        if(token is NewLineToken) {
+            lines.add(tokens)
+            tokens = mutableListOf()
+        }
     }
 
     fun addChar(c: Char) {
-        if(c == '\n') {
-            line++
-            column = 0
-        } else column++
-
         buf.append(c)
     }
 
-    fun getTokens() = tokens.toList()
+    fun getLines(): List<List<Token>> {
+        if(tokens.any()) lines.add(tokens)
+        return lines.toList()
+    }
 }
 
 internal abstract class TokenizerStateMachine {
@@ -41,14 +42,18 @@ internal object TokenizerInitialState: TokenizerStateMachine() {
             in numberChars -> Pair(IntState, true)
             in operators -> Pair(OperatorState, true)
             ':' -> {
-                state.writeToken(::ColonToken)
+                state.writeToken(ColonToken)
+                Pair(TokenizerInitialState, true)
+            }
+            '\n' -> {
+                state.writeToken(NewLineToken)
                 Pair(TokenizerInitialState, true)
             }
             '.' -> Pair(FloatOrDotState, true)
             '"' -> Pair(StringBaseState, true)
             '\'' -> Pair(CharFirstState, true)
             ',' -> {
-                state.writeToken(::CommaToken)
+                state.writeToken(CommaToken)
                 Pair(TokenizerInitialState, true)
             }
             '(', ')', '{', '}' -> {
@@ -64,7 +69,7 @@ internal object TokenizerInitialState: TokenizerStateMachine() {
     }
 }
 
-fun tokenize(s: String): List<Token> {
+fun tokenize(s: String): List<List<Token>> {
     val state = TokenizationState()
     var stm: TokenizerStateMachine = TokenizerInitialState
     var i = 0
@@ -74,8 +79,8 @@ fun tokenize(s: String): List<Token> {
         if (shouldProgress) i++
     }
     stm.finalize(state)
-    state.writeToken(::EofToken)
-    return state.getTokens()
+    //state.writeToken(EofToken)
+    return state.getLines()
 }
 
 //region Name
@@ -201,14 +206,14 @@ internal object FloatOrDotState: TokenizerStateMachine() {
                 Pair(FloatEndState, true)
             }
             else -> {
-                state.writeToken(::DotToken)
+                state.writeToken(DotToken)
                 Pair(TokenizerInitialState, false)
             }
         }
     }
 
     override fun finalize(state: TokenizationState) {
-        state.writeToken(::DotToken)
+        state.writeToken(DotToken)
     }
 }
 
@@ -464,7 +469,7 @@ internal object OperatorState: TokenizerStateMachine() {
 
 //region Whitespace
 
-val whiteSpace = setOf('\n', '\r', '\t', ' ')
+val whiteSpace = setOf('\r', '\t', ' ')
 
 internal object WhitespaceState: TokenizerStateMachine() {
     override fun process(c: Char, state: TokenizationState): Pair<TokenizerStateMachine, Boolean> {

@@ -1,19 +1,22 @@
 package lsp
 
 import org.eclipse.lsp4j.*
+import parser_rewrite.*
 import kotlin.math.*
+import tokenizer.*
 
 class CortecsFile private constructor(val file: CortecsFileTree) {
-    constructor(text: String): this(CortecsFileTree.bulkLoad(text.lines()))
+    constructor(text: String): this(CortecsFileTree.bulkLoad(tokenize(text).map { parseLine(it) }))
 
-    fun getLine(line: Int): String = file.getLine(line)!!
+    fun getLine(line: Int): ParseNode = file.getLine(line) ?: WhitespaceNode(emptyList())
 
     fun contentChange(change: TextDocumentContentChangeEvent): CortecsFile {
         val start = change.range.start
         val end = change.range.end
-        val text =
-            getLine(start.line).substring(0, start.character) + change.text + getLine(end.line).substring(end.character)
-        val lines = text.lines()
+
+        val lines =
+            if(start.line == end.line) getLine(start.line).update(start.character, end.character, change.text)
+            else getLine(start.line).update(start.character, end.character, change.text, getLine(end.line))
 
         val n = lines.size
         val m = end.line - start.line + 1
@@ -22,7 +25,9 @@ class CortecsFile private constructor(val file: CortecsFileTree) {
         //if n = m: replace n lines
         val numLinesReplaced = min(n, m)
         val replaceList = lines.subList(0, numLinesReplaced)
-        var updatedFile = file.replace(start.line, replaceList)
+        var updatedFile =
+            if(start.line < file.size) file.replace(start.line, replaceList)
+            else file.insert(start.line, replaceList)
         updatedFile =
             if(n > m) updatedFile.insert(start.line + m, lines.subList(m, n))
             else if(n < m) updatedFile.delete(start.line + n, m - n)
@@ -30,14 +35,53 @@ class CortecsFile private constructor(val file: CortecsFileTree) {
 
         return CortecsFile(updatedFile)
     }
+
+    fun publishErrors(errorList: MutableList<Diagnostic>) {
+        file.syntaxErrors.publishErrors(errorList, 0)
+    }
 }
+
+sealed interface ErrorTree {
+    fun publishErrors(errorList: MutableList<Diagnostic>, leftMostLineNumber: Int)
+}
+data class ErrorNode(val offsets: List<Int>, val nodes: List<ErrorTree>): ErrorTree {
+    override fun publishErrors(errorList: MutableList<Diagnostic>, leftMostLineNumber: Int) {
+        for(i in nodes.indices) nodes[i].publishErrors(errorList, leftMostLineNumber + offsets[i])
+    }
+}
+data class ErrorLeaf(val errors: List<SyntaxError>): ErrorTree {
+    override fun publishErrors(errorList: MutableList<Diagnostic>, leftMostLineNumber: Int) {
+        for(error in errors) {
+            val diagnostic = Diagnostic()
+            diagnostic.severity = DiagnosticSeverity.Error
+            diagnostic.range = Range(Position(leftMostLineNumber + error.offset, error.column), Position(leftMostLineNumber + error.offset, error.column + error.length))
+            diagnostic.message = error.toString()
+            diagnostic.source = "Cortecs LSP"
+            errorList.add(diagnostic)
+        }
+    }
+}
+object ErrorNone: ErrorTree {
+    override fun publishErrors(errorList: MutableList<Diagnostic>, leftMostLineNumber: Int) {}
+}
+
+enum class BraceType {
+    curly, paren, square
+}
+data class Brace(val offset: Int, val column: Int, val type: BraceType)
+sealed interface BraceMatcher {
+    val leftBraces: List<Brace>
+    val rightBraces: List<Brace>
+}
+data class HardBreak(override val leftBraces: List<Brace>, override val rightBraces: List<Brace>): BraceMatcher
+data class OpenToExtension(override val leftBraces: List<Brace>, override val rightBraces: List<Brace>): BraceMatcher
 
 sealed interface CortecsFileTree {
     companion object {
         val order = 4
         val minChildren = (order / 2) + (order % 2)
 
-        fun bulkLoad(lines: List<String>) =
+        fun bulkLoad(lines: List<ParseNode>) =
             when(lines.size) {
                 0 -> CortecsFileNone
                 1 -> CortecsFileLeaf(lines.first())
@@ -70,9 +114,13 @@ sealed interface CortecsFileTree {
 
     val size: Int
     val height: Int
-    fun getLine(line: Int, leftMostLineNumber: Int = 0): String?
 
-    fun insert(line: Int, lines: List<String>): CortecsFileTree {
+    val unmatchedBraces: BraceMatcher
+
+    val syntaxErrors: ErrorTree
+    fun getLine(line: Int, leftMostLineNumber: Int = 0): ParseNode?
+
+    fun insert(line: Int, lines: List<ParseNode>): CortecsFileTree {
         if(lines.isEmpty()) return this
 
         var trees =
@@ -83,11 +131,12 @@ sealed interface CortecsFileTree {
         return trees.first()
     }
 
-    fun insert(line: Int, lines: List<String>, leftMostLineNumber: Int): List<CortecsFileTree>
+    fun insert(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int): List<CortecsFileTree>
     fun insertToTheLeft(trees: List<CortecsFileTree>): List<CortecsFileTree>
     fun insertToTheRight(trees: List<CortecsFileTree>): List<CortecsFileTree>
     fun delete(line: Int, numLines: Int): CortecsFileTree {
         if(numLines == 0) return this
+        if(line >= size) return this
         val took = take(line, 0)
         val dropped = drop(line + numLines, 0)
 
@@ -107,35 +156,41 @@ sealed interface CortecsFileTree {
     }
     fun drop(line: Int, leftMostLineNumber: Int): List<CortecsFileTree>
     fun take(line: Int, leftMostLineNumber: Int): List<CortecsFileTree>
-    fun replace(line: Int, lines: List<String>) = replace(line, lines, 0)
-    fun replace(line: Int, lines: List<String>, leftMostLineNumber: Int): CortecsFileTree
-    fun inOrder(f: (String) -> Unit)
+    fun replace(line: Int, lines: List<ParseNode>) = replace(line, lines, 0)
+    fun replace(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int): CortecsFileTree
+    fun inOrder(f: (ParseNode) -> Unit)
     fun isValid(isRoot: Boolean = true): Boolean
 }
 
 object CortecsFileNone: CortecsFileTree {
     override val size = 0
     override val height = 0
+    override val syntaxErrors = ErrorNone
+    override val unmatchedBraces = throw Exception("Programmer error")
     override fun getLine(line: Int, leftMostLineNumber: Int) = null
-    override fun insert(line: Int, lines: List<String>, leftMostLineNumber: Int) = lines.map { CortecsFileLeaf(it) }
+    override fun insert(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int) = lines.map { CortecsFileLeaf(it) }
     override fun insertToTheLeft(trees: List<CortecsFileTree>) = trees
     override fun insertToTheRight(trees: List<CortecsFileTree>) = trees
     override fun drop(line: Int, leftMostLineNumber: Int) = emptyList<CortecsFileTree>()
     override fun take(line: Int, leftMostLineNumber: Int) = emptyList<CortecsFileTree>()
-    override fun replace(line: Int, lines: List<String>, leftMostLineNumber: Int) = throw Exception("Programmer error")
-    override fun inOrder(f: (String) -> Unit) {}
+    override fun replace(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int) = throw Exception("Programmer error")
+    override fun inOrder(f: (ParseNode) -> Unit) {}
     override fun isValid(isRoot: Boolean) = true
 }
 
-data class CortecsFileLeaf(val text: String): CortecsFileTree {
+data class CortecsFileLeaf(val parseNode: ParseNode): CortecsFileTree {
     override val size = 1
     override val height = 1
+    override val syntaxErrors =
+        if(parseNode.syntaxErrors.any()) ErrorLeaf(parseNode.syntaxErrors)
+        else ErrorNone
+    override val unmatchedBraces = parseNode.unmatchedBraces
     override fun isValid(isRoot: Boolean) = true
     override fun getLine(line: Int, leftMostLineNumber: Int) =
-        if(line == leftMostLineNumber) text
+        if(line == leftMostLineNumber) parseNode
         else null
 
-    override fun insert(line: Int, lines: List<String>, leftMostLineNumber: Int) =
+    override fun insert(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int) =
         if(line == leftMostLineNumber) List(lines.size + 1) { if(it == lines.size) this else CortecsFileLeaf(lines[it]) }
         else List(lines.size + 1) { if(it == 0) this else CortecsFileLeaf(lines[it - 1]) }
 
@@ -153,12 +208,12 @@ data class CortecsFileLeaf(val text: String): CortecsFileTree {
         if(line <= leftMostLineNumber) emptyList()
         else listOf(this)
 
-    override fun replace(line: Int, lines: List<String>, leftMostLineNumber: Int) =
+    override fun replace(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int) =
         if(line <= leftMostLineNumber && leftMostLineNumber < line + lines.size) CortecsFileLeaf(lines[leftMostLineNumber - line])
         else this
 
-    override fun inOrder(f: (String) -> Unit) {
-        f(text)
+    override fun inOrder(f: (ParseNode) -> Unit) {
+        f(parseNode)
     }
 }
 
@@ -173,6 +228,97 @@ data class CortecsFileNode(val children: List<CortecsFileTree>): CortecsFileTree
     }
     override val size = children.fold(0) { acc, child -> acc + child.size}
     override val height = children.first().height + 1
+    override val unmatchedBraces: BraceMatcher
+    override val syntaxErrors: ErrorTree
+    init {
+        val errorOffsets = mutableListOf<Int>()
+        val errors = mutableListOf<ErrorTree>()
+        for(i in children.indices) {
+            val child = children[i]
+            if(child.syntaxErrors !is ErrorNone) {
+                errorOffsets.add(offsets[i])
+                errors.add(child.syntaxErrors)
+            }
+        }
+
+        val braceErrors = mutableListOf<SyntaxError>()
+
+        val unmatchedToTheLeft = mutableListOf<Brace>()
+        val unmatchedToTheRight = mutableListOf<Brace>()
+        var hardBreak = false
+        var i = 0
+        while(i < children.size) {
+            val child = children[i]
+            val offset = offsets[i]
+            i++
+            for(leftBrace in child.unmatchedBraces.leftBraces) {
+                if(unmatchedToTheRight.any()) {
+                    val rightBrace = unmatchedToTheRight.removeLast()
+                    if(leftBrace.type != rightBrace.type) {
+                        braceErrors.add(MismatchedBrace(leftBrace.copy(offset = offset + leftBrace.offset)))
+                        braceErrors.add(MismatchedBrace(rightBrace))
+                    }
+                } else unmatchedToTheLeft.add(leftBrace.copy(offset = offset + leftBrace.offset))
+            }
+
+            if(child.unmatchedBraces is HardBreak) {
+                for(rightBrace in unmatchedToTheRight) braceErrors.add(UnmatchedBrace(rightBrace))
+                unmatchedToTheRight.clear()
+                hardBreak = true
+
+                for(rightBrace in child.unmatchedBraces.rightBraces) {
+                    unmatchedToTheRight.add(rightBrace.copy(offset = offset + rightBrace.offset))
+                }
+
+                break
+            }
+
+            for(rightBrace in child.unmatchedBraces.rightBraces) {
+                unmatchedToTheRight.add(rightBrace.copy(offset = offset + rightBrace.offset))
+            }
+        }
+
+        val leftBraces = unmatchedToTheLeft.toList()
+        unmatchedToTheLeft.clear()
+
+        while (i < children.size) {
+            val child = children[i]
+            val offset = offsets[i]
+            i++
+
+            for(leftBrace in child.unmatchedBraces.leftBraces) {
+                if(unmatchedToTheRight.any()) {
+                    val rightBrace = unmatchedToTheRight.removeLast()
+                    if(leftBrace.type != rightBrace.type) {
+                        braceErrors.add(MismatchedBrace(leftBrace.copy(offset = offset + leftBrace.offset)))
+                        braceErrors.add(MismatchedBrace(rightBrace))
+                    }
+                } else braceErrors.add(UnmatchedBrace(leftBrace.copy(offset = offset + leftBrace.offset)))
+            }
+
+            if(child.unmatchedBraces is HardBreak) {
+                for(rightBrace in unmatchedToTheRight) braceErrors.add(UnmatchedBrace(rightBrace))
+                unmatchedToTheRight.clear()
+            }
+
+            for(rightBrace in child.unmatchedBraces.rightBraces) {
+                unmatchedToTheRight.add(rightBrace.copy(offset = offset + rightBrace.offset))
+            }
+        }
+
+        unmatchedBraces =
+            if(hardBreak) HardBreak(leftBraces, unmatchedToTheRight)
+            else OpenToExtension(leftBraces, unmatchedToTheRight)
+
+        if(braceErrors.any()) {
+            errorOffsets.add(0)
+            errors.add(ErrorLeaf(braceErrors))
+        }
+
+        syntaxErrors =
+            if(errors.any()) ErrorNode(errorOffsets, errors)
+            else ErrorNone
+    }
 
     override fun isValid(isRoot: Boolean): Boolean {
         if(!isRoot && children.size < CortecsFileTree.minChildren) return false
@@ -199,12 +345,13 @@ data class CortecsFileNode(val children: List<CortecsFileTree>): CortecsFileTree
         }
     }
 
-    override fun getLine(line: Int, leftMostLineNumber: Int): String? {
+    override fun getLine(line: Int, leftMostLineNumber: Int): ParseNode? {
+        if(line >= leftMostLineNumber + size) return null
         val index = pickChild(line, leftMostLineNumber)
         return children[index].getLine(line, leftMostLineNumber + offsets[index])
     }
 
-    override fun insert(line: Int, lines: List<String>, leftMostLineNumber: Int): List<CortecsFileTree> {
+    override fun insert(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int): List<CortecsFileTree> {
         val index = pickChild(line, leftMostLineNumber)
         val src = mutableListOf<CortecsFileTree>()
         for(i in 0 until index) src.add(children[i])
@@ -279,9 +426,16 @@ data class CortecsFileNode(val children: List<CortecsFileTree>): CortecsFileTree
         return CortecsFileTree.oneLayer(src)
     }
 
-    override fun replace(line: Int, lines: List<String>, leftMostLineNumber: Int): CortecsFileTree {
-        val lIndex = pickChild(line, leftMostLineNumber)
-        val rIndex = pickChild(line + lines.size - 1, leftMostLineNumber)
+    override fun replace(line: Int, lines: List<ParseNode>, leftMostLineNumber: Int): CortecsFileTree {
+        val lIndex =
+            if(line > leftMostLineNumber) pickChild(line, leftMostLineNumber)
+            else 0
+
+        val endLine = line + lines.size - 1
+        val rIndex =
+            if(endLine < leftMostLineNumber + size) pickChild(endLine, leftMostLineNumber)
+            else children.size - 1
+
         val c = List(children.size) {
             if(it in lIndex..rIndex) children[it].replace(line, lines, leftMostLineNumber + offsets[it])
             else children[it]
@@ -289,7 +443,7 @@ data class CortecsFileNode(val children: List<CortecsFileTree>): CortecsFileTree
         return CortecsFileNode(c)
     }
 
-    override fun inOrder(f: (String) -> Unit) {
+    override fun inOrder(f: (ParseNode) -> Unit) {
         for(child in children) child.inOrder(f)
     }
 }

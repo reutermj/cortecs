@@ -2,161 +2,160 @@ package tokenizer
 
 sealed class Token() {
     abstract val value: String
-    abstract val line: Int
-    abstract val column: Int
+    override fun toString() = value
 }
 
-data class EofToken(override val line: Int, override val column: Int): Token() {
-    constructor(unused: String, line: Int, column: Int): this(line, column)
+object EofToken: Token() {
     override val value = "<EOF>"
 }
 
-data class WhitespaceToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class StringToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class BadStringToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class CharToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class BadCharToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class IntToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class FloatToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class BadNumberToken(override val value: String, override val line: Int, override val column: Int): Token()
+object NewLineToken: Token() {
+    override val value = "\n"
+    override fun toString() = "<newline>"
+}
+class WhitespaceToken(override val value: String): Token()
+class StringToken(override val value: String): Token()
+class BadStringToken(override val value: String): Token()
+class CharToken(override val value: String): Token()
+class BadCharToken(override val value: String): Token()
+class IntToken(override val value: String): Token()
+class FloatToken(override val value: String): Token()
+class BadNumberToken(override val value: String): Token()
 
-fun writeBracket(value: String, line: Int, column: Int) =
+fun writeBracket(value: String) =
     when(value) {
-        "(" -> OpenParenToken(line, column)
-        ")" -> CloseParenToken(line, column)
-        "{" -> OpenCurlyToken(line, column)
-        "}" -> CloseCurlyToken(line, column)
+        "(" -> OpenParenToken
+        ")" -> CloseParenToken
+        "{" -> OpenCurlyToken
+        "}" -> CloseCurlyToken
         else -> throw Exception()
     }
-data class OpenParenToken(override val line: Int, override val column: Int): Token() {
+object OpenParenToken: Token() {
     override val value = "("
 }
-data class CloseParenToken(override val line: Int, override val column: Int): Token() {
+object CloseParenToken: Token() {
     override val value = ")"
 }
-data class OpenCurlyToken(override val line: Int, override val column: Int): Token() {
+object OpenCurlyToken: Token() {
     override val value = "{"
 }
-data class CloseCurlyToken(override val line: Int, override val column: Int): Token() {
+object CloseCurlyToken: Token() {
     override val value = "}"
 }
 
-fun writeName(value: String, line: Int, column: Int) =
+fun writeName(value: String) =
     when(value) {
-        "let" -> LetToken(line, column)
-        "fn" -> FnToken(line, column)
-        "return" -> ReturnToken(line, column)
-        "component" -> ComponentToken(line, column)
-        else -> NameToken(value, line, column)
+        "let" -> LetToken
+        "fn" -> FnToken
+        "return" -> ReturnToken
+        "component" -> ComponentToken
+        else -> NameToken(value)
     }
-data class NameToken(override val value: String, override val line: Int, override val column: Int): Token()
-data class LetToken(override val line: Int, override val column: Int): Token() {
+class NameToken(override val value: String): Token()
+object LetToken: Token() {
     override val value = "let"
 }
-data class FnToken(override val line: Int, override val column: Int): Token() {
+object FnToken: Token() {
     override val value = "fn"
 }
-data class ReturnToken(override val line: Int, override val column: Int): Token() {
+object ReturnToken: Token() {
     override val value = "return"
 }
-data class ComponentToken(override val line: Int, override val column: Int): Token() {
+object ComponentToken: Token() {
     override val value = "component"
 }
 
-data class CommaToken(override val line: Int, override val column: Int): Token() {
-    constructor(unused: String, line: Int, column: Int): this(line, column)
+object CommaToken: Token() {
     override val value = ","
 }
 
-data class DotToken(override val line: Int, override val column: Int): Token() {
-    constructor(unused: String, line: Int, column: Int): this(line, column)
+object DotToken: Token() {
     override val value = "."
 }
 
-data class ColonToken(override val line: Int, override val column: Int): Token() {
-    constructor(unused: String, line: Int, column: Int): this(line, column)
+object ColonToken: Token() {
     override val value = ":"
 }
 
-data class BackSlashToken(override val line: Int, override val column: Int): Token() {
+object BackSlashToken: Token() {
     override val value = "\\"
 }
-data class EqualSignToken(override val line: Int, override val column: Int): Token() {
+object EqualSignToken: Token() {
     override val value = "="
 }
-data class PlusToken(override val line: Int, override val column: Int): Token() {
+object PlusToken: Token() {
     override val value = "+"
 }
-data class MinusToken(override val line: Int, override val column: Int): Token() {
+object MinusToken: Token() {
     override val value = "-"
 }
-data class MulToken(override val line: Int, override val column: Int): Token() {
+object MulToken: Token() {
     override val value = "*"
 }
-data class DivToken(override val line: Int, override val column: Int): Token() {
+object DivToken: Token() {
     override val value = "/"
 }
-data class ModToken(override val line: Int, override val column: Int): Token() {
+object ModToken: Token() {
     override val value = "%"
 }
-data class EqToken(override val line: Int, override val column: Int): Token() {
+object EqToken: Token() {
     override val value = "=="
 }
-data class NeqToken(override val line: Int, override val column: Int): Token() {
+object NeqToken: Token() {
     override val value = "!="
 }
-data class LtToken(override val line: Int, override val column: Int): Token() {
+object LtToken: Token() {
     override val value = "<"
 }
-data class LteToken(override val line: Int, override val column: Int): Token() {
+object LteToken: Token() {
     override val value = "<="
 }
-data class GtToken(override val line: Int, override val column: Int): Token() {
+object GtToken: Token() {
     override val value = ">"
 }
-data class GteToken(override val line: Int, override val column: Int): Token() {
+object GteToken: Token() {
     override val value = ">="
 }
-data class AndToken(override val line: Int, override val column: Int): Token() {
+object AndToken: Token() {
     override val value = "&&"
 }
-data class OrToken(override val line: Int, override val column: Int): Token() {
+object OrToken: Token() {
     override val value = "||"
 }
-data class BitAndToken(override val line: Int, override val column: Int): Token() {
+object BitAndToken: Token() {
     override val value = "&"
 }
-data class BitOrToken(override val line: Int, override val column: Int): Token() {
+object BitOrToken: Token() {
     override val value = "|"
 }
-data class BitNorToken(override val line: Int, override val column: Int): Token() {
+object BitNorToken: Token() {
     override val value = "^"
 }
-data class BitNotToken(override val line: Int, override val column: Int): Token() {
+object BitNotToken: Token() {
     override val value = "~"
 }
-data class BadOperatorToken(override val value: String, override val line: Int, override val column: Int): Token()
+class BadOperatorToken(override val value: String): Token()
 
-fun writeOperator(value: String, line: Int, column: Int) =
+fun writeOperator(value: String) =
     when(value) {
-        "\\" ->  BackSlashToken(line, column)
-        "=" ->  EqualSignToken(line, column)
-        "+" ->  PlusToken(line, column)
-        "-" ->  MinusToken(line, column)
-        "*" ->  MulToken(line, column)
-        "/" ->  DivToken(line, column)
-        "%" ->  ModToken(line, column)
-        "==" ->  EqToken(line, column)
-        "!=" ->  NeqToken(line, column)
-        "<" ->  LtToken(line, column)
-        "<=" ->  LteToken(line, column)
-        ">" ->  GtToken(line, column)
-        ">=" ->  GteToken(line, column)
-        "&&" ->  AndToken(line, column)
-        "||" ->  OrToken(line, column)
-        "&" ->  BitAndToken(line, column)
-        "|" ->  BitOrToken(line, column)
-        "^" ->  BitNorToken(line, column)
-        "~" ->  BitNotToken(line, column)
-        else -> BadOperatorToken(value, line, column)
+        "\\" ->  BackSlashToken
+        "=" ->  EqualSignToken
+        "+" ->  PlusToken
+        "-" ->  MinusToken
+        "*" ->  MulToken
+        "/" ->  DivToken
+        "%" ->  ModToken
+        "==" ->  EqToken
+        "!=" ->  NeqToken
+        "<" ->  LtToken
+        "<=" ->  LteToken
+        ">" ->  GtToken
+        ">=" ->  GteToken
+        "&&" ->  AndToken
+        "||" ->  OrToken
+        "&" ->  BitAndToken
+        "|" ->  BitOrToken
+        "^" ->  BitNorToken
+        "~" ->  BitNotToken
+        else -> BadOperatorToken(value)
     }

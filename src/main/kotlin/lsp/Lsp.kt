@@ -88,6 +88,9 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             val uri = params?.textDocument?.uri ?: return
             val cortecsFile = CortecsFile(params.textDocument.text)
             //cortecsFile.printInOrder()
+            val diagnostics = mutableListOf<Diagnostic>()
+            cortecsFile.publishErrors(diagnostics)
+            client?.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
             documents[uri] = cortecsFile
             println("exit didOpen")
         }
@@ -129,6 +132,10 @@ object CortecsServer: LanguageServer, LanguageClientAware {
                 else documents[uri] = CortecsFile(change.text) //full document change
             }
 
+            val diagnostics = mutableListOf<Diagnostic>()
+            documents[uri]?.publishErrors(diagnostics)
+            client?.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
+
             //validateDocument(documents[uri] ?: return)
             println("exit didChange")
         }
@@ -145,7 +152,6 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             documents[uri]?.file?.inOrder { println(it) }
             println("exit didSave")
         }
-
     }
 
     override fun getTextDocumentService() = TextDocumentServiceLsp
@@ -213,6 +219,7 @@ fun main() {
     //test2(5, 2, 1)
 }
 
+/*
 fun test(i: Int, j: Int, k: Int) {
     val numbers = List(i) {
         if(it < j) it.toString()
@@ -330,4 +337,4 @@ fun test4(i: Int, j: Int) {
     if(l != j) {
         println("$i $j")
     }
-}
+}*/

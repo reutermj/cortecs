@@ -1,3 +1,4 @@
+/*
 package parser
 
 import tokenizer.*
@@ -102,4 +103,4 @@ internal object ReturnParserExpression: ParserStateMachine() {
     }
 }
 
-//endregion <return>
+//endregion <return>*/

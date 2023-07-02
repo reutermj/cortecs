@@ -1,3 +1,4 @@
+/*
 package parser
 
 import tokenizer.*
@@ -246,4 +247,4 @@ internal data class ComponentParserCloseParen(val name: NameToken, val args: Lis
     }
 }
 
-//endregion <component>
+//endregion <component>*/

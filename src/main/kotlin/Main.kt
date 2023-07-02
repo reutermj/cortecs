@@ -1,7 +1,3 @@
-import parser.*
-import tokenizer.*
-import typechecker.*
-import lsp.*
 import java.io.File
 
 fun main() {

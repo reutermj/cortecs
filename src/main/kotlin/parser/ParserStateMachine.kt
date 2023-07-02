@@ -1,3 +1,4 @@
+/*
 package parser
 
 import tokenizer.*
@@ -31,4 +32,4 @@ fun parse(tokens: List<Token>): List<ProgramAst> {
         is ProgramPaser -> s.program
         else -> throw Exception()
     }
-}
+}*/

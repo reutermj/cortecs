@@ -1,3 +1,4 @@
+/*
 package typechecker
 
 import parser.*
@@ -219,4 +220,4 @@ fun generateComponentSelectionConstraints(environment: Environment, constraints:
     val inputType = OpenComponentType(mapOf(selection.label.value to outputType), freshTypeVariable(ComponentKind))
     constraints.add(Constraint(t, inputType))
     return outputType
-}
+}*/

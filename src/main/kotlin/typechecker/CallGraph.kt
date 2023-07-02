@@ -1,3 +1,4 @@
+/*
 package typechecker
 
 import parser.*
@@ -158,3 +159,4 @@ fun getCalls(ast: Ast, fnLookup: Map<String, FnAst>): Set<FnAst> {
         else -> throw Exception()
     }
 }
+*/

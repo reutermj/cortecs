@@ -1,3 +1,4 @@
+/*
 package codegen
 
 import ir.*
@@ -50,7 +51,9 @@ fun lower(body: BodyMfir): List<Lowered> {
         is ReturnIr -> listOf(ReturnLowered(body.name))
         is DefinitionIr -> emptyList()
         is FunctionCallIr -> listOf(FnCallLowered(body.name, lower(body.type), body.fn.name, body.args.map { it.name }))
-        is ComponentConstructorIr -> listOf(ComponentConstructorLowered(body.name, lower(body.type), body.arguments.map { ComponentDefinition(it.name, it.name)/*todo hmm*/ }))
+        is ComponentConstructorIr -> listOf(ComponentConstructorLowered(body.name, lower(body.type), body.arguments.map { ComponentDefinition(it.name, it.name)*/
+/*todo hmm*//*
+ }))
         is ComponentSelectionIr -> listOf(ComponentSelectionLowered(body.name, lower(body.type), body.component.name, body.label))
         is EntityDefinitionIr -> {
             val lowered = mutableListOf<Lowered>()
@@ -134,3 +137,4 @@ fun generateCode(lowered: Lowered, depth: Int) {
         }
     }
 }
+*/

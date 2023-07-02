@@ -1,3 +1,4 @@
+/*
 package typechecker
 
 fun applySubstitutions(t: Type, substitutions: Map<Type, Type>): Type {
@@ -158,4 +159,4 @@ fun unify(lhs: EntityOrComponentType, rhs: ClosedEntityType, constraints: Mutabl
     if(rhs.components.size != 1) throw Exception()
     constraints.add(Constraint(lhs.component, rhs.components.first()))
     substitutions[lhs] = rhs
-}
+}*/

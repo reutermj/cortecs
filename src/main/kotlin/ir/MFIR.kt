@@ -1,3 +1,4 @@
+/*
 package ir
 
 import parser.*
@@ -170,4 +171,4 @@ fun constructMfir(expression: Expression, name: String, substitutions: Map<Type,
         is CharConstantAst -> CharConstantIr(name, expression.value.value)
         is StringConstantAst -> StringConstantIr(name, expression.value.value)
     }
-}
+}*/
