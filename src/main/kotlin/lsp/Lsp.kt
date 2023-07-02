@@ -4,11 +4,9 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.eclipse.lsp4j.services.*
-import java.lang.Exception
-import java.net.Socket
-import java.util.concurrent.CompletableFuture
-import kotlin.system.exitProcess
-
+import java.net.*
+import java.util.concurrent.*
+import kotlin.system.*
 
 object CortecsServer: LanguageServer, LanguageClientAware {
     var hasConfigurationCapability = false
@@ -47,31 +45,6 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         exitProcess(0)
     }
 
-    /*private fun validateDocument(document: String) {
-        val diagnostics = mutableListOf<Diagnostic>()
-        val lines = document.split("\\r?\\n".toRegex()).dropLastWhile { it.isEmpty() }
-        var problems = 0
-        var i = 0
-        while(i < lines.size) {
-            val line = lines[i]
-            if(problems >= maxNumberOfProblems) break
-
-            val index = line.indexOf("typescript")
-            if (index >= 0) {
-                problems++
-                val diagnostic = Diagnostic()
-                diagnostic.severity = DiagnosticSeverity.Warning
-                diagnostic.range = Range(Position(i, index), Position(i, index + 10))
-                diagnostic.message = String.format("%s should be spelled TypeScript", line.substring(index, index + 10))
-                diagnostic.source = "ex"
-                diagnostics.add(diagnostic)
-            }
-            i++
-        }
-
-        //client?.publishDiagnostics(PublishDiagnosticsParams(document.uri, diagnostics))
-    }*/
-
     object TextDocumentServiceLsp : TextDocumentServiceImpl {
         val documents = mutableMapOf<String, CortecsFile>()
 
@@ -88,6 +61,9 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             val uri = params?.textDocument?.uri ?: return
             val cortecsFile = CortecsFile(params.textDocument.text)
             //cortecsFile.printInOrder()
+            val diagnostics = mutableListOf<Diagnostic>()
+            cortecsFile.publishErrors(diagnostics)
+            client?.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
             documents[uri] = cortecsFile
             println("exit didOpen")
         }
@@ -129,7 +105,10 @@ object CortecsServer: LanguageServer, LanguageClientAware {
                 else documents[uri] = CortecsFile(change.text) //full document change
             }
 
-            //validateDocument(documents[uri] ?: return)
+            val diagnostics = mutableListOf<Diagnostic>()
+            documents[uri]?.publishErrors(diagnostics)
+            client?.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
+
             println("exit didChange")
         }
 
@@ -145,7 +124,6 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             documents[uri]?.file?.inOrder { println(it) }
             println("exit didSave")
         }
-
     }
 
     override fun getTextDocumentService() = TextDocumentServiceLsp
@@ -159,7 +137,6 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             if(languageServerExample !is Map<*, *>) return
             maxNumberOfProblems = (languageServerExample["languageServerExample"] ?: languageServerExample) as Double
             println("exit didChangeConfiguration")
-            //for((_, doc) in TextDocumentServiceLsp.documents) validateDocument(doc)
         }
 
         override fun didChangeWatchedFiles(params: DidChangeWatchedFilesParams?) {
@@ -181,153 +158,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
 
 fun main() {
     val socket = Socket("localhost", 52712)
-    val bla = LSPLauncher.createServerLauncher(CortecsServer, socket.inputStream, socket.outputStream)
-    CortecsServer.connect(bla.remoteProxy)
-    bla.startListening()
-
-
-    /*val numbers = List(i) { it.toString() }
-    val tree = CortecsFileTree.bulkLoad(numbers)
-    if(!tree.isValid()) {
-        println("here")
-    }
-    var l = 0
-    tree.inOrder {
-        if(it.toInt() != l) {
-            println("here")
-        }
-        l++
-    }*/
-
-    /*for(i in 1 until 100000) {
-        for(j in 1 until i) {
-            *//*for(k in 1 until (i - j)) {
-                test(i, j, k)
-                test2(i, j, k)
-            }*//*
-            test3(i, j)
-            test4(i, j)
-        }
-
-    }*/
-    //test2(5, 2, 1)
-}
-
-fun test(i: Int, j: Int, k: Int) {
-    val numbers = List(i) {
-        if(it < j) it.toString()
-        else (it + k).toString()
-    }
-    val toAdd = List(k) { (it + j).toString() }
-    val tree = CortecsFileTree.bulkLoad(numbers)
-    val treep = tree.insert(j, toAdd)
-
-    if(!treep.isValid()) {
-        println("$i $j $k")
-    }
-
-    var l = 0
-    treep.inOrder {
-        if(it.toInt() != l) {
-            val n = numbers
-            val a = toAdd
-            val t = tree
-            val tp = treep
-            println("$i $j $k")
-        }
-        l++
-    }
-}
-
-fun test2(i: Int, j: Int, k: Int) {
-    val numbers = List(i) {
-        it.toString()
-    }
-
-    try {
-        val tree = CortecsFileTree.bulkLoad(numbers)
-        val treep = tree.delete(j, k)
-
-        if(!treep.isValid()) {
-            println("$i $j $k")
-        }
-
-        var l = 0
-        treep.inOrder {
-            while(l >= j && l < j + k) l++
-
-            val m = it.toInt()
-            if(m != l) {
-                val n = numbers
-                val t = tree
-                val tp = treep
-                println("$i $j $k")
-            }
-            l++
-        }
-    } catch(e: Exception) {
-        println("$i $j $k")
-    }
-}
-
-fun test3(i: Int, j: Int) {
-    val numbers = List(i) { it.toString() }
-    val tree = CortecsFileTree.bulkLoad(numbers)
-    var treep = tree.drop(j, 0)
-    while(treep.size > CortecsFileTree.minChildren) treep = CortecsFileTree.oneLayer(treep)
-    val treepp =
-        when(treep.size) {
-            0 -> CortecsFileNone
-            1 -> treep.first()
-            else -> CortecsFileNode(treep)
-        }
-
-    if(!treepp.isValid()) {
-        println("$i $j")
-    }
-
-    var l = j
-    treepp.inOrder {
-        if(it.toInt() != l) {
-            val n = numbers
-            val t = tree
-            val tp = treep
-            val tpp = treepp
-            println("$i $j")
-        }
-        l++
-    }
-}
-
-fun test4(i: Int, j: Int) {
-    val numbers = List(i) { it.toString() }
-    val tree = CortecsFileTree.bulkLoad(numbers)
-    var treep = tree.take(j, 0)
-    while(treep.size > CortecsFileTree.minChildren) treep = CortecsFileTree.oneLayer(treep)
-    val treepp =
-        when(treep.size) {
-            0 -> CortecsFileNone
-            1 -> treep.first()
-            else -> CortecsFileNode(treep)
-        }
-
-    if(!treepp.isValid()) {
-        println("$i $j")
-    }
-
-    var l = 0
-    treepp.inOrder {
-        if(it.toInt() != l) {
-            val n = numbers
-            val t = tree
-            val tp = treep
-            val tpp = treepp
-            println("$i $j")
-        }
-        l++
-    }
-
-    if(l != j) {
-        println("$i $j")
-    }
+    val server = LSPLauncher.createServerLauncher(CortecsServer, socket.inputStream, socket.outputStream)
+    CortecsServer.connect(server.remoteProxy)
+    server.startListening()
 }
