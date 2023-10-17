@@ -9,12 +9,12 @@ class ProgramReparseTests {
         inIterator.add("")
         var program = parseProgram(inIterator)
 
-        val s = "function f(x) {}"
+        val s = "fn f(x) {}"
         var position = 1
         var line = 0
         var column = 0
         for(c in s) {
-            val changeIterator = constructChangeIterator(program, "$c", Offset(line, column), Offset(line, column))
+            val changeIterator = constructChangeIterator(program, "$c", Span(line, column), Span(line, column))
             program = parseProgram(changeIterator)
 
             if(c == '\n') {

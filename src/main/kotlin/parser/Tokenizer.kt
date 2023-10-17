@@ -2,7 +2,7 @@ package parser
 
 fun nextToken(text: String, start: Int): Token =
     when(text[start]) {
-        in initialName -> nextToken(text, start, allName, ::toKeywordOrNameOrTypeToken)
+        in initialNameOrType -> nextToken(text, start, allNameOrType, ::toKeywordOrNameOrTypeToken)
         in whiteSpace -> nextToken(text, start, whiteSpace, ::WhitespaceToken)
         in operators -> nextToken(text, start, operators, ::toOperatorToken)
 
@@ -24,10 +24,12 @@ fun nextToken(text: String, start: Int): Token =
 
 val operators = setOf('=', '<', '>', '!', '|', '&', '+', '-', '*', '/', '%', '~')
 val whiteSpace = setOf('\r', '\t', ' ')
-val initialName = ('a'..'z').toSet() + ('A'..'Z').toSet() + setOf('_')
-val allName = initialName + ('0'..'9').toSet()
+val initialType = ('A'..'Z').toSet()
+val initialName = ('a'..'z').toSet() + setOf('_')
+val initialNameOrType = initialType + initialName
+val allNameOrType = initialNameOrType + ('0'..'9').toSet()
 val numbers = ('0'..'9').toSet()
-val valid = operators + whiteSpace + allName + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
+val valid = operators + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
 
 private fun nextToken(s: String, start: Int, acceptableChars: Set<Char>, toToken: (String) -> Token): Token {
     var end = start + 1
@@ -89,6 +91,7 @@ private fun nextIntOrFloatToken(text: String, start: Int): Token {
         when(text[end]) {
             in numbers -> end++
             '.' -> return nextFloatToken(text, start, end + 1)
+            'u', 'U' -> return nextUintToken(text, start, end + 1)
             'l', 'L', 'b', 'B', 's', 'S' -> {
                 end++
                 break
@@ -101,6 +104,14 @@ private fun nextIntOrFloatToken(text: String, start: Int): Token {
         }
     }
     return IntToken(text.substring(start, end))
+}
+
+private fun nextUintToken(text: String, start: Int, end: Int): Token {
+    if(end == text.length) return IntToken(text.substring(start, end))
+    return when(text[end]) {
+        'l', 'L', 'b', 'B', 's', 'S' -> IntToken(text.substring(start, end + 1))
+        else -> IntToken(text.substring(start, end))
+    }
 }
 
 private fun nextFloatToken(text: String, start: Int, end: Int): Token {
@@ -128,11 +139,11 @@ private fun toKeywordOrNameOrTypeToken(value: String) =
     when(value) {
         "let" -> LetToken
         "if" -> IfToken
-        "function" -> FunctionToken
+        "fn" -> FnToken
         "return" -> ReturnToken
         else ->
-            if(value[0].isLowerCase()) NameToken(value)
-            else TypeToken(value)
+            if(value[0].isUpperCase()) TypeToken(value)
+            else NameToken(value)
     }
 
 private fun toOperatorToken(value: String): Token =

@@ -2,24 +2,26 @@ package parser
 
 fun parseProgram(iterator: ParserIterator): StarAst<TopLevelAst> = buildStarAst(iterator) {
     when(iterator.peekToken()) {
-        is FunctionToken -> parseFunction(getBuilder())
+        is FnToken -> parseFn(getBuilder())
         else -> parseGarbageTopLevel(getBuilder())
     }.let { KeepBuildingStar(it) }
 }
 
-fun parseFunction(builder: AstBuilder): FunctionAst = buildAst(builder) {
-    consume<FunctionToken>()
+fun parseFn(builder: AstBuilder): FnAst = buildAst(builder) {
+    consume<FnToken>()
     val name = consume<NameToken>()
 
-    consume<OpenParenToken>() ?: return@buildAst FunctionAst(getSequence(), name, null, null)
+    consume<OpenParenToken>() ?: return@buildAst FnAst(getSequence(), name, null, null, null)
     val parameters = parseParameters(getBuilder())
-    consume<CloseParenToken>() ?: return@buildAst FunctionAst(getSequence(), name, parameters, null)
+    consume<CloseParenToken>() ?: return@buildAst FnAst(getSequence(), name, parameters, null, null)
 
-    consume<OpenCurlyToken>() ?: return@buildAst FunctionAst(getSequence(), name, parameters, null)
+    val returnType = consume<ColonToken>()?.let { consume<TypeAnnotationToken>() ?: return@buildAst FnAst(getSequence(), name, parameters, null, null) }
+
+    consume<OpenCurlyToken>() ?: return@buildAst FnAst(getSequence(), name, parameters, returnType, null)
     val block = parseBlock(getBuilder())
-    consume<CloseCurlyToken>() ?: return@buildAst FunctionAst(getSequence(), name, parameters, block)
+    consume<CloseCurlyToken>() ?: return@buildAst FnAst(getSequence(), name, parameters, returnType, block)
 
-    FunctionAst(getSequence(), name, parameters, block)
+    FnAst(getSequence(), name, parameters, returnType, block)
 }
 
 fun parseGarbageTopLevel(builder: AstBuilder): GarbageAst = buildAst(builder) {
@@ -36,7 +38,7 @@ fun parseGarbageTopLevel(builder: AstBuilder): GarbageAst = buildAst(builder) {
 fun parseParameters(builder: AstBuilder): StarAst<ParameterAst> = buildStarAst(builder) {
     buildAst(getBuilder()) {
         val name = consume<NameToken>() ?: return@buildStarAst StopBuildingStar
-        val type = consume<ColonToken>()?.let { consume<TypeToken>() }
+        val type = consume<ColonToken>()?.let { consume<TypeAnnotationToken>() /*todo this doesnt work -> ?: return@buildStarAst StopBuildingStar*/ }
         consume<CommaToken>()
         ParameterAst(getSequence(), name, type)
     }.let { KeepBuildingStar(it) }
@@ -68,10 +70,11 @@ fun parseIf(builder: AstBuilder) = buildAst(builder) {
 
 fun parseLet(builder: AstBuilder) = buildAst(builder) {
     consume<LetToken>()
-    val name = consume<NameToken>() ?: return@buildAst LetAst(getSequence(), null, null)
-    consume<EqualSignToken>() ?: return@buildAst LetAst(getSequence(), name, null)
-    val expression = parseExpression(getBuilder()) ?: return@buildAst LetAst(getSequence(), name, null)
-    LetAst(getSequence(), name, expression)
+    val name = consume<NameToken>() ?: return@buildAst LetAst(getSequence(), null, null, null)
+    val type = consume<ColonToken>()?.let { consume<TypeAnnotationToken>() ?: return@buildAst LetAst(getSequence(), name, null, null) }
+    consume<EqualSignToken>() ?: return@buildAst LetAst(getSequence(), name, type, null)
+    val expression = parseExpression(getBuilder()) ?: return@buildAst LetAst(getSequence(), name, type, null)
+    LetAst(getSequence(), name, type, expression)
 }
 
 fun parseReturn(builder: AstBuilder) = buildAst(builder) {
@@ -94,7 +97,7 @@ fun parseGarbageBody(builder: AstBuilder): GarbageAst = buildAst(builder) {
 fun tryReuseExpression(node: Expression, minBindingPower: Int) =
     when(node) {
         is SingleExpression -> ReuseInstructions.dontProgress
-        is BinaryOpExpression -> {
+        is BinaryExpression -> {
             //this covers cases where the iterator contains something like: "x", "*", BinaryExpression("y", "+", "z")
             //the "*" has higher binding power than "+", so the BinaryExpression can't be reused.
             //inject the nodes of the BinaryExpression into the iterator and parse them individually
@@ -127,7 +130,7 @@ fun parsePrefix(builder: AstBuilder): SingleExpression? =
         else -> null
     }
 
-fun parseBinaryExpression(builder: AstBuilder, lhs: Expression, operator: OperatorToken, minBindingPower: Int): BinaryOpExpression? {
+fun parseBinaryExpression(builder: AstBuilder, lhs: Expression, operator: OperatorToken, minBindingPower: Int): BinaryExpression? {
     val (lhsBindingPower, rhsBindingPower) = infixBindingPower(operator)
     if(lhsBindingPower < minBindingPower) return null
 
@@ -135,7 +138,7 @@ fun parseBinaryExpression(builder: AstBuilder, lhs: Expression, operator: Operat
         add(lhs)
         consume<OperatorToken>()
         val rhs = parseExpression(getBuilder(), rhsBindingPower)
-        BinaryOpExpression(getSequence(), lhs, operator, rhs)
+        BinaryExpression(getSequence(), lhs, operator, rhs)
     }
 }
 
@@ -144,7 +147,7 @@ fun parseFunctionCallExpression(builder: AstBuilder, lhs: Expression) = buildAst
     consume<OpenParenToken>()
     val arguments = parseArguments(getBuilder())
     consume<CloseParenToken>()
-    FunctionCallExpression(getSequence(), lhs, arguments)
+    FnCallExpression(getSequence(), lhs, arguments)
 }
 
 fun parseUnaryExpression(builder: AstBuilder) = buildAst(builder) {

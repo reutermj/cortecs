@@ -1,11 +1,11 @@
 package parser
 
-data class Offset(val line: Int, val column: Int) {
+data class Span(val line: Int, val column: Int) {
     companion object {
-        val zero = Offset(0, 0)
+        val zero = Span(0, 0)
     }
 
-    operator fun compareTo(other: Offset): Int {
+    operator fun compareTo(other: Span): Int {
         val l = line.compareTo(other.line)
         return when {
             l < 0 -> -1
@@ -21,16 +21,16 @@ data class Offset(val line: Int, val column: Int) {
         }
     }
 
-    operator fun plus(rhs: Offset): Offset =
-        if(rhs.line > 0) Offset(line + rhs.line, rhs.column)
-        else Offset(line, column + rhs.column)
+    operator fun plus(rhs: Span): Span =
+        if(rhs.line > 0) Span(line + rhs.line, rhs.column)
+        else Span(line, column + rhs.column)
 
-    operator fun minus(rhs: Offset): Offset {
+    operator fun minus(rhs: Span): Span {
         val l = line - rhs.line
         val c =
             if(l == 0) column - rhs.column
             else if(l < 0) 0
             else column
-        return Offset(l, c)
+        return Span(l, c)
     }
 }

@@ -14,8 +14,8 @@ class ParserTests {
         val inBlock = parseBlock(SequenceBuilder(inIterator))
 
         val change = ""
-        val start = Offset(0, 2)
-        val end = Offset(1, 7)
+        val start = Span(0, 2)
+        val end = Span(1, 7)
 
         val outIterator = ParserIterator()
         inBlock.addToIterator(change, start, end, outIterator, null)
@@ -46,8 +46,8 @@ class ParserTests {
 
         for(i in 0 until n) {
             val change = ""
-            val start = Offset(i, 0)
-            val end = Offset(i + 1, 0)
+            val start = Span(i, 0)
+            val end = Span(i + 1, 0)
             val outIterator = constructChangeIterator(inBlock, change, start, end)
             val outBlock = parseBlock(SequenceBuilder(outIterator))
 
@@ -81,8 +81,8 @@ class ParserTests {
             val outIterator = ParserIterator()
             val change = ""
             val column = if(i % 2 == 0) 3 else 6
-            val start = Offset(i, 0)
-            val end = Offset(i, column)
+            val start = Span(i, 0)
+            val end = Span(i, column)
             inBlock.addToIterator(change, start, end, outIterator, null)
             val outBlock = parseBlock(SequenceBuilder(outIterator))
 
@@ -104,7 +104,7 @@ class ParserTests {
         val builder = StringBuilder()
         for(i in 0 until n) {
             when(i % 9) {
-                0 -> builder.append("function foo$i() {\n")
+                0 -> builder.append("fn foo$i() {\n")
                 1 -> builder.append("let x$i = y\n")
                 2 -> builder.append("if(x$i) {\n")
                 3 -> builder.append("let x$i = y\n")
@@ -125,8 +125,8 @@ class ParserTests {
             val outIterator = ParserIterator()
             val change = ""
             val column = keywordSizes[index % 9]
-            val start = Offset(index, 0)
-            val end = Offset(index, column)
+            val start = Span(index, 0)
+            val end = Span(index, column)
             inProgram.addToIterator(change, start, end, outIterator, null)
             val outProgram = parseProgram(outIterator)
 
@@ -141,9 +141,9 @@ class ParserTests {
 
     @Test
     fun testInsertIf001() {
-        //tests insert of nested if statements in a function equal number of close braces after the function
+        //tests insert of nested if statements in a fn equal number of close braces after the fn
         for(n in 1..128) {
-            val inString = "function foo() {\n" + "}\n".repeat(n) + "}"
+            val inString = "fn foo() {\n" + "}\n".repeat(n) + "}"
 
             val inIterator = ParserIterator()
             inIterator.add(inString)
@@ -151,8 +151,8 @@ class ParserTests {
 
             val outIterator = ParserIterator()
             val change = "if(x) {\n".repeat(n)
-            val start = Offset(1, 0)
-            val end = Offset(1, 0)
+            val start = Span(1, 0)
+            val end = Span(1, 0)
             inProgram.addToIterator(change, start, end, outIterator, null)
             val outProgram = parseProgram(outIterator)
 
@@ -167,10 +167,10 @@ class ParserTests {
 
     @Test
     fun testInsertIf002() {
-        //tests insert of nested if statements in a function fewer close braces after the function
+        //tests insert of nested if statements in a fn fewer close braces after the fn
         for(n in 1..128) {
             for(m in 1..5) {
-                val inString = "function foo() {\n" + "}\n".repeat(n) + "}"
+                val inString = "fn foo() {\n" + "}\n".repeat(n) + "}"
 
                 val inIterator = ParserIterator()
                 inIterator.add(inString)
@@ -178,8 +178,8 @@ class ParserTests {
 
                 val outIterator = ParserIterator()
                 val change = "if(x) {\n".repeat(n + m)
-                val start = Offset(1, 0)
-                val end = Offset(1, 0)
+                val start = Span(1, 0)
+                val end = Span(1, 0)
                 inProgram.addToIterator(change, start, end, outIterator, null)
                 val outProgram = parseProgram(outIterator)
 
@@ -195,10 +195,10 @@ class ParserTests {
 
     @Test
     fun testInsertIf003() {
-        //tests insert of nested if statements in a function more close braces after the function
+        //tests insert of nested if statements in a fn more close braces after the fn
         for(m in 1..5) {
             for(n in m..128) {
-                val inString = "function foo() {\n" + "}\n".repeat(n) + "}"
+                val inString = "fn foo() {\n" + "}\n".repeat(n) + "}"
 
                 val inIterator = ParserIterator()
                 inIterator.add(inString)
@@ -206,8 +206,8 @@ class ParserTests {
 
                 val outIterator = ParserIterator()
                 val change = "if(x) {\n".repeat(n - m)
-                val start = Offset(1, 0)
-                val end = Offset(1, 0)
+                val start = Span(1, 0)
+                val end = Span(1, 0)
                 inProgram.addToIterator(change, start, end, outIterator, null)
                 val outProgram = parseProgram(outIterator)
 
@@ -226,7 +226,7 @@ class ParserTests {
         val n = 10000
 
         val builder = StringBuilder()
-        builder.append("function foo() {\n")
+        builder.append("fn foo() {\n")
         for(i in 0..n) {
             builder.append("let x$i = y\n")
         }
@@ -243,8 +243,8 @@ class ParserTests {
 
             val insertIterator = ParserIterator()
             val insertChange = "}\n"
-            val insertStart = Offset(line, 0)
-            val insertEnd = Offset(line, 0)
+            val insertStart = Span(line, 0)
+            val insertEnd = Span(line, 0)
             currProgram.addToIterator(insertChange, insertStart, insertEnd, insertIterator, null)
             val insertProgram = parseProgram(insertIterator)
 
@@ -257,8 +257,8 @@ class ParserTests {
 
             val removeIterator = ParserIterator()
             val removeChange = ""
-            val removeStart = Offset(line, 0)
-            val removeEnd = Offset(line + 1, 0)
+            val removeStart = Span(line, 0)
+            val removeEnd = Span(line + 1, 0)
             insertProgram.addToIterator(removeChange, removeStart, removeEnd, removeIterator, null)
             val removeProgram = parseProgram(removeIterator)
 
@@ -270,7 +270,7 @@ class ParserTests {
 
     @Test
     fun testInsertKeyword() {
-        val inString = """function foo() {
+        val inString = """fn foo() {
                          |x = y
                          |x
                          |}""".trimMargin()
@@ -280,8 +280,8 @@ class ParserTests {
         val inProgram = parseProgram(inIterator)
 
         val change1 = "let "
-        val start1 = Offset(1, 0)
-        val end1 = Offset(1, 0)
+        val start1 = Span(1, 0)
+        val end1 = Span(1, 0)
         val outIterator1 = ParserIterator()
         inProgram.addToIterator(change1, start1, end1, outIterator1, null)
         val outProgram1 = parseProgram(outIterator1)
@@ -294,8 +294,8 @@ class ParserTests {
         assertEquals(goldProgram1, outProgram1)
 
         val change2 = "return "
-        val start2 = Offset(2, 0)
-        val end2 = Offset(2, 0)
+        val start2 = Span(2, 0)
+        val end2 = Span(2, 0)
         val outIterator2 = ParserIterator()
         inProgram.addToIterator(change2, start2, end2, outIterator2, null)
         val outProgram2 = parseProgram(outIterator2)
@@ -308,8 +308,8 @@ class ParserTests {
         assertEquals(goldProgram2, outProgram2)
 
         val change3 = "let "
-        val start3 = Offset(1, 0)
-        val end3 = Offset(1, 0)
+        val start3 = Span(1, 0)
+        val end3 = Span(1, 0)
         val outIterator3 = ParserIterator()
         outProgram2.addToIterator(change3, start3, end3, outIterator3, null)
         val outProgram3 = parseProgram(outIterator3)
@@ -326,7 +326,7 @@ class ParserTests {
     fun testInsertKeyword001() {
         val n = 2
         val builder = StringBuilder()
-        builder.append("function foo() {\n")
+        builder.append("fn foo() {\n")
         for(i in 0..n) {
             when(i % 6) {
                 0 -> builder.append("let x = y\n")
@@ -348,8 +348,8 @@ class ParserTests {
             if(i % 3 == 0) continue
 
             val change1 = if(i % 3 == 1) "let " else "return "
-            val start1 = Offset(i + 1, 0)
-            val end1 = Offset(i + 1, 0)
+            val start1 = Span(i + 1, 0)
+            val end1 = Span(i + 1, 0)
             val outIterator1 = ParserIterator()
             inProgram.addToIterator(change1, start1, end1, outIterator1, null)
             val outProgram1 = parseProgram(outIterator1)
@@ -366,7 +366,7 @@ class ParserTests {
     @Test
     fun testDeleteToCreateKeyword001() {
         val builder = StringBuilder()
-        builder.append("function foo() {\n")
+        builder.append("fn foo() {\n")
         for(i in 0..512) {
             if(i % 2 == 0) builder.append("let x$i = y\n")
             else builder.append("return x$i\n")
@@ -382,8 +382,8 @@ class ParserTests {
                 if(i + j + 1 >= 512) break
 
                 val change = ""
-                val start = Offset(i + 1, 2)
-                val end = Offset(j + i + 3, 2)
+                val start = Span(i + 1, 2)
+                val end = Span(j + i + 3, 2)
                 val outIterator = ParserIterator()
                 inProgram.addToIterator(change, start, end, outIterator, null)
                 val outProgram = parseProgram(outIterator)

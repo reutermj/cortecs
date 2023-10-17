@@ -69,7 +69,7 @@ class TokenizerTests {
     fun testIntName() {
         repeat(100000) {
             val (a, at) = generateInt()
-            val (b, bt) = generateName(removeSetInitial = setOf('b', 'B', 's', 'S', 'l', 'L', 'f', 'F', 'd', 'D'))
+            val (b, bt) = generateName(removeSetInitial = setOf('b', 'B', 's', 'S', 'l', 'L', 'f', 'F', 'd', 'D', 'u', 'U'))
             val text = "${a}${b}"
             val goldTokens = at + bt
             val tokens = getTokens(text)
@@ -81,7 +81,7 @@ class TokenizerTests {
     fun testFloatName() {
         repeat(100000) {
             val (a, at) = generateFloat()
-            val (b, bt) = generateName(removeSetInitial = setOf('b', 'B', 's', 'S', 'l', 'L', 'f', 'F', 'd', 'D'))
+            val (b, bt) = generateName(removeSetInitial = setOf('b', 'B', 's', 'S', 'l', 'L', 'f', 'F', 'd', 'D', 'u', 'U'))
             val text = "${a}${b}"
             val goldTokens = at + bt
             val tokens = getTokens(text)
@@ -91,7 +91,7 @@ class TokenizerTests {
 
     fun generateInt(): Pair<String, List<Token>> {
         val a = (0..100000).random().toString()
-        val b = listOf("", "b", "B", "s", "S", "l", "L").random()
+        val b = listOf("", "b", "B", "s", "S", "l", "L", "u", "U", "ub", "uB", "us", "uS", "ul", "uL", "Ub", "UB", "Us", "US", "Ul", "UL").random()
         val text = "${a}${b}"
 
         return Pair(text, listOf(IntToken(text)))
@@ -133,7 +133,7 @@ class TokenizerTests {
 
     fun isKeyword(text: String) =
         when(text) {
-            "if", "function", "let", "return" -> true
+            "if", "fn", "let", "return" -> true
             else -> false
         }
 
@@ -141,7 +141,7 @@ class TokenizerTests {
         var text = ""
         while(true) {
             val initial = (initialName - removeSetInitial - removeSetAll).random()
-            val restChars = (allName - removeSetAll)
+            val restChars = (allNameOrType - removeSetAll)
             val rest = String(CharArray((0 until 100).random()) { restChars.random() })
             text = initial + rest
             if(!isKeyword(text)) break

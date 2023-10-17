@@ -120,7 +120,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             return CompletableFuture.completedFuture(unresolved)
         }
 
-        fun generateGoldText(inString: String, change: String, start: Offset, end: Offset): String {
+        fun generateGoldText(inString: String, change: String, start: Span, end: Span): String {
             val lines = inString.lines()
             val withNewLines = lines.mapIndexed { i, s ->
                 if(i == lines.size - 1) s
@@ -156,8 +156,8 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             val (doc, text) = documents[uri] ?: return
             for(change in params.contentChanges) {
                 if(change.range != null) {
-                    val start = Offset(change.range.start.line, change.range.start.character)
-                    val end = Offset(change.range.end.line, change.range.end.character)
+                    val start = Span(change.range.start.line, change.range.start.character)
+                    val end = Span(change.range.end.line, change.range.end.character)
                     val iter = constructChangeIterator(doc, change.text, start, end)
                     val outProgram = parseProgram(iter)
 

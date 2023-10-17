@@ -1,16 +1,18 @@
 package parser
 
-fun main() {
+
+
+fun parseCharaterByCharater() {
     val inIterator = ParserIterator()
     inIterator.add("")
     var program = parseProgram(inIterator)
 
-    val s = "function f(x) {}"
+    val s = "fn f(x) {}"
     var position = 1
     var line = 0
     var column = 0
     for(c in s) {
-        val changeIterator = constructChangeIterator(program, "$c", Offset(line, column), Offset(line, column))
+        val changeIterator = constructChangeIterator(program, "$c", Span(line, column), Span(line, column))
         program = parseProgram(changeIterator)
 
         if(c == '\n') {
@@ -46,7 +48,7 @@ fun tokenToLiteral(token: Token): String {
         CommaToken -> "CommaToken"
         DotToken -> "DotToken"
         EqualSignToken -> "EqualSignToken"
-        FunctionToken -> "FunctionToken"
+        FnToken -> "FnToken"
         IfToken -> "IfToken"
         LetToken -> "LetToken"
         NewLineToken -> "NewLineToken"
@@ -56,26 +58,32 @@ fun tokenToLiteral(token: Token): String {
         ReturnToken -> "ReturnToken"
         is TypeToken -> "TypeToken(\"${token.value}\")"
         is WhitespaceToken -> "WhitespaceToken(\"${token.value}\")"
+        ReturnTypeToken -> throw Exception("programmer error")
     }
 }
 
+fun main() {
+    generateParseTest()
+}
+
 fun generateParseTest() {
-    val inString = """function f(x: T, y) {
-        |let x = y""".trimMargin()
+    val inString = """fn f(x: s): t {}""".trimMargin()
     val inIterator = ParserIterator()
     inIterator.add(inString)
-    val node = parseFunction(SequenceBuilder(inIterator))
+    val node = parseFn(SequenceBuilder(inIterator))
+
+    val s = "Fn"
 
     printMultiLineString(inString, "inString")
     println("val inIterator = ParserIterator()")
     println("inIterator.add(inString)")
-    println("val outExpression = parseFunction(SequenceBuilder(inIterator))")
+    println("val out$s = parse$s(SequenceBuilder(inIterator))")
 
     println()
-    printFunction(node, "goldExpression")
+    printFn(node, "gold$s")
     println()
 
-    println("assertEquals(goldExpression, outExpression)")
+    println("assertEquals(gold$s, out$s)")
 }
 
 fun printMultiLineString(s: String, name: String) {
@@ -101,11 +109,16 @@ fun printAst(ast: Ast, prefix: String): List<String> {
             is ReturnAst -> printReturn(node, name)
             is LetAst -> printLet(node, name)
             is IfAst -> printIf(node, name)
-            is FunctionAst -> printFunction(node, name)
+            is FnAst -> printFn(node, name)
+            is StarNode<*> -> {
+                if(node.reifiedT == ParameterAst::class) printParameters(node as StarAst<ParameterAst>, name)
+                else if(node.reifiedT == BodyAst::class) printBlock(node as StarAst<BodyAst>, name)
+            }
+            else -> TODO()
         }
     }
 
-    println("val ${prefix}List = SequenceAst(listOf(${names.joinToString { it }}))")
+    println("val ${prefix}List = listOf(${names.joinToString { it }})")
     return names
 }
 
@@ -113,33 +126,55 @@ fun printParameter(parameter: ParameterAst, prefix: String) {
     val prefixWithF = "${prefix}Pa"
     val names = printAst(parameter, prefixWithF)
     val nameName = names[parameter.nodes.indexOfFirst { it == parameter.name }]
-    val typeName = if(parameter.type == null) "null" else names[parameter.nodes.indexOfFirst { it == parameter.type }]
+    val typeName = if(parameter.typeAnnotation == null) "null" else names[parameter.nodes.indexOfFirst { it == parameter.typeAnnotation }]
     println("val $prefix = ParameterAst(${prefixWithF}List, $nameName, $typeName)")
 }
 
-/*fun printParameters(parameters: ParametersAst, prefix: String) {
+fun printBlock(block: StarAst<BodyAst>, prefix: String) {
+    val prefixWithB = "${prefix}B"
+
+    val bodyNames = mutableListOf<String>()
+
+    var i = 0
+    block.inOrder {
+        val name = "${prefixWithB}$i"
+        when(it) {
+            is LetAst -> printLet(it, name)
+            is ReturnAst -> printReturn(it, name)
+            is IfAst -> printIf(it, name)
+            else -> TODO()
+        }
+        bodyNames.add(name)
+        i++
+    }
+
+    println("val $prefix = starOf<BodyAst>(listOf(${bodyNames.joinToString { it }}))")
+}
+
+fun printParameters(parameters: StarAst<ParameterAst>, prefix: String) {
     val prefixWithPs = "${prefix}Ps"
 
     val parameterNames = mutableListOf<String>()
 
     var i = 0
-    parameters.parameters.inOrder {
+    parameters.inOrder {
         val name = "${prefixWithPs}$i"
         printParameter(it, name)
         parameterNames.add(name)
         i++
     }
 
-    println("val $prefix = parametersOf(listOf(${parameterNames.joinToString { it }}))")
-}*/
+    println("val $prefix = starOf<ParameterAst>(listOf(${parameterNames.joinToString { it }}))")
+}
 
-fun printFunction(function: FunctionAst, prefix: String) {
+fun printFn(fn: FnAst, prefix: String) {
     val prefixWithF = "${prefix}F"
-    val names = printAst(function, prefixWithF)
-    val nameName = if(function.name == null) "null" else names[function.nodes.indexOfFirst { it == function.name }]
-    val parameterName = if(function.parameters == null) "null" else names[function.nodes.indexOfFirst { it == function.parameters }]
-    val blockName = if(function.block == null) "null" else names[function.nodes.indexOfFirst { it == function.block }]
-    println("val $prefix = FunctionAst(${prefixWithF}List, $nameName, $parameterName, $blockName)")
+    val names = printAst(fn, prefixWithF)
+    val nameName = if(fn.name == null) "null" else names[fn.nodes.indexOfFirst { it == fn.name }]
+    val parameterName = if(fn.parameters == null) "null" else names[fn.nodes.indexOfFirst { it == fn.parameters }]
+    val returnTypeName = if(fn.returnType == null) "null" else names[fn.nodes.indexOfFirst { it == fn.returnType }]
+    val blockName = if(fn.block == null) "null" else names[fn.nodes.indexOfFirst { it == fn.block }]
+    println("val $prefix = FnAst(${prefixWithF}List, $nameName, $parameterName, $returnTypeName, $blockName)")
 }
 
 fun printIf(i: IfAst, prefix: String) {
@@ -161,8 +196,9 @@ fun printLet(let: LetAst, prefix: String) {
     val prefixWithL = "${prefix}L"
     val names = printAst(let, prefixWithL)
     val nameName = if(let.name == null) "null" else names[let.nodes.indexOfFirst { it == let.name }]
+    val typeName = if(let.typeAnnotation == null) "null" else names[let.nodes.indexOfFirst { it == let.typeAnnotation }]
     val expressionName = if(let.expression == null) "null" else names[let.nodes.indexOfFirst { it == let.expression }]
-    println("val $prefix = LetAst(${prefixWithL}List, $nameName, $expressionName)")
+    println("val $prefix = LetAst(${prefixWithL}List, $nameName, $typeName, $expressionName)")
 }
 
 fun printArgument(argument: Argument, prefix: String) {
@@ -187,7 +223,7 @@ fun printExpression(expression: Expression, prefix: String) {
             val atomName = names[expression.nodes.indexOfFirst { it == expression.atom }]
             println("val $prefix = AtomicExpression(${prefixWithE}List, $atomName)")
         }
-        is BinaryOpExpression -> {
+        is BinaryExpression -> {
             val lhsName = names[expression.nodes.indexOfFirst { it == expression.lhs }]
             val opName = names[expression.nodes.indexOfFirst { it == expression.op }]
             val rhsName =
@@ -201,15 +237,15 @@ fun printExpression(expression: Expression, prefix: String) {
                 else names[expression.nodes.indexOfFirst { it == expression.expression }]
             println("val $prefix = GroupingExpression(${prefixWithE}List, $expressionName)")
         }
-        is FunctionCallExpression -> {
-            val functionName = names[expression.nodes.indexOfFirst { it == expression.function }]
+        is FnCallExpression -> {
+            val fnName = names[expression.nodes.indexOfFirst { it == expression.function }]
             val argumentsName = names[expression.nodes.indexOfFirst { it == expression.arguments }]
-            println("val $prefix = FunctionCallExpression(${prefixWithE}List, $functionName, $argumentsName)")
+            println("val $prefix = FnCallExpression(${prefixWithE}List, $fnName, $argumentsName)")
         }
     }
 }
 
-fun generateGoldText(inString: String, change: String, start: Offset, end: Offset): String {
+fun generateGoldText(inString: String, change: String, start: Span, end: Span): String {
     val lines = inString.lines()
     val withNewLines = lines.mapIndexed { i, s ->
         if(i == lines.size - 1) s
@@ -231,16 +267,16 @@ fun testTokenReparse() {
 
     val change = "c"
 
-    val start1 = Offset(0, 5)
-    val end1 = Offset(0, 16)
+    val start1 = Span(0, 5)
+    val end1 = Span(0, 16)
     inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
 
-    val start2 = start1 - inToken1.offset
-    val end2 = end1 - inToken1.offset
+    val start2 = start1 - inToken1.span
+    val end2 = end1 - inToken1.span
     inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
 
-    val start3 = start2 - inToken2.offset
-    val end3 = end2 - inToken2.offset
+    val start3 = start2 - inToken2.span
+    val end3 = end2 - inToken2.span
     inToken3.addToIterator(change, start3, end3, outIterator, null)
 
     var goldString = ""

@@ -40,7 +40,7 @@ class ValidBodyParseTest {
         val goldExpressionR2E3EList = listOf(goldExpressionR2E3E0)
         val goldExpressionR2E3 = AtomicExpression(goldExpressionR2E3EList, goldExpressionR2E3E0)
         val goldExpressionR2EList = listOf(goldExpressionR2E0, goldExpressionR2E1, goldExpressionR2E2, goldExpressionR2E3)
-        val goldExpressionR2 = BinaryOpExpression(goldExpressionR2EList, goldExpressionR2E0, goldExpressionR2E1, goldExpressionR2E3)
+        val goldExpressionR2 = BinaryExpression(goldExpressionR2EList, goldExpressionR2E0, goldExpressionR2E1, goldExpressionR2E3)
         val goldExpressionRList = listOf(goldExpressionR0, goldExpressionR1, goldExpressionR2)
         val goldExpression = ReturnAst(goldExpressionRList, goldExpressionR2)
 
@@ -111,7 +111,7 @@ class ValidBodyParseTest {
         val goldExpressionR2E2 = starOf(listOf(goldExpressionR2E2As0))
         val goldExpressionR2E3 = CloseParenToken
         val goldExpressionR2EList = listOf(goldExpressionR2E0, goldExpressionR2E1, goldExpressionR2E2, goldExpressionR2E3)
-        val goldExpressionR2 = FunctionCallExpression(goldExpressionR2EList, goldExpressionR2E0, goldExpressionR2E2)
+        val goldExpressionR2 = FnCallExpression(goldExpressionR2EList, goldExpressionR2E0, goldExpressionR2E2)
         val goldExpressionRList = listOf(goldExpressionR0, goldExpressionR1, goldExpressionR2)
         val goldExpression = ReturnAst(goldExpressionRList, goldExpressionR2)
 
@@ -149,7 +149,7 @@ class ValidBodyParseTest {
         val goldExpressionL6EList = listOf(goldExpressionL6E0)
         val goldExpressionL6 = AtomicExpression(goldExpressionL6EList, goldExpressionL6E0)
         val goldExpressionLList = listOf(goldExpressionL0, goldExpressionL1, goldExpressionL2, goldExpressionL3, goldExpressionL4, goldExpressionL5, goldExpressionL6)
-        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, goldExpressionL6)
+        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null, goldExpressionL6)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -177,9 +177,9 @@ class ValidBodyParseTest {
         val goldExpressionL6E3EList = listOf(goldExpressionL6E3E0)
         val goldExpressionL6E3 = AtomicExpression(goldExpressionL6E3EList, goldExpressionL6E3E0)
         val goldExpressionL6EList = listOf(goldExpressionL6E0, goldExpressionL6E1, goldExpressionL6E2, goldExpressionL6E3)
-        val goldExpressionL6 = BinaryOpExpression(goldExpressionL6EList, goldExpressionL6E0, goldExpressionL6E1, goldExpressionL6E3)
+        val goldExpressionL6 = BinaryExpression(goldExpressionL6EList, goldExpressionL6E0, goldExpressionL6E1, goldExpressionL6E3)
         val goldExpressionLList = listOf(goldExpressionL0, goldExpressionL1, goldExpressionL2, goldExpressionL3, goldExpressionL4, goldExpressionL5, goldExpressionL6)
-        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, goldExpressionL6)
+        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null, goldExpressionL6)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -204,7 +204,7 @@ class ValidBodyParseTest {
         val goldExpressionL6EList = listOf(goldExpressionL6E0, goldExpressionL6E1)
         val goldExpressionL6 = UnaryExpression(goldExpressionL6EList, goldExpressionL6E0, goldExpressionL6E1)
         val goldExpressionLList = listOf(goldExpressionL0, goldExpressionL1, goldExpressionL2, goldExpressionL3, goldExpressionL4, goldExpressionL5, goldExpressionL6)
-        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, goldExpressionL6)
+        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null, goldExpressionL6)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -230,7 +230,7 @@ class ValidBodyParseTest {
         val goldExpressionL6EList = listOf(goldExpressionL6E0, goldExpressionL6E1, goldExpressionL6E2)
         val goldExpressionL6 = GroupingExpression(goldExpressionL6EList, goldExpressionL6E1)
         val goldExpressionLList = listOf(goldExpressionL0, goldExpressionL1, goldExpressionL2, goldExpressionL3, goldExpressionL4, goldExpressionL5, goldExpressionL6)
-        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, goldExpressionL6)
+        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null, goldExpressionL6)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -260,9 +260,9 @@ class ValidBodyParseTest {
         val goldExpressionL6E2 = starOf(listOf(goldExpressionL6E2As0))
         val goldExpressionL6E3 = CloseParenToken
         val goldExpressionL6EList = listOf(goldExpressionL6E0, goldExpressionL6E1, goldExpressionL6E2, goldExpressionL6E3)
-        val goldExpressionL6 = FunctionCallExpression(goldExpressionL6EList, goldExpressionL6E0, goldExpressionL6E2)
+        val goldExpressionL6 = FnCallExpression(goldExpressionL6EList, goldExpressionL6E0, goldExpressionL6E2)
         val goldExpressionLList = listOf(goldExpressionL0, goldExpressionL1, goldExpressionL2, goldExpressionL3, goldExpressionL4, goldExpressionL5, goldExpressionL6)
-        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, goldExpressionL6)
+        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null, goldExpressionL6)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -276,7 +276,7 @@ class ValidBodyParseTest {
 
         val goldExpressionL0 = LetToken
         val goldExpressionLList = listOf(goldExpressionL0)
-        val goldExpression = LetAst(goldExpressionLList, null, null)
+        val goldExpression = LetAst(goldExpressionLList, null, null, null)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -292,7 +292,7 @@ class ValidBodyParseTest {
         val goldExpressionL1 = WhitespaceToken(" ")
         val goldExpressionL2 = NameToken("x")
         val goldExpressionLList = listOf(goldExpressionL0, goldExpressionL1, goldExpressionL2)
-        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null)
+        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null, null)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -310,7 +310,7 @@ class ValidBodyParseTest {
         val goldExpressionL3 = WhitespaceToken(" ")
         val goldExpressionL4 = EqualSignToken
         val goldExpressionLList = listOf(goldExpressionL0, goldExpressionL1, goldExpressionL2, goldExpressionL3, goldExpressionL4)
-        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null)
+        val goldExpression = LetAst(goldExpressionLList, goldExpressionL2, null, null)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -357,7 +357,7 @@ class ValidBodyParseTest {
         val goldExpressionI2E3EList = listOf(goldExpressionI2E3E0)
         val goldExpressionI2E3 = AtomicExpression(goldExpressionI2E3EList, goldExpressionI2E3E0)
         val goldExpressionI2EList = listOf(goldExpressionI2E0, goldExpressionI2E1, goldExpressionI2E2, goldExpressionI2E3)
-        val goldExpressionI2 = BinaryOpExpression(goldExpressionI2EList, goldExpressionI2E0, goldExpressionI2E1, goldExpressionI2E3)
+        val goldExpressionI2 = BinaryExpression(goldExpressionI2EList, goldExpressionI2E0, goldExpressionI2E1, goldExpressionI2E3)
         val goldExpressionI3 = CloseParenToken
         val goldExpressionI4 = WhitespaceToken(" ")
         val goldExpressionI5 = OpenCurlyToken
@@ -443,7 +443,7 @@ class ValidBodyParseTest {
         val goldExpressionI2E2 = starOf(listOf(goldExpressionI2E2As0))
         val goldExpressionI2E3 = CloseParenToken
         val goldExpressionI2EList = listOf(goldExpressionI2E0, goldExpressionI2E1, goldExpressionI2E2, goldExpressionI2E3)
-        val goldExpressionI2 = FunctionCallExpression(goldExpressionI2EList, goldExpressionI2E0, goldExpressionI2E2)
+        val goldExpressionI2 = FnCallExpression(goldExpressionI2EList, goldExpressionI2E0, goldExpressionI2E2)
         val goldExpressionI3 = CloseParenToken
         val goldExpressionI4 = WhitespaceToken(" ")
         val goldExpressionI5 = OpenCurlyToken
@@ -484,7 +484,7 @@ class ValidBodyParseTest {
         val goldExpressionI7B0L6EList = listOf(goldExpressionI7B0L6E0, goldExpressionI7B0L6E1)
         val goldExpressionI7B0L6 = AtomicExpression(goldExpressionI7B0L6EList, goldExpressionI7B0L6E0)
         val goldExpressionI7B0LList = listOf(goldExpressionI7B0L0, goldExpressionI7B0L1, goldExpressionI7B0L2, goldExpressionI7B0L3, goldExpressionI7B0L4, goldExpressionI7B0L5, goldExpressionI7B0L6)
-        val goldExpressionI7B0 = LetAst(goldExpressionI7B0LList, goldExpressionI7B0L2, goldExpressionI7B0L6)
+        val goldExpressionI7B0 = LetAst(goldExpressionI7B0LList, goldExpressionI7B0L2, null, goldExpressionI7B0L6)
         val goldExpressionI7 = starOf<BodyAst>(listOf(goldExpressionI7B0))
         val goldExpressionI8 = CloseCurlyToken
         val goldExpressionIList = listOf(goldExpressionI0, goldExpressionI1, goldExpressionI2, goldExpressionI3, goldExpressionI4, goldExpressionI5, goldExpressionI6, goldExpressionI7, goldExpressionI8)
@@ -607,7 +607,7 @@ class ValidBodyParseTest {
         val goldExpressionI7B0I7B0L6EList = listOf(goldExpressionI7B0I7B0L6E0, goldExpressionI7B0I7B0L6E1)
         val goldExpressionI7B0I7B0L6 = AtomicExpression(goldExpressionI7B0I7B0L6EList, goldExpressionI7B0I7B0L6E0)
         val goldExpressionI7B0I7B0LList = listOf(goldExpressionI7B0I7B0L0, goldExpressionI7B0I7B0L1, goldExpressionI7B0I7B0L2, goldExpressionI7B0I7B0L3, goldExpressionI7B0I7B0L4, goldExpressionI7B0I7B0L5, goldExpressionI7B0I7B0L6)
-        val goldExpressionI7B0I7B0 = LetAst(goldExpressionI7B0I7B0LList, goldExpressionI7B0I7B0L2, goldExpressionI7B0I7B0L6)
+        val goldExpressionI7B0I7B0 = LetAst(goldExpressionI7B0I7B0LList, goldExpressionI7B0I7B0L2, null, goldExpressionI7B0I7B0L6)
         val goldExpressionI7B0I7 = starOf<BodyAst>(listOf(goldExpressionI7B0I7B0))
         val goldExpressionI7B0I8 = CloseCurlyToken
         val goldExpressionI7B0I9 = NewLineToken
@@ -719,11 +719,101 @@ class ValidBodyParseTest {
 
     @Test
     fun parseBody029() {
+        val inString = """let x: T = y""".trimMargin()
+        val inIterator = ParserIterator()
+        inIterator.add(inString)
+        val outLet = parseLet(SequenceBuilder(inIterator))
 
+        val goldLetL0 = LetToken
+        val goldLetL1 = WhitespaceToken(" ")
+        val goldLetL2 = NameToken("x")
+        val goldLetL3 = ColonToken
+        val goldLetL4 = WhitespaceToken(" ")
+        val goldLetL5 = TypeToken("T")
+        val goldLetL6 = WhitespaceToken(" ")
+        val goldLetL7 = EqualSignToken
+        val goldLetL8 = WhitespaceToken(" ")
+        val goldLetL9E0 = NameToken("y")
+        val goldLetL9EList = listOf(goldLetL9E0)
+        val goldLetL9 = AtomicExpression(goldLetL9EList, goldLetL9E0)
+        val goldLetLList = listOf(goldLetL0, goldLetL1, goldLetL2, goldLetL3, goldLetL4, goldLetL5, goldLetL6, goldLetL7, goldLetL8, goldLetL9)
+        val goldLet = LetAst(goldLetLList, goldLetL2, goldLetL5, goldLetL9)
+
+        assertEquals(goldLet, outLet)
     }
 
     @Test
     fun parseBody030() {
+        val inString = """let x: t = y""".trimMargin()
+        val inIterator = ParserIterator()
+        inIterator.add(inString)
+        val outLet = parseLet(SequenceBuilder(inIterator))
+
+        val goldLetL0 = LetToken
+        val goldLetL1 = WhitespaceToken(" ")
+        val goldLetL2 = NameToken("x")
+        val goldLetL3 = ColonToken
+        val goldLetL4 = WhitespaceToken(" ")
+        val goldLetL5 = NameToken("t")
+        val goldLetL6 = WhitespaceToken(" ")
+        val goldLetL7 = EqualSignToken
+        val goldLetL8 = WhitespaceToken(" ")
+        val goldLetL9E0 = NameToken("y")
+        val goldLetL9EList = listOf(goldLetL9E0)
+        val goldLetL9 = AtomicExpression(goldLetL9EList, goldLetL9E0)
+        val goldLetLList = listOf(goldLetL0, goldLetL1, goldLetL2, goldLetL3, goldLetL4, goldLetL5, goldLetL6, goldLetL7, goldLetL8, goldLetL9)
+        val goldLet = LetAst(goldLetLList, goldLetL2, goldLetL5, goldLetL9)
+
+        assertEquals(goldLet, outLet)
+    }
+
+    @Test
+    fun parseBody031() {
+
+    }
+
+    @Test
+    fun parseBody032() {
+
+    }
+
+    @Test
+    fun parseBody033() {
+
+    }
+
+    @Test
+    fun parseBody034() {
+
+    }
+
+    @Test
+    fun parseBody035() {
+
+    }
+
+    @Test
+    fun parseBody036() {
+
+    }
+
+    @Test
+    fun parseBody037() {
+
+    }
+
+    @Test
+    fun parseBody038() {
+
+    }
+
+    @Test
+    fun parseBody039() {
+
+    }
+
+    @Test
+    fun parseBody040() {
 
     }
 }

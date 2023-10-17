@@ -10,8 +10,8 @@ class ExpressionReparseTests {
         inIterator.add(inString)
         val inBlock = parseBlock(SequenceBuilder(inIterator))
 
-        val start = Offset(0, 11)
-        val end = Offset(1, 7)
+        val start = Span(0, 11)
+        val end = Span(1, 7)
         val change = ""
         val outIterator = ParserIterator()
         inBlock.addToIterator(change, start, end, outIterator, null)
@@ -34,8 +34,8 @@ class ExpressionReparseTests {
         inIterator.add(inString)
         val inBlock = parseBlock(SequenceBuilder(inIterator))
 
-        val start = Offset(0, 11)
-        val end = Offset(1, 7)
+        val start = Span(0, 11)
+        val end = Span(1, 7)
         val change = ""
         val outIterator = ParserIterator()
         inBlock.addToIterator(change, start, end, outIterator, null)

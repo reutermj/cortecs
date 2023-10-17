@@ -128,7 +128,7 @@ class ValidExpressionParseTests {
         val goldExpressionE3EList = listOf(goldExpressionE3E0)
         val goldExpressionE3 = AtomicExpression(goldExpressionE3EList, goldExpressionE3E0)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -156,9 +156,9 @@ class ValidExpressionParseTests {
         val goldExpressionE3E3EList = listOf(goldExpressionE3E3E0)
         val goldExpressionE3E3 = AtomicExpression(goldExpressionE3E3EList, goldExpressionE3E3E0)
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E2, goldExpressionE3E3)
-        val goldExpressionE3 = BinaryOpExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
+        val goldExpressionE3 = BinaryExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -181,14 +181,14 @@ class ValidExpressionParseTests {
         val goldExpressionE0E3EList = listOf(goldExpressionE0E3E0, goldExpressionE0E3E1)
         val goldExpressionE0E3 = AtomicExpression(goldExpressionE0E3EList, goldExpressionE0E3E0)
         val goldExpressionE0EList = listOf(goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E2, goldExpressionE0E3)
-        val goldExpressionE0 = BinaryOpExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
+        val goldExpressionE0 = BinaryExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
         val goldExpressionE1 = OperatorToken("+")
         val goldExpressionE2 = WhitespaceToken(" ")
         val goldExpressionE3E0 = NameToken("z")
         val goldExpressionE3EList = listOf(goldExpressionE3E0)
         val goldExpressionE3 = AtomicExpression(goldExpressionE3EList, goldExpressionE3E0)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -211,7 +211,7 @@ class ValidExpressionParseTests {
         val goldExpressionE0E3EList = listOf(goldExpressionE0E3E0, goldExpressionE0E3E1)
         val goldExpressionE0E3 = AtomicExpression(goldExpressionE0E3EList, goldExpressionE0E3E0)
         val goldExpressionE0EList = listOf(goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E2, goldExpressionE0E3)
-        val goldExpressionE0 = BinaryOpExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
+        val goldExpressionE0 = BinaryExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
         val goldExpressionE1 = OperatorToken("<")
         val goldExpressionE2 = WhitespaceToken(" ")
         val goldExpressionE3E0E0 = NameToken("y")
@@ -224,9 +224,9 @@ class ValidExpressionParseTests {
         val goldExpressionE3E3EList = listOf(goldExpressionE3E3E0)
         val goldExpressionE3E3 = AtomicExpression(goldExpressionE3E3EList, goldExpressionE3E3E0)
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E2, goldExpressionE3E3)
-        val goldExpressionE3 = BinaryOpExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
+        val goldExpressionE3 = BinaryExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -249,7 +249,7 @@ class ValidExpressionParseTests {
         val goldExpressionE0E0E3EList = listOf(goldExpressionE0E0E3E0, goldExpressionE0E0E3E1)
         val goldExpressionE0E0E3 = AtomicExpression(goldExpressionE0E0E3EList, goldExpressionE0E0E3E0)
         val goldExpressionE0E0EList = listOf(goldExpressionE0E0E0, goldExpressionE0E0E1, goldExpressionE0E0E2, goldExpressionE0E0E3)
-        val goldExpressionE0E0 = BinaryOpExpression(goldExpressionE0E0EList, goldExpressionE0E0E0, goldExpressionE0E0E1, goldExpressionE0E0E3)
+        val goldExpressionE0E0 = BinaryExpression(goldExpressionE0E0EList, goldExpressionE0E0E0, goldExpressionE0E0E1, goldExpressionE0E0E3)
         val goldExpressionE0E1 = OperatorToken("+")
         val goldExpressionE0E2 = WhitespaceToken(" ")
         val goldExpressionE0E3E0 = NameToken("y")
@@ -257,14 +257,14 @@ class ValidExpressionParseTests {
         val goldExpressionE0E3EList = listOf(goldExpressionE0E3E0, goldExpressionE0E3E1)
         val goldExpressionE0E3 = AtomicExpression(goldExpressionE0E3EList, goldExpressionE0E3E0)
         val goldExpressionE0EList = listOf(goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E2, goldExpressionE0E3)
-        val goldExpressionE0 = BinaryOpExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
+        val goldExpressionE0 = BinaryExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
         val goldExpressionE1 = OperatorToken("<")
         val goldExpressionE2 = WhitespaceToken(" ")
         val goldExpressionE3E0 = NameToken("z")
         val goldExpressionE3EList = listOf(goldExpressionE3E0)
         val goldExpressionE3 = AtomicExpression(goldExpressionE3EList, goldExpressionE3E0)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -293,16 +293,16 @@ class ValidExpressionParseTests {
         val goldExpressionE0E3E3EList = listOf(goldExpressionE0E3E3E0, goldExpressionE0E3E3E1)
         val goldExpressionE0E3E3 = AtomicExpression(goldExpressionE0E3E3EList, goldExpressionE0E3E3E0)
         val goldExpressionE0E3EList = listOf(goldExpressionE0E3E0, goldExpressionE0E3E1, goldExpressionE0E3E2, goldExpressionE0E3E3)
-        val goldExpressionE0E3 = BinaryOpExpression(goldExpressionE0E3EList, goldExpressionE0E3E0, goldExpressionE0E3E1, goldExpressionE0E3E3)
+        val goldExpressionE0E3 = BinaryExpression(goldExpressionE0E3EList, goldExpressionE0E3E0, goldExpressionE0E3E1, goldExpressionE0E3E3)
         val goldExpressionE0EList = listOf(goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E2, goldExpressionE0E3)
-        val goldExpressionE0 = BinaryOpExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
+        val goldExpressionE0 = BinaryExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E3)
         val goldExpressionE1 = OperatorToken("<")
         val goldExpressionE2 = WhitespaceToken(" ")
         val goldExpressionE3E0 = NameToken("z")
         val goldExpressionE3EList = listOf(goldExpressionE3E0)
         val goldExpressionE3 = AtomicExpression(goldExpressionE3EList, goldExpressionE3E0)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -331,16 +331,16 @@ class ValidExpressionParseTests {
         val goldExpressionE3E0E3EList = listOf(goldExpressionE3E0E3E0, goldExpressionE3E0E3E1)
         val goldExpressionE3E0E3 = AtomicExpression(goldExpressionE3E0E3EList, goldExpressionE3E0E3E0)
         val goldExpressionE3E0EList = listOf(goldExpressionE3E0E0, goldExpressionE3E0E1, goldExpressionE3E0E2, goldExpressionE3E0E3)
-        val goldExpressionE3E0 = BinaryOpExpression(goldExpressionE3E0EList, goldExpressionE3E0E0, goldExpressionE3E0E1, goldExpressionE3E0E3)
+        val goldExpressionE3E0 = BinaryExpression(goldExpressionE3E0EList, goldExpressionE3E0E0, goldExpressionE3E0E1, goldExpressionE3E0E3)
         val goldExpressionE3E1 = OperatorToken("+")
         val goldExpressionE3E2 = WhitespaceToken(" ")
         val goldExpressionE3E3E0 = NameToken("z")
         val goldExpressionE3E3EList = listOf(goldExpressionE3E3E0)
         val goldExpressionE3E3 = AtomicExpression(goldExpressionE3E3EList, goldExpressionE3E3E0)
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E2, goldExpressionE3E3)
-        val goldExpressionE3 = BinaryOpExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
+        val goldExpressionE3 = BinaryExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -374,11 +374,11 @@ class ValidExpressionParseTests {
         val goldExpressionE3E3E3EList = listOf(goldExpressionE3E3E3E0)
         val goldExpressionE3E3E3 = AtomicExpression(goldExpressionE3E3E3EList, goldExpressionE3E3E3E0)
         val goldExpressionE3E3EList = listOf(goldExpressionE3E3E0, goldExpressionE3E3E1, goldExpressionE3E3E2, goldExpressionE3E3E3)
-        val goldExpressionE3E3 = BinaryOpExpression(goldExpressionE3E3EList, goldExpressionE3E3E0, goldExpressionE3E3E1, goldExpressionE3E3E3)
+        val goldExpressionE3E3 = BinaryExpression(goldExpressionE3E3EList, goldExpressionE3E3E0, goldExpressionE3E3E1, goldExpressionE3E3E3)
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E2, goldExpressionE3E3)
-        val goldExpressionE3 = BinaryOpExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
+        val goldExpressionE3 = BinaryExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E3)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -419,7 +419,7 @@ class ValidExpressionParseTests {
         val goldExpressionE1E3EList = listOf(goldExpressionE1E3E0)
         val goldExpressionE1E3 = AtomicExpression(goldExpressionE1E3EList, goldExpressionE1E3E0)
         val goldExpressionE1EList = listOf(goldExpressionE1E0, goldExpressionE1E1, goldExpressionE1E2, goldExpressionE1E3)
-        val goldExpressionE1 = BinaryOpExpression(goldExpressionE1EList, goldExpressionE1E0, goldExpressionE1E1, goldExpressionE1E3)
+        val goldExpressionE1 = BinaryExpression(goldExpressionE1EList, goldExpressionE1E0, goldExpressionE1E1, goldExpressionE1E3)
         val goldExpressionE2 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2)
         val goldExpression = GroupingExpression(goldExpressionEList, goldExpressionE1)
@@ -445,7 +445,7 @@ class ValidExpressionParseTests {
         val goldExpressionE0E1E3EList = listOf(goldExpressionE0E1E3E0)
         val goldExpressionE0E1E3 = AtomicExpression(goldExpressionE0E1E3EList, goldExpressionE0E1E3E0)
         val goldExpressionE0E1EList = listOf(goldExpressionE0E1E0, goldExpressionE0E1E1, goldExpressionE0E1E2, goldExpressionE0E1E3)
-        val goldExpressionE0E1 = BinaryOpExpression(goldExpressionE0E1EList, goldExpressionE0E1E0, goldExpressionE0E1E1, goldExpressionE0E1E3)
+        val goldExpressionE0E1 = BinaryExpression(goldExpressionE0E1EList, goldExpressionE0E1E0, goldExpressionE0E1E1, goldExpressionE0E1E3)
         val goldExpressionE0E2 = CloseParenToken
         val goldExpressionE0E3 = WhitespaceToken(" ")
         val goldExpressionE0EList = listOf(goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E2, goldExpressionE0E3)
@@ -456,7 +456,7 @@ class ValidExpressionParseTests {
         val goldExpressionE3EList = listOf(goldExpressionE3E0)
         val goldExpressionE3 = AtomicExpression(goldExpressionE3EList, goldExpressionE3E0)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -485,12 +485,12 @@ class ValidExpressionParseTests {
         val goldExpressionE3E1E3EList = listOf(goldExpressionE3E1E3E0)
         val goldExpressionE3E1E3 = AtomicExpression(goldExpressionE3E1E3EList, goldExpressionE3E1E3E0)
         val goldExpressionE3E1EList = listOf(goldExpressionE3E1E0, goldExpressionE3E1E1, goldExpressionE3E1E2, goldExpressionE3E1E3)
-        val goldExpressionE3E1 = BinaryOpExpression(goldExpressionE3E1EList, goldExpressionE3E1E0, goldExpressionE3E1E1, goldExpressionE3E1E3)
+        val goldExpressionE3E1 = BinaryExpression(goldExpressionE3E1EList, goldExpressionE3E1E0, goldExpressionE3E1E1, goldExpressionE3E1E3)
         val goldExpressionE3E2 = CloseParenToken
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E2)
         val goldExpressionE3 = GroupingExpression(goldExpressionE3EList, goldExpressionE3E1)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -519,12 +519,12 @@ class ValidExpressionParseTests {
         val goldExpressionE3E1E3EList = listOf(goldExpressionE3E1E3E0)
         val goldExpressionE3E1E3 = AtomicExpression(goldExpressionE3E1E3EList, goldExpressionE3E1E3E0)
         val goldExpressionE3E1EList = listOf(goldExpressionE3E1E0, goldExpressionE3E1E1, goldExpressionE3E1E2, goldExpressionE3E1E3)
-        val goldExpressionE3E1 = BinaryOpExpression(goldExpressionE3E1EList, goldExpressionE3E1E0, goldExpressionE3E1E1, goldExpressionE3E1E3)
+        val goldExpressionE3E1 = BinaryExpression(goldExpressionE3E1EList, goldExpressionE3E1E0, goldExpressionE3E1E1, goldExpressionE3E1E3)
         val goldExpressionE3E2 = CloseParenToken
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1, goldExpressionE3E2)
         val goldExpressionE3 = GroupingExpression(goldExpressionE3EList, goldExpressionE3E1)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -548,7 +548,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -573,7 +573,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -604,7 +604,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0, goldExpressionE2As1))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -636,7 +636,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0, goldExpressionE2As1))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -662,7 +662,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2As0A0E3EList = listOf(goldExpressionE2As0A0E3E0)
         val goldExpressionE2As0A0E3 = AtomicExpression(goldExpressionE2As0A0E3EList, goldExpressionE2As0A0E3E0)
         val goldExpressionE2As0A0EList = listOf(goldExpressionE2As0A0E0, goldExpressionE2As0A0E1, goldExpressionE2As0A0E2, goldExpressionE2As0A0E3)
-        val goldExpressionE2As0A0 = BinaryOpExpression(goldExpressionE2As0A0EList, goldExpressionE2As0A0E0, goldExpressionE2As0A0E1, goldExpressionE2As0A0E3)
+        val goldExpressionE2As0A0 = BinaryExpression(goldExpressionE2As0A0EList, goldExpressionE2As0A0E0, goldExpressionE2As0A0E1, goldExpressionE2As0A0E3)
         val goldExpressionE2As0A1 = CommaToken
         val goldExpressionE2As0A2 = WhitespaceToken(" ")
         val goldExpressionE2As0AList = listOf(goldExpressionE2As0A0, goldExpressionE2As0A1, goldExpressionE2As0A2)
@@ -675,7 +675,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0, goldExpressionE2As1))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -701,7 +701,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2As0A0E3EList = listOf(goldExpressionE2As0A0E3E0)
         val goldExpressionE2As0A0E3 = AtomicExpression(goldExpressionE2As0A0E3EList, goldExpressionE2As0A0E3E0)
         val goldExpressionE2As0A0EList = listOf(goldExpressionE2As0A0E0, goldExpressionE2As0A0E1, goldExpressionE2As0A0E2, goldExpressionE2As0A0E3)
-        val goldExpressionE2As0A0 = BinaryOpExpression(goldExpressionE2As0A0EList, goldExpressionE2As0A0E0, goldExpressionE2As0A0E1, goldExpressionE2As0A0E3)
+        val goldExpressionE2As0A0 = BinaryExpression(goldExpressionE2As0A0EList, goldExpressionE2As0A0E0, goldExpressionE2As0A0E1, goldExpressionE2As0A0E3)
         val goldExpressionE2As0A1 = CommaToken
         val goldExpressionE2As0A2 = WhitespaceToken(" ")
         val goldExpressionE2As0AList = listOf(goldExpressionE2As0A0, goldExpressionE2As0A1, goldExpressionE2As0A2)
@@ -718,13 +718,13 @@ class ValidExpressionParseTests {
         val goldExpressionE2As1A0E2 = starOf(listOf(goldExpressionE2As1A0E2As0))
         val goldExpressionE2As1A0E3 = CloseParenToken
         val goldExpressionE2As1A0EList = listOf(goldExpressionE2As1A0E0, goldExpressionE2As1A0E1, goldExpressionE2As1A0E2, goldExpressionE2As1A0E3)
-        val goldExpressionE2As1A0 = FunctionCallExpression(goldExpressionE2As1A0EList, goldExpressionE2As1A0E0, goldExpressionE2As1A0E2)
+        val goldExpressionE2As1A0 = FnCallExpression(goldExpressionE2As1A0EList, goldExpressionE2As1A0E0, goldExpressionE2As1A0E2)
         val goldExpressionE2As1AList = listOf(goldExpressionE2As1A0)
         val goldExpressionE2As1 = Argument(goldExpressionE2As1AList, goldExpressionE2As1A0)
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0, goldExpressionE2As1))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -748,7 +748,7 @@ class ValidExpressionParseTests {
         val goldExpressionE0E2 = starOf(listOf(goldExpressionE0E2As0))
         val goldExpressionE0E3 = CloseParenToken
         val goldExpressionE0EList = listOf(goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E2, goldExpressionE0E3)
-        val goldExpressionE0 = FunctionCallExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E2)
+        val goldExpressionE0 = FnCallExpression(goldExpressionE0EList, goldExpressionE0E0, goldExpressionE0E2)
         val goldExpressionE1 = OpenParenToken
         val goldExpressionE2As0A0E0 = NameToken("y")
         val goldExpressionE2As0A0EList = listOf(goldExpressionE2As0A0E0)
@@ -758,7 +758,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -781,7 +781,7 @@ class ValidExpressionParseTests {
         val goldExpressionE0E1E3EList = listOf(goldExpressionE0E1E3E0)
         val goldExpressionE0E1E3 = AtomicExpression(goldExpressionE0E1E3EList, goldExpressionE0E1E3E0)
         val goldExpressionE0E1EList = listOf(goldExpressionE0E1E0, goldExpressionE0E1E1, goldExpressionE0E1E2, goldExpressionE0E1E3)
-        val goldExpressionE0E1 = BinaryOpExpression(goldExpressionE0E1EList, goldExpressionE0E1E0, goldExpressionE0E1E1, goldExpressionE0E1E3)
+        val goldExpressionE0E1 = BinaryExpression(goldExpressionE0E1EList, goldExpressionE0E1E0, goldExpressionE0E1E1, goldExpressionE0E1E3)
         val goldExpressionE0E2 = CloseParenToken
         val goldExpressionE0EList = listOf(goldExpressionE0E0, goldExpressionE0E1, goldExpressionE0E2)
         val goldExpressionE0 = GroupingExpression(goldExpressionE0EList, goldExpressionE0E1)
@@ -794,7 +794,7 @@ class ValidExpressionParseTests {
         val goldExpressionE2 = starOf(listOf(goldExpressionE2As0))
         val goldExpressionE3 = CloseParenToken
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = FunctionCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
+        val goldExpression = FnCallExpression(goldExpressionEList, goldExpressionE0, goldExpressionE2)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -819,7 +819,7 @@ class ValidExpressionParseTests {
         val goldExpressionE1E2 = starOf(listOf(goldExpressionE1E2As0))
         val goldExpressionE1E3 = CloseParenToken
         val goldExpressionE1EList = listOf(goldExpressionE1E0, goldExpressionE1E1, goldExpressionE1E2, goldExpressionE1E3)
-        val goldExpressionE1 = FunctionCallExpression(goldExpressionE1EList, goldExpressionE1E0, goldExpressionE1E2)
+        val goldExpressionE1 = FnCallExpression(goldExpressionE1EList, goldExpressionE1E0, goldExpressionE1E2)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1)
         val goldExpression = UnaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1)
 
@@ -846,7 +846,7 @@ class ValidExpressionParseTests {
         val goldExpressionE3EList = listOf(goldExpressionE3E0)
         val goldExpressionE3 = AtomicExpression(goldExpressionE3EList, goldExpressionE3E0)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -874,7 +874,7 @@ class ValidExpressionParseTests {
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1)
         val goldExpressionE3 = UnaryExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }
@@ -908,11 +908,11 @@ class ValidExpressionParseTests {
         val goldExpressionE3E1E2 = starOf(listOf(goldExpressionE3E1E2As0))
         val goldExpressionE3E1E3 = CloseParenToken
         val goldExpressionE3E1EList = listOf(goldExpressionE3E1E0, goldExpressionE3E1E1, goldExpressionE3E1E2, goldExpressionE3E1E3)
-        val goldExpressionE3E1 = FunctionCallExpression(goldExpressionE3E1EList, goldExpressionE3E1E0, goldExpressionE3E1E2)
+        val goldExpressionE3E1 = FnCallExpression(goldExpressionE3E1EList, goldExpressionE3E1E0, goldExpressionE3E1E2)
         val goldExpressionE3EList = listOf(goldExpressionE3E0, goldExpressionE3E1)
         val goldExpressionE3 = UnaryExpression(goldExpressionE3EList, goldExpressionE3E0, goldExpressionE3E1)
         val goldExpressionEList = listOf(goldExpressionE0, goldExpressionE1, goldExpressionE2, goldExpressionE3)
-        val goldExpression = BinaryOpExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
+        val goldExpression = BinaryExpression(goldExpressionEList, goldExpressionE0, goldExpressionE1, goldExpressionE3)
 
         assertEquals(goldExpression, outExpression)
     }

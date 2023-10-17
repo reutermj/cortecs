@@ -79,7 +79,9 @@ internal class ParserNodeIterator(val node: Ast): IParserIterator {
     override fun peekToken() =
         if(i) {
             val first = node.firstTokenOrNull
-            if(first == null) throw Exception("Programmer Error")
+            if(first == null) {
+                throw Exception("Programmer Error")
+            }
             first
         } else throw Exception("Programmer Error")
     override fun peekNode() = if(i) node else throw Exception("Programmer Error")
@@ -93,10 +95,10 @@ internal class ParserNodeIterator(val node: Ast): IParserIterator {
     override fun hashCode() = node.hashCode() xor i.hashCode()
 }
 
-fun constructChangeIterator(node: Ast, text: String, start: Offset, end: Offset): ParserIterator {
+fun constructChangeIterator(node: Ast, text: String, start: Span, end: Span): ParserIterator {
     val iterator = ParserIterator()
     val change =
-        if(start == Offset.zero) {
+        if(start == Span.zero) {
             iterator.add(text)
             ""
         } else text

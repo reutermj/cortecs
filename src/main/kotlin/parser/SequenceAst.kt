@@ -1,10 +1,10 @@
 package parser
 
 sealed class SequenceAst(final override val nodes: List<Ast>): Ast {
-    final override val offset = nodes.fold(Offset.zero) { acc, e -> acc + e.offset }
+    final override val span = nodes.fold(Span.zero) { acc, e -> acc + e.span }
     final override val firstTokenOrNull: Token? = nodes.firstOrNull()?.firstTokenOrNull
 
-    override fun addToIterator(change: String, start: Offset, end: Offset, iter: ParserIterator, next: Token?) {
+    override fun addToIterator(change: String, start: Span, end: Span, iter: ParserIterator, next: Token?) {
         if(keepOrDelete(start, end, iter, next)) return
         var s = start
         var e = end
@@ -14,8 +14,8 @@ sealed class SequenceAst(final override val nodes: List<Ast>): Ast {
                 else next
             nodes[i].addToIterator(change, s, e, iter, eNext?.firstTokenOrNull)
 
-            s -= nodes[i].offset
-            e -= nodes[i].offset
+            s -= nodes[i].span
+            e -= nodes[i].span
         }
     }
 

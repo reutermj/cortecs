@@ -9,7 +9,7 @@ class StarBuilder(override val iterator: ParserIterator): AstBuilder() {
         if(!iterator.hasNext()) return null
         if(iterator.isNextToken()) return null
         val n = iterator.peekNode()
-        if(n !is StarAst<*>) return null
+        if(n !is StarNode<*>) return null
         if(n.reifiedT != T::class) return null
         iterator.next()
         @Suppress("UNCHECKED_CAST")
@@ -26,7 +26,7 @@ class SequenceBuilder(override val iterator: ParserIterator): AstBuilder() {
     fun getSequence() = nodes
 
     fun consumeWhitespace() {
-        while(iterator.hasNext()) { //todo reuse whitespace nodes?
+        while(iterator.hasNext()) {
             when(val token = peekToken()) {
                 is WhitespaceToken, is NewLineToken -> add(token)
                 else -> break

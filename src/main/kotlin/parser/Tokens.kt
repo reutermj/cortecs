@@ -1,24 +1,33 @@
 package parser
 
-sealed class Token(val value: String): Ast {
-    override val offset: Offset
-        get() = Offset(0, value.length)
+import typechecker.*
+
+sealed interface Token: Ast {
+    val value: String
+}
+
+sealed class TokenImpl(override val value: String): Token {
+    override val environment = EmptyEnvironment
+    override val span: Span
+        get() = Span(0, value.length)
     override val firstTokenOrNull: Token?
         get() = this
     override val nodes: List<Ast>
         get() = listOf(this)
 
-    override fun addToIterator(change: String, start: Offset, end: Offset, iter: ParserIterator, next: Token?) {
+    override fun addToIterator(change: String, start: Span, end: Span, iter: ParserIterator, next: Token?) {
         if(keepOrDelete(start, end, iter, next)) return
 
         if(start.line == 0 && start.column >= 0) iter.add(value.substring(0, start.column))
-        if(start > Offset.zero) iter.add(change)
+        if(start > Span.zero) iter.add(change)
         if(end.line == 0 && end.column < value.length) iter.add(value.substring(end.column))
     }
 
     override fun forceReparse(iter: ParserIterator) {
         iter.add(value)
     }
+
+    override fun toString() = value
 
     override fun equals(other: Any?): Boolean {
         if (other !is Token) return false
@@ -29,48 +38,55 @@ sealed class Token(val value: String): Ast {
     override fun hashCode() = 0x13cd430a xor value.hashCode()
 }
 
-object NewLineToken: Token("\n") {
-    override val offset: Offset
-        get() = Offset(1, 0)
+object NewLineToken: TokenImpl("\n") {
+    override val value = "\n"
+    override val span: Span
+        get() = Span(1, 0)
 
-    override fun addToIterator(change: String, start: Offset, end: Offset, iter: ParserIterator, next: Token?) {
+    override fun addToIterator(change: String, start: Span, end: Span, iter: ParserIterator, next: Token?) {
         if(keepOrDelete(start, end, iter, next)) return
 
         iter.add(value)
-        if(start > Offset.zero) iter.add(change)
+        if(start > Span.zero) iter.add(change)
     }
 }
 
-interface Keyword
-interface TopLevelKeyword
-interface BodyKeyword
-object LetToken: Token("let"), Keyword, BodyKeyword
-object IfToken: Token("if"), Keyword, BodyKeyword
-object FunctionToken: Token("function"), Keyword, TopLevelKeyword
-object ReturnToken: Token("return"), Keyword, BodyKeyword
+sealed interface BindableToken: Token
+//only used internally in the typechecker
+object ReturnTypeToken: TokenImpl("<return type>"), BindableToken
 
-class WhitespaceToken(value: String): Token(value)
-class OperatorToken(value: String): Token(value)
-class TypeToken(value: String): Token(value)
-class BadToken(value: String): Token(value)
+sealed interface TypeAnnotationToken: Token
 
-sealed class AtomicExpressionToken(value: String): Token(value)
-class NameToken(value: String): AtomicExpressionToken(value)
-class StringToken(value: String): AtomicExpressionToken(value)
-class BadStringToken(value: String): AtomicExpressionToken(value)
-class CharToken(value: String): AtomicExpressionToken(value)
-class BadCharToken(value: String): AtomicExpressionToken(value)
-class IntToken(value: String): AtomicExpressionToken(value)
-class FloatToken(value: String): AtomicExpressionToken(value)
-class BadNumberToken(value: String): AtomicExpressionToken(value)
+sealed interface Keyword: Token
+sealed interface TopLevelKeyword: Token
+sealed interface BodyKeyword: Token
+object LetToken: TokenImpl("let"), Keyword, BodyKeyword
+object IfToken: TokenImpl("if"), Keyword, BodyKeyword
+object FnToken: TokenImpl("fn"), Keyword, TopLevelKeyword
+object ReturnToken: TokenImpl("return"), Keyword, BodyKeyword
 
-object OpenParenToken: Token("(")
-object CloseParenToken: Token(")")
-object OpenCurlyToken: Token("{")
-object CloseCurlyToken: Token("}")
+class WhitespaceToken(value: String): TokenImpl(value)
+class OperatorToken(value: String): TokenImpl(value), BindableToken
+class TypeToken(value: String): TokenImpl(value), TypeAnnotationToken
+class BadToken(value: String): TokenImpl(value)
 
-object CommaToken: Token(",")
-object DotToken: Token(".")
-object ColonToken: Token(":")
-object BackSlashToken: Token("\\")
-object EqualSignToken: Token("=")
+sealed interface AtomicExpressionToken: Token
+class NameToken(value: String): TokenImpl(value), AtomicExpressionToken, BindableToken, TypeAnnotationToken
+class StringToken(value: String): TokenImpl(value), AtomicExpressionToken
+class BadStringToken(value: String): TokenImpl(value), AtomicExpressionToken
+class CharToken(value: String): TokenImpl(value), AtomicExpressionToken
+class BadCharToken(value: String): TokenImpl(value), AtomicExpressionToken
+class IntToken(value: String): TokenImpl(value), AtomicExpressionToken
+class FloatToken(value: String): TokenImpl(value), AtomicExpressionToken
+class BadNumberToken(value: String): TokenImpl(value), AtomicExpressionToken
+
+object OpenParenToken: TokenImpl("(")
+object CloseParenToken: TokenImpl(")")
+object OpenCurlyToken: TokenImpl("{")
+object CloseCurlyToken: TokenImpl("}")
+
+object CommaToken: TokenImpl(",")
+object DotToken: TokenImpl(".")
+object ColonToken: TokenImpl(":")
+object BackSlashToken: TokenImpl("\\")
+object EqualSignToken: TokenImpl("=")
