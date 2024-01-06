@@ -12,12 +12,13 @@ class ExpressionReparseTests {
 
         val start = Span(0, 11)
         val end = Span(1, 7)
-        val change = ""
+        val text = ""
+        val change = Change(text, start, end)
         val outIterator = ParserIterator()
-        inBlock.addToIterator(change, start, end, outIterator, null)
+        inBlock.addToIterator(change, outIterator, null)
         val outBlock = parseBlock(SequenceBuilder(inIterator))
 
-        val goldString = generateGoldText(inString, change, start, end)
+        val goldString = generateGoldText(inString, text, start, end)
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
         val goldBlock = parseBlock(SequenceBuilder(inIterator))
@@ -36,12 +37,13 @@ class ExpressionReparseTests {
 
         val start = Span(0, 11)
         val end = Span(1, 7)
-        val change = ""
+        val text = ""
+        val change = Change(text, start, end)
         val outIterator = ParserIterator()
-        inBlock.addToIterator(change, start, end, outIterator, null)
+        inBlock.addToIterator(change, outIterator, null)
         val outBlock = parseBlock(SequenceBuilder(inIterator))
 
-        val goldString = generateGoldText(inString, change, start, end)
+        val goldString = generateGoldText(inString, text, start, end)
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
         val goldBlock = parseBlock(SequenceBuilder(inIterator))

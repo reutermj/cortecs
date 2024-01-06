@@ -24,7 +24,7 @@ fun parseFn(builder: AstBuilder): FnAst = buildAst(builder) {
     FnAst(getSequence(), name, parameters, returnType, block)
 }
 
-fun parseGarbageTopLevel(builder: AstBuilder): GarbageAst = buildAst(builder) {
+fun parseGarbageTopLevel(builder: AstBuilder): TopGarbageAst = buildAst(builder) {
     while(iterator.hasNext()) {
         when(peekToken()) {
             is TopLevelKeyword -> break
@@ -32,7 +32,7 @@ fun parseGarbageTopLevel(builder: AstBuilder): GarbageAst = buildAst(builder) {
             else -> consume<Token>()
         }
     }
-    GarbageAst(getSequence())
+    TopGarbageAst(getSequence())
 }
 
 fun parseParameters(builder: AstBuilder): StarAst<ParameterAst> = buildStarAst(builder) {
@@ -83,7 +83,7 @@ fun parseReturn(builder: AstBuilder) = buildAst(builder) {
     ReturnAst(getSequence(), expression)
 }
 
-fun parseGarbageBody(builder: AstBuilder): GarbageAst = buildAst(builder) {
+fun parseGarbageBody(builder: AstBuilder): BodyGarbageAst = buildAst(builder) {
     while(iterator.hasNext()) {
         when(peekToken()) {
             is Keyword -> break
@@ -91,7 +91,7 @@ fun parseGarbageBody(builder: AstBuilder): GarbageAst = buildAst(builder) {
             else -> consume<Token>()
         }
     }
-    GarbageAst(getSequence())
+    BodyGarbageAst(getSequence())
 }
 
 fun tryReuseExpression(node: Expression, minBindingPower: Int) =

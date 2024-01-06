@@ -1,12 +1,20 @@
 package typechecker
 
-sealed interface Lookup
-sealed interface LookupIntermediate
-data class Representative(val typeVar: TypeVariable): Lookup, LookupIntermediate
-data class TypeMapping(val type: Type): Lookup, LookupIntermediate
-data class Intermediate(val dst: UnificationTypeVariable): LookupIntermediate
-data class Compatibility(val typeVar: TypeVariable, val typeVars: Set<UnificationTypeVariable>): Lookup, LookupIntermediate
+import kotlinx.serialization.*
 
+@Serializable
+sealed class Lookup: LookupIntermediate()
+@Serializable
+sealed class LookupIntermediate
+@Serializable
+data class Representative(val typeVar: TypeVariable): Lookup()
+@Serializable
+data class TypeMapping(val type: Type): Lookup()
+@Serializable
+data class Intermediate(val dst: UnificationTypeVariable): LookupIntermediate()
+@Serializable
+data class Compatibility(val typeVar: TypeVariable, val typeVars: Set<UnificationTypeVariable>): Lookup()
+@Serializable
 data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
     companion object {
         val empty = Substitution(emptyMap())

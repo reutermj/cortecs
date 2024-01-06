@@ -1,14 +1,16 @@
 package typechecker
 
+import kotlinx.serialization.*
 import parser.*
 import utilities.*
 
-interface Environment {
-    val substitution: Substitution
-    val bindings: Map<BindableToken, TypeScheme>
-    val requirements: Map<BindableToken, List<Type>>
-    operator fun plus(other: Environment): Environment
-    fun copy(substitution: Substitution = this.substitution, bindings: Map<BindableToken, TypeScheme> = this.bindings, requirements: Map<BindableToken, List<Type>> = this.requirements): Environment
+@Serializable
+sealed class Environment {
+    abstract val substitution: Substitution
+    abstract val bindings: Map<BindableToken, TypeScheme>
+    abstract val requirements: Map<BindableToken, List<Type>>
+    abstract operator fun plus(other: Environment): Environment
+    abstract fun copy(substitution: Substitution = this.substitution, bindings: Map<BindableToken, TypeScheme> = this.bindings, requirements: Map<BindableToken, List<Type>> = this.requirements): Environment
     fun addRequirement(token: BindableToken, type: Type): Environment = copy(requirements = requirements + (token to ((requirements[token] ?: emptyList()) + type)))
     fun instantiate(typeScheme: TypeScheme, substitution: Substitution): Pair<Type, Substitution> {
         val outSubstitution = substitution.mapping.toMutableMap()
@@ -58,8 +60,8 @@ interface Environment {
             }
         }
 }
-
-class TopLevelEnvironment(override val substitution: Substitution, override val bindings: Map<BindableToken, TypeScheme>, override val requirements: Map<BindableToken, List<Type>>): Environment {
+@Serializable
+class TopLevelEnvironment(override val substitution: Substitution, override val bindings: Map<BindableToken, TypeScheme>, override val requirements: Map<BindableToken, List<Type>>): Environment() {
     companion object {
         val base =
             mapOf<BindableToken, TypeScheme>(
@@ -77,6 +79,7 @@ class TopLevelEnvironment(override val substitution: Substitution, override val 
         when(other) {
             is EmptyEnvironment -> return this
             is BlockEnvironment -> throw Exception()
+            is TopLevelEnvironment -> {}
         }
 
         val outRequirements = mutableMapOf<BindableToken, List<Type>>()
@@ -91,7 +94,8 @@ class TopLevelEnvironment(override val substitution: Substitution, override val 
     }
 }
 
-class BlockEnvironment(override val substitution: Substitution, override val bindings: Map<BindableToken, TypeScheme>, override val requirements: Map<BindableToken, List<Type>>, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>): Environment {
+@Serializable
+class BlockEnvironment(override val substitution: Substitution, override val bindings: Map<BindableToken, TypeScheme>, override val requirements: Map<BindableToken, List<Type>>, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>): Environment() {
     override fun copy(substitution: Substitution, bindings: Map<BindableToken, TypeScheme>, requirements: Map<BindableToken, List<Type>>): BlockEnvironment = BlockEnvironment(substitution, bindings, requirements, freeUserDefinedTypeVariables)
 
     override fun plus(other: Environment): BlockEnvironment {
@@ -105,7 +109,8 @@ class BlockEnvironment(override val substitution: Substitution, override val bin
     }
 }
 
-object EmptyEnvironment: Environment {
+@Serializable
+object EmptyEnvironment: Environment() {
     override val substitution = Substitution.empty
     override val bindings: Map<BindableToken, TypeScheme> = emptyMap()
     override val requirements: Map<BindableToken, List<Type>> = emptyMap()

@@ -14,7 +14,8 @@ class ProgramReparseTests {
         var line = 0
         var column = 0
         for(c in s) {
-            val changeIterator = constructChangeIterator(program, "$c", Span(line, column), Span(line, column))
+            val change = Change("$c", Span(line, column), Span(line, column))
+            val changeIterator = constructChangeIterator(program, change)
             program = parseProgram(changeIterator)
 
             if(c == '\n') {

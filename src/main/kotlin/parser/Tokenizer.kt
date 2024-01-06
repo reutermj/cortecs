@@ -1,6 +1,6 @@
 package parser
 
-fun nextToken(text: String, start: Int): Token =
+fun nextToken(text: String, start: Int): TokenImpl =
     when(text[start]) {
         in initialNameOrType -> nextToken(text, start, allNameOrType, ::toKeywordOrNameOrTypeToken)
         in whiteSpace -> nextToken(text, start, whiteSpace, ::WhitespaceToken)
@@ -31,19 +31,19 @@ val allNameOrType = initialNameOrType + ('0'..'9').toSet()
 val numbers = ('0'..'9').toSet()
 val valid = operators + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
 
-private fun nextToken(s: String, start: Int, acceptableChars: Set<Char>, toToken: (String) -> Token): Token {
+private fun nextToken(s: String, start: Int, acceptableChars: Set<Char>, toToken: (String) -> TokenImpl): TokenImpl {
     var end = start + 1
     while(end < s.length && s[end] in acceptableChars) end++
     return toToken(s.substring(start, end))
 }
 
-private fun nextBadToken(s: String, start: Int): Token {
+private fun nextBadToken(s: String, start: Int): TokenImpl {
     var end = start + 1
     while(end < s.length && s[end] !in valid) end++
     return BadToken(s.substring(start, end))
 }
 
-private fun nextString(text: String, start: Int): Token {
+private fun nextString(text: String, start: Int): TokenImpl {
     var end = start + 1
     var isEscaped = false
     while(end < text.length) {
@@ -62,7 +62,7 @@ private fun nextString(text: String, start: Int): Token {
     else StringToken(text.substring(start, end))
 }
 
-private fun nextChar(text: String, start: Int): Token {
+private fun nextChar(text: String, start: Int): TokenImpl {
     var end = start + 1
     var numChars = 0
     var isEscaped = false
@@ -85,7 +85,7 @@ private fun nextChar(text: String, start: Int): Token {
     else CharToken(text.substring(start, end))
 }
 
-private fun nextIntOrFloatToken(text: String, start: Int): Token {
+private fun nextIntOrFloatToken(text: String, start: Int): TokenImpl {
     var end = start + 1
     while(end < text.length) {
         when(text[end]) {
@@ -106,7 +106,7 @@ private fun nextIntOrFloatToken(text: String, start: Int): Token {
     return IntToken(text.substring(start, end))
 }
 
-private fun nextUintToken(text: String, start: Int, end: Int): Token {
+private fun nextUintToken(text: String, start: Int, end: Int): TokenImpl {
     if(end == text.length) return IntToken(text.substring(start, end))
     return when(text[end]) {
         'l', 'L', 'b', 'B', 's', 'S' -> IntToken(text.substring(start, end + 1))
@@ -114,7 +114,7 @@ private fun nextUintToken(text: String, start: Int, end: Int): Token {
     }
 }
 
-private fun nextFloatToken(text: String, start: Int, end: Int): Token {
+private fun nextFloatToken(text: String, start: Int, end: Int): TokenImpl {
     var end = end
     while(end < text.length) {
         when(text[end]) {
@@ -129,7 +129,7 @@ private fun nextFloatToken(text: String, start: Int, end: Int): Token {
     return FloatToken(text.substring(start, end))
 }
 
-private fun nextDotOrFloatToken(text: String, start: Int): Token {
+private fun nextDotOrFloatToken(text: String, start: Int): TokenImpl {
     val end = start + 1
     return if(end < text.length && text[end] in numbers) nextFloatToken(text, start, end + 1)
     else DotToken
@@ -146,7 +146,7 @@ private fun toKeywordOrNameOrTypeToken(value: String) =
             else NameToken(value)
     }
 
-private fun toOperatorToken(value: String): Token =
+private fun toOperatorToken(value: String): TokenImpl =
     when(value) {
         "\\" ->  BackSlashToken
         "=" ->  EqualSignToken

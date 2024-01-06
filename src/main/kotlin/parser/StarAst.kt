@@ -1,5 +1,6 @@
 package parser
 
+import kotlinx.serialization.Serializable
 import typechecker.*
 import kotlin.math.max
 import kotlin.reflect.KClass
@@ -8,32 +9,67 @@ import kotlin.reflect.KClass
 // * easy to implement
 // * facilitates O(lgn) finding of the node where the change happens
 // * facilitates O(lgn) append operation
-sealed interface StarAst<out T: Ast>: Ast {
-    val height: Int
-    fun inOrder(f: (T) -> Unit)
+@Serializable
+sealed class StarAst<out T: Ast>: Ast() {
+    abstract val height: Int
+    abstract fun inOrder(f: (T) -> Unit)
     fun <A>fold(init: A, f: (A, T) -> A): A {
         var acc = init
         inOrder { acc = f(acc, it) }
         return acc
     }
 }
-
-object StarLeaf: StarAst<Nothing> {
-    override val environment = EmptyEnvironment
+@Serializable
+object StarLeaf: StarAst<Nothing>() {
+    override fun generateEnvironment() = EmptyEnvironment
     override val height = 0
-    override val span = Span.zero
-    override val firstTokenOrNull: Token? = null
-    override val nodes: List<Ast> = emptyList()
+    override val span: Span
+        get() = Span.zero
 
-    override fun addToIterator(change: String, start: Span, end: Span, iter: ParserIterator, next: Token?) {}
-    override fun forceReparse(iter: ParserIterator) {}
+    override fun firstToken() = throw Exception()
+    override fun forceReparse(iter: ParserIterator) = throw Exception()
+    override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {}
     override fun inOrder(f: (Nothing) -> Unit) {}
 }
+@Serializable
+class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<T>): StarAst<T>() {
+    val nodes = createList(left, element, right)
+    private var _span: Span? = null
+    override val span: Span
+        get() {
+            if(_span == null) _span = nodes.fold(Span.zero) { acc, e -> acc + e.span }
+            return _span!!
+        }
 
-class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<T>, val reifiedT: KClass<T>): SequenceAst(createList(left, element, right)), StarAst<T> {
-    override val environment: Environment by lazy { left.environment + element.environment + right.environment }
+    private var _firstToken: TokenImpl? = null
+    override fun firstToken(): TokenImpl {
+        if(_firstToken == null) _firstToken = nodes.first().firstToken()
+        return _firstToken!!
+    }
+
+    override fun forceReparse(iter: ParserIterator) {
+        for(node in nodes.dropLast(1)) iter.add(node)
+        nodes.last().forceReparse(iter)
+    }
+
+    override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {
+        if(keepOrDelete(change.start, change.end, iter, next)) return
+        var s = change.start
+        var e = change.end
+        for (i in nodes.indices) {
+            val eNext =
+                if(i + 1 in nodes.indices) nodes[i + 1].firstToken()
+                else next
+            nodes[i].addToIterator(change.copy(start = s, end = e), iter, eNext)
+
+            s -= nodes[i].span
+            e -= nodes[i].span
+        }
+    }
+
+    override fun generateEnvironment() = left.environment + element.environment + right.environment
     override val height: Int = max(left.height, right.height) + 1
-    fun copy(left: StarAst<T> = this.left, element: T = this.element, right: StarAst<T> = this.right) = StarNode(left, element, right, reifiedT)
+    fun copy(left: StarAst<T> = this.left, element: T = this.element, right: StarAst<T> = this.right) = StarNode(left, element, right)
 
     fun popFirstNode(): Pair<T, StarAst<T>> =
         when(left) {
@@ -48,7 +84,7 @@ class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<
         if(height == other.height || height == other.height - 1) {
             //TODO I'm not sure treating the two cases the same is the best option, but it works for now
             val (first, remaining) = other.popFirstNode()
-            StarNode(this, first, remaining, reifiedT).rebalance()
+            StarNode(this, first, remaining).rebalance()
         } else when(right) {
             is StarLeaf -> copy(right = other).rebalance()
             is StarNode -> copy(right = right.concatToTheRight(other)).rebalance()
@@ -67,7 +103,7 @@ class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<
         if(height == other.height || height == other.height - 1) {
             //TODO I'm not sure treating the two cases the same is the best option, but it works for now
             val (last, remaining) = other.popLastNode()
-            StarNode(remaining, last, this, reifiedT).rebalance()
+            StarNode(remaining, last, this).rebalance()
         } else when(left) {
             is StarLeaf -> copy(left = other).rebalance()
             is StarNode -> copy(left = left.concatToTheLeft(other)).rebalance()
@@ -90,7 +126,6 @@ class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<
 
     override fun equals(other: Any?): Boolean {
         if(other !is StarNode<*>) return false
-        if(reifiedT != other.reifiedT) return false
 
         val lhsStack = mutableListOf<StarNode<*>>()
         val rhsStack = mutableListOf<StarNode<*>>()
@@ -160,9 +195,9 @@ class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<
     fun rebuild(a: StarNode<T>, b: StarNode<T>, c: StarNode<T>,
                 w: StarAst<T>, x: StarAst<T>,
                 y: StarAst<T>, z: StarAst<T>): StarAst<T> {
-        val left = StarNode(w, a.element, x, reifiedT)
-        val right = StarNode(y, c.element, z, reifiedT)
-        return StarNode(left, b.element, right, reifiedT)
+        val left = StarNode(w, a.element, x)
+        val right = StarNode(y, c.element, z)
+        return StarNode(left, b.element, right)
     }
 
     fun rebalance(): StarAst<T> {
@@ -191,16 +226,16 @@ class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<
     }
 }
 
-fun <T: Ast>bulkLoad(elems: List<T>, l: Int, r: Int, reifiedT: KClass<T>): StarAst<T> {
+fun <T: Ast>bulkLoad(elems: List<T>, l: Int, r: Int): StarAst<T> {
     if(l > r) return StarLeaf
 
     val m = (l + r) / 2
-    val left = bulkLoad(elems, l, m - 1, reifiedT)
-    val right = bulkLoad(elems, m + 1, r, reifiedT)
-    return StarNode(left, elems[m], right, reifiedT)
+    val left = bulkLoad(elems, l, m - 1)
+    val right = bulkLoad(elems, m + 1, r)
+    return StarNode(left, elems[m], right)
 }
 
-inline fun <reified T: Ast>starOf(elems: List<T> = emptyList()) = bulkLoad(elems, 0, elems.size - 1, T::class)
+inline fun <reified T: Ast>starOf(elems: List<T> = emptyList()) = bulkLoad(elems, 0, elems.size - 1)
 
 operator fun <T: Ast>StarAst<T>.plus(other: StarAst<T>): StarAst<T> =
     when(this) {

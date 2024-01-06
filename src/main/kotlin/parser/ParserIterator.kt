@@ -1,5 +1,10 @@
 package parser
 
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Change(val text: String, val start: Span, val end: Span)
+
 class ParserIterator {
     private val iterators = mutableListOf<IParserIterator>()
     private var i = 0
@@ -43,18 +48,18 @@ class ParserIterator {
 internal sealed interface IParserIterator {
     fun hasNext(): Boolean
     fun isToken(): Boolean
-    fun peekToken(): Token
+    fun peekToken(): TokenImpl
     fun peekNode(): Ast
     fun next()
 }
 
 internal class ParserStringIterator(val text: String): IParserIterator {
     private var i = 0
-    private var cache: Token? = null
+    private var cache: TokenImpl? = null
 
     override fun hasNext() = i < text.length
     override fun isToken() = true
-    override fun peekToken(): Token {
+    override fun peekToken(): TokenImpl {
         if(cache == null) cache = nextToken(text, i)
         return cache!!
     }
@@ -77,13 +82,8 @@ internal class ParserNodeIterator(val node: Ast): IParserIterator {
     override fun hasNext() = i
     override fun isToken() = node is Token
     override fun peekToken() =
-        if(i) {
-            val first = node.firstTokenOrNull
-            if(first == null) {
-                throw Exception("Programmer Error")
-            }
-            first
-        } else throw Exception("Programmer Error")
+        if(i) node.firstToken()
+        else throw Exception("Programmer Error")
     override fun peekNode() = if(i) node else throw Exception("Programmer Error")
     override fun next() { i = false }
 
@@ -95,14 +95,14 @@ internal class ParserNodeIterator(val node: Ast): IParserIterator {
     override fun hashCode() = node.hashCode() xor i.hashCode()
 }
 
-fun constructChangeIterator(node: Ast, text: String, start: Span, end: Span): ParserIterator {
+fun constructChangeIterator(node: Ast, change: Change): ParserIterator {
     val iterator = ParserIterator()
-    val change =
-        if(start == Span.zero) {
-            iterator.add(text)
-            ""
-        } else text
+    val updatedChange =
+        if(change.start == Span.zero) {
+            iterator.add(change.text)
+            change.copy(text = "")
+        } else change
 
-    node.addToIterator(change, start, end, iterator, null)
+    node.addToIterator(updatedChange, iterator, null)
     return iterator
 }

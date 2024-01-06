@@ -10,7 +10,7 @@ class StarBuilder(override val iterator: ParserIterator): AstBuilder() {
         if(iterator.isNextToken()) return null
         val n = iterator.peekNode()
         if(n !is StarNode<*>) return null
-        if(n.reifiedT != T::class) return null
+        //if(n.reifiedT != T::class) return null
         iterator.next()
         @Suppress("UNCHECKED_CAST")
         return n as StarAst<T>
@@ -56,10 +56,15 @@ class SequenceBuilder(override val iterator: ParserIterator): AstBuilder() {
                 //this is in a while loop so that PersistentVectors get unrolled all
                 //the way down the left subtree
                 val node = iterator.peekNode()
-                val firstToken = node.firstTokenOrNull
+                val firstToken = node.firstToken()
                 if(firstToken is T) {
                     iterator.next()
-                    iterator.inject(node.nodes)
+                    when(node) {
+                        is AstImpl -> iterator.inject(node.nodes)
+                        is StarNode<*> -> iterator.inject(node.nodes)
+                        else -> throw Exception()
+                    }
+
                     continue
                 }
             }
@@ -93,7 +98,11 @@ inline fun <reified T: Ast>buildAst(iterator: ParserIterator, r: (T) -> ReuseIns
             when(r(node)) {
                 ReuseInstructions.inject -> {
                     iterator.next()
-                    iterator.inject(node.nodes)
+                    when(node) {
+                        is AstImpl -> iterator.inject(node.nodes)
+                        is StarNode<*> -> iterator.inject(node.nodes)
+                        else -> throw Exception()
+                    }
                 }
                 ReuseInstructions.dontProgress -> {}
                 ReuseInstructions.reuse -> {
@@ -144,7 +153,7 @@ inline fun <reified T: Ast>buildStarAst(iterator: ParserIterator, parseNode: Sta
 
 inline fun <reified T: Ast>buildStarAst(builder: AstBuilder, parseNode: StarBuilder.() -> StarBuildingInstruction<T>): StarAst<T> {
     val node = buildStarAst<T>(builder.iterator, parseNode)
-    builder.add(node)
+    /*if(node is StarNode) */builder.add(node)
     return node
 }
 
@@ -163,7 +172,7 @@ sealed class AstBuilder {
         return n
     }
 
-    fun peekToken(): Token? {
+    fun peekToken(): TokenImpl? {
         if(!iterator.hasNext()) return null
         return iterator.peekToken()
     }

@@ -10,7 +10,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(0, 9)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a12349"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -24,7 +24,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -38,7 +38,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(0, 10)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -52,7 +52,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(0, 15)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -66,7 +66,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -80,7 +80,7 @@ class TokenReparseTests {
         val start = Span(0, 0)
         val end = Span(0, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "56789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -94,7 +94,7 @@ class TokenReparseTests {
         val start = Span(0, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -108,7 +108,7 @@ class TokenReparseTests {
         val start = Span(0, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -122,7 +122,7 @@ class TokenReparseTests {
         val start = Span(-1, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -136,7 +136,7 @@ class TokenReparseTests {
         val start = Span(-1, 5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -150,7 +150,7 @@ class TokenReparseTests {
         val start = Span(-1, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -164,7 +164,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(0, 10)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -178,7 +178,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(0, 15)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -192,7 +192,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -206,7 +206,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -220,7 +220,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(0, 9)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234b9"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -234,7 +234,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -248,7 +248,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(0, 10)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -262,7 +262,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(0, 15)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -276,7 +276,7 @@ class TokenReparseTests {
         val start = Span(0, 5)
         val end = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a1234b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -290,7 +290,7 @@ class TokenReparseTests {
         val start = Span(0, 0)
         val end = Span(0, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "56789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -304,7 +304,7 @@ class TokenReparseTests {
         val start = Span(0, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -318,7 +318,7 @@ class TokenReparseTests {
         val start = Span(0, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -332,7 +332,7 @@ class TokenReparseTests {
         val start = Span(-1, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -346,7 +346,7 @@ class TokenReparseTests {
         val start = Span(-1, 5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -360,7 +360,7 @@ class TokenReparseTests {
         val start = Span(-1, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -374,7 +374,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(0, 10)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -388,7 +388,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(0, 15)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -402,7 +402,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -416,7 +416,7 @@ class TokenReparseTests {
         val start = Span(0, 10)
         val end = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "a123456789b"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -430,7 +430,7 @@ class TokenReparseTests {
         val start = Span(0, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -444,7 +444,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -458,7 +458,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -472,7 +472,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(2, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -486,7 +486,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(2, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -500,7 +500,7 @@ class TokenReparseTests {
         val start = Span(0, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -514,7 +514,7 @@ class TokenReparseTests {
         val start = Span(-1, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -528,7 +528,7 @@ class TokenReparseTests {
         val start = Span(-1, 5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -542,7 +542,7 @@ class TokenReparseTests {
         val start = Span(-1, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -556,7 +556,7 @@ class TokenReparseTests {
         val start = Span(0, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -570,7 +570,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\nb"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -584,7 +584,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\nb"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -598,7 +598,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(2, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\nb"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -612,7 +612,7 @@ class TokenReparseTests {
         val start = Span(1, 0)
         val end = Span(2, 5)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\nb"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -626,7 +626,7 @@ class TokenReparseTests {
         val start = Span(0, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -640,7 +640,7 @@ class TokenReparseTests {
         val start = Span(-1, 0)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -654,7 +654,7 @@ class TokenReparseTests {
         val start = Span(-1, 5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -668,7 +668,7 @@ class TokenReparseTests {
         val start = Span(-1, -5)
         val end = Span(0, 0)
         val outIterator = ParserIterator()
-        inToken.addToIterator(change, start, end, outIterator, null)
+        inToken.addToIterator(Change(change, start, end), outIterator, null)
         val goldString = "\n"
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
@@ -683,10 +683,10 @@ class TokenReparseTests {
         val start1 = Span(1, 0)
         val end1 = Span(1, 3)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, null)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString += outIterator.peekToken().value
@@ -704,10 +704,10 @@ class TokenReparseTests {
         val start1 = Span(1, 0)
         val end1 = Span(1, 3)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, null)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString += outIterator.peekToken().value
@@ -725,10 +725,10 @@ class TokenReparseTests {
         val start1 = Span(1, 0)
         val end1 = Span(1, 10)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, null)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString += outIterator.peekToken().value
@@ -746,10 +746,10 @@ class TokenReparseTests {
         val start1 = Span(0, 0)
         val end1 = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, null)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString += outIterator.peekToken().value
@@ -767,10 +767,10 @@ class TokenReparseTests {
         val start1 = Span(1, 0)
         val end1 = Span(2, 0)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, null)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString += outIterator.peekToken().value
@@ -789,18 +789,18 @@ class TokenReparseTests {
         val start1 = Span(0, 1)
         val end1 = Span(0, 10)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a b123456789"
@@ -816,18 +816,18 @@ class TokenReparseTests {
         val start1 = Span(0, 1)
         val end1 = Span(0, 10)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "ac b123456789"
@@ -843,18 +843,18 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(0, 16)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789"
@@ -870,18 +870,18 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(0, 16)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a1234c56789"
@@ -897,18 +897,18 @@ class TokenReparseTests {
         val start1 = Span(0, 10)
         val end1 = Span(0, 11)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789b123456789"
@@ -924,18 +924,18 @@ class TokenReparseTests {
         val start1 = Span(0, 10)
         val end1 = Span(0, 11)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789cb123456789"
@@ -951,18 +951,18 @@ class TokenReparseTests {
         val start1 = Span(0, 10)
         val end1 = Span(0, 21)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789"
@@ -978,18 +978,18 @@ class TokenReparseTests {
         val start1 = Span(0, 10)
         val end1 = Span(0, 21)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789c"
@@ -1005,18 +1005,18 @@ class TokenReparseTests {
         val start1 = Span(0, 11)
         val end1 = Span(0, 21)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789 "
@@ -1032,18 +1032,18 @@ class TokenReparseTests {
         val start1 = Span(0, 11)
         val end1 = Span(0, 21)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789 c"
@@ -1059,18 +1059,18 @@ class TokenReparseTests {
         val start1 = Span(0, 10)
         val end1 = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789b123456789"
@@ -1086,18 +1086,18 @@ class TokenReparseTests {
         val start1 = Span(0, 10)
         val end1 = Span(1, 0)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789cb123456789"
@@ -1113,18 +1113,18 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a123456789"
@@ -1140,18 +1140,18 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         var outString = ""
         while(outIterator.hasNext()) {
             outString +=
                 if(outIterator.isNextToken()) outIterator.peekToken().value
-                else (outIterator.peekNode() as Token).value
+                else (outIterator.peekNode() as TokenImpl).value
             outIterator.next()
         }
         val goldString = "a1234c56789"
@@ -1167,13 +1167,13 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         val outToken = outIterator.peekToken()
         val goldToken = NameToken("a123456789")
         assertEquals(goldToken, outToken)
@@ -1188,13 +1188,13 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(1, 5)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         val outToken = outIterator.peekToken()
         val goldToken = NameToken("a1234c56789")
         assertEquals(goldToken, outToken)
@@ -1209,13 +1209,13 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(0, 16)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         val outToken = outIterator.peekToken()
         val goldToken = NameToken("a123456789")
         assertEquals(goldToken, outToken)
@@ -1230,13 +1230,13 @@ class TokenReparseTests {
         val start1 = Span(0, 5)
         val end1 = Span(0, 16)
         val outIterator = ParserIterator()
-        inToken1.addToIterator(change, start1, end1, outIterator, inToken2)
+        inToken1.addToIterator(Change(change, start1, end1), outIterator, inToken2)
         val start2 = start1 - inToken1.span
         val end2 = end1 - inToken1.span
-        inToken2.addToIterator(change, start2, end2, outIterator, inToken3)
+        inToken2.addToIterator(Change(change, start2, end2), outIterator, inToken3)
         val start3 = start2 - inToken2.span
         val end3 = end2 - inToken2.span
-        inToken3.addToIterator(change, start3, end3, outIterator, null)
+        inToken3.addToIterator(Change(change, start3, end3), outIterator, null)
         val outToken = outIterator.peekToken()
         val goldToken = NameToken("a1234c56789")
         assertEquals(goldToken, outToken)

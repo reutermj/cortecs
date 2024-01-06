@@ -13,15 +13,16 @@ class ParserTests {
         inIterator.add(inString)
         val inBlock = parseBlock(SequenceBuilder(inIterator))
 
-        val change = ""
+        val text = ""
         val start = Span(0, 2)
         val end = Span(1, 7)
+        val change = Change(text,  start, end)
 
         val outIterator = ParserIterator()
-        inBlock.addToIterator(change, start, end, outIterator, null)
+        inBlock.addToIterator(change, outIterator, null)
         val outBlock = parseBlock(SequenceBuilder(outIterator))
 
-        val goldString = generateGoldText(inString, change, start, end)
+        val goldString = generateGoldText(inString, text, start, end)
         val goldIterator = ParserIterator()
         goldIterator.add(goldString)
         val goldBlock = parseBlock(SequenceBuilder(goldIterator))
@@ -45,13 +46,14 @@ class ParserTests {
         val inBlock = parseBlock(SequenceBuilder(inIterator))
 
         for(i in 0 until n) {
-            val change = ""
+            val text = ""
             val start = Span(i, 0)
             val end = Span(i + 1, 0)
-            val outIterator = constructChangeIterator(inBlock, change, start, end)
+            val change = Change(text,  start, end)
+            val outIterator = constructChangeIterator(inBlock, change)
             val outBlock = parseBlock(SequenceBuilder(outIterator))
 
-            val goldString = generateGoldText(inString, change, start, end)
+            val goldString = generateGoldText(inString, text, start, end)
             val goldIterator = ParserIterator()
             goldIterator.add(goldString)
             val goldBlock = parseBlock(SequenceBuilder(goldIterator))
@@ -79,14 +81,15 @@ class ParserTests {
         //parsing garbage tokens as the first thing it does
         for(i in 1 until n) {
             val outIterator = ParserIterator()
-            val change = ""
+            val text = ""
             val column = if(i % 2 == 0) 3 else 6
             val start = Span(i, 0)
             val end = Span(i, column)
-            inBlock.addToIterator(change, start, end, outIterator, null)
+            val change = Change(text,  start, end)
+            inBlock.addToIterator(change, outIterator, null)
             val outBlock = parseBlock(SequenceBuilder(outIterator))
 
-            val goldString = generateGoldText(inString, change, start, end)
+            val goldString = generateGoldText(inString, text, start, end)
             val goldIterator = ParserIterator()
             goldIterator.add(goldString)
             val goldBlock = parseBlock(SequenceBuilder(goldIterator))
@@ -123,14 +126,15 @@ class ParserTests {
 
         for(index in 0 until n) {
             val outIterator = ParserIterator()
-            val change = ""
+            val text = ""
             val column = keywordSizes[index % 9]
             val start = Span(index, 0)
             val end = Span(index, column)
-            inProgram.addToIterator(change, start, end, outIterator, null)
+            val change = Change(text,  start, end)
+            inProgram.addToIterator(change, outIterator, null)
             val outProgram = parseProgram(outIterator)
 
-            val goldString = generateGoldText(inString, change, start, end)
+            val goldString = generateGoldText(inString, text, start, end)
             val goldIterator = ParserIterator()
             goldIterator.add(goldString)
             val goldProgram = parseProgram(goldIterator)
@@ -150,13 +154,14 @@ class ParserTests {
             val inProgram = parseProgram(inIterator)
 
             val outIterator = ParserIterator()
-            val change = "if(x) {\n".repeat(n)
+            val text = "if(x) {\n".repeat(n)
             val start = Span(1, 0)
             val end = Span(1, 0)
-            inProgram.addToIterator(change, start, end, outIterator, null)
+            val change = Change(text,  start, end)
+            inProgram.addToIterator(change, outIterator, null)
             val outProgram = parseProgram(outIterator)
 
-            val goldString = generateGoldText(inString, change, start, end)
+            val goldString = generateGoldText(inString, text, start, end)
             val goldIterator = ParserIterator()
             goldIterator.add(goldString)
             val goldProgram = parseProgram(goldIterator)
@@ -177,13 +182,14 @@ class ParserTests {
                 val inProgram = parseProgram(inIterator)
 
                 val outIterator = ParserIterator()
-                val change = "if(x) {\n".repeat(n + m)
+                val text = "if(x) {\n".repeat(n + m)
                 val start = Span(1, 0)
                 val end = Span(1, 0)
-                inProgram.addToIterator(change, start, end, outIterator, null)
+                val change = Change(text,  start, end)
+                inProgram.addToIterator(change, outIterator, null)
                 val outProgram = parseProgram(outIterator)
 
-                val goldString = generateGoldText(inString, change, start, end)
+                val goldString = generateGoldText(inString, text, start, end)
                 val goldIterator = ParserIterator()
                 goldIterator.add(goldString)
                 val goldProgram = parseProgram(goldIterator)
@@ -205,13 +211,14 @@ class ParserTests {
                 val inProgram = parseProgram(inIterator)
 
                 val outIterator = ParserIterator()
-                val change = "if(x) {\n".repeat(n - m)
+                val text = "if(x) {\n".repeat(n - m)
                 val start = Span(1, 0)
                 val end = Span(1, 0)
-                inProgram.addToIterator(change, start, end, outIterator, null)
+                val change = Change(text,  start, end)
+                inProgram.addToIterator(change, outIterator, null)
                 val outProgram = parseProgram(outIterator)
 
-                val goldString = generateGoldText(inString, change, start, end)
+                val goldString = generateGoldText(inString, text, start, end)
                 val goldIterator = ParserIterator()
                 goldIterator.add(goldString)
                 val goldProgram = parseProgram(goldIterator)
@@ -242,13 +249,14 @@ class ParserTests {
             val line = (0..n).random() + 1
 
             val insertIterator = ParserIterator()
-            val insertChange = "}\n"
+            val insertText = "}\n"
             val insertStart = Span(line, 0)
             val insertEnd = Span(line, 0)
-            currProgram.addToIterator(insertChange, insertStart, insertEnd, insertIterator, null)
+            val insertChange = Change(insertText,  insertStart, insertEnd)
+            currProgram.addToIterator(insertChange, insertIterator, null)
             val insertProgram = parseProgram(insertIterator)
 
-            val goldInsertString = generateGoldText(inString, insertChange, insertStart, insertEnd)
+            val goldInsertString = generateGoldText(inString, insertText, insertStart, insertEnd)
             val goldInsertIterator = ParserIterator()
             goldInsertIterator.add(goldInsertString)
             val goldInsertProgram = parseProgram(goldInsertIterator)
@@ -256,10 +264,11 @@ class ParserTests {
             assertEquals(goldInsertProgram, insertProgram)
 
             val removeIterator = ParserIterator()
-            val removeChange = ""
+            val removeText = ""
             val removeStart = Span(line, 0)
             val removeEnd = Span(line + 1, 0)
-            insertProgram.addToIterator(removeChange, removeStart, removeEnd, removeIterator, null)
+            val removeChange = Change(removeText, removeStart, removeEnd)
+            insertProgram.addToIterator(removeChange, removeIterator, null)
             val removeProgram = parseProgram(removeIterator)
 
             assertEquals(inProgram, removeProgram)
@@ -279,42 +288,45 @@ class ParserTests {
         inIterator.add(inString)
         val inProgram = parseProgram(inIterator)
 
-        val change1 = "let "
+        val text1 = "let "
         val start1 = Span(1, 0)
         val end1 = Span(1, 0)
         val outIterator1 = ParserIterator()
-        inProgram.addToIterator(change1, start1, end1, outIterator1, null)
+        val change1 = Change(text1, start1, end1)
+        inProgram.addToIterator(change1, outIterator1, null)
         val outProgram1 = parseProgram(outIterator1)
 
-        val goldString1 = generateGoldText(inString, change1, start1, end1)
+        val goldString1 = generateGoldText(inString, text1, start1, end1)
         val goldIterator1 = ParserIterator()
         goldIterator1.add(goldString1)
         val goldProgram1 = parseProgram(goldIterator1)
 
         assertEquals(goldProgram1, outProgram1)
 
-        val change2 = "return "
+        val text2 = "return "
         val start2 = Span(2, 0)
         val end2 = Span(2, 0)
         val outIterator2 = ParserIterator()
-        inProgram.addToIterator(change2, start2, end2, outIterator2, null)
+        val change2 = Change(text2, start2, end2)
+        inProgram.addToIterator(change2, outIterator2, null)
         val outProgram2 = parseProgram(outIterator2)
 
-        val goldString2 = generateGoldText(inString, change2, start2, end2)
+        val goldString2 = generateGoldText(inString, text2, start2, end2)
         val goldIterator2 = ParserIterator()
         goldIterator2.add(goldString2)
         val goldProgram2 = parseProgram(goldIterator2)
 
         assertEquals(goldProgram2, outProgram2)
 
-        val change3 = "let "
+        val text3 = "let "
         val start3 = Span(1, 0)
         val end3 = Span(1, 0)
         val outIterator3 = ParserIterator()
-        outProgram2.addToIterator(change3, start3, end3, outIterator3, null)
+        val change3 = Change(text3, start3, end3)
+        outProgram2.addToIterator(change3, outIterator3, null)
         val outProgram3 = parseProgram(outIterator3)
 
-        val goldString3 = generateGoldText(goldString2, change3, start3, end3)
+        val goldString3 = generateGoldText(goldString2, text3, start3, end3)
         val goldIterator3 = ParserIterator()
         goldIterator3.add(goldString3)
         val goldProgram3 = parseProgram(goldIterator3)
@@ -347,14 +359,15 @@ class ParserTests {
         for(i in 0.. n) {
             if(i % 3 == 0) continue
 
-            val change1 = if(i % 3 == 1) "let " else "return "
+            val text1 = if(i % 3 == 1) "let " else "return "
             val start1 = Span(i + 1, 0)
             val end1 = Span(i + 1, 0)
             val outIterator1 = ParserIterator()
-            inProgram.addToIterator(change1, start1, end1, outIterator1, null)
+            val change1 = Change(text1, start1, end1)
+            inProgram.addToIterator(change1, outIterator1, null)
             val outProgram1 = parseProgram(outIterator1)
 
-            val goldString1 = generateGoldText(inString, change1, start1, end1)
+            val goldString1 = generateGoldText(inString, text1, start1, end1)
             val goldIterator1 = ParserIterator()
             goldIterator1.add(goldString1)
             val goldProgram1 = parseProgram(goldIterator1)
@@ -381,14 +394,15 @@ class ParserTests {
             for(j in 0 until 100 step 4) {
                 if(i + j + 1 >= 512) break
 
-                val change = ""
+                val text = ""
                 val start = Span(i + 1, 2)
                 val end = Span(j + i + 3, 2)
                 val outIterator = ParserIterator()
-                inProgram.addToIterator(change, start, end, outIterator, null)
+                val change = Change(text, start, end)
+                inProgram.addToIterator(change, outIterator, null)
                 val outProgram = parseProgram(outIterator)
 
-                val goldString = generateGoldText(inString, change, start, end)
+                val goldString = generateGoldText(inString, text, start, end)
                 val goldIterator = ParserIterator()
                 goldIterator.add(goldString)
                 val goldProgram = parseProgram(goldIterator)

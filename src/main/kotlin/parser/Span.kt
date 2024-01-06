@@ -1,5 +1,8 @@
 package parser
 
+import kotlinx.serialization.*
+
+@Serializable
 data class Span(val line: Int, val column: Int) {
     companion object {
         val zero = Span(0, 0)

@@ -1,5 +1,7 @@
 package lsp
 
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.launch.LSPLauncher
@@ -7,7 +9,7 @@ import org.eclipse.lsp4j.services.*
 import parser.*
 import java.net.*
 import java.util.concurrent.*
-import kotlin.system.exitProcess
+import kotlin.system.*
 
 
 object CortecsServer: LanguageServer, LanguageClientAware {
@@ -88,7 +90,9 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             val uri = params?.textDocument?.uri ?: return
             val iter = ParserIterator()
             iter.add(params.textDocument.text)
-            documents[uri] = Pair(parseProgram(iter), params.textDocument.text)
+            val program = parseProgram(iter)
+            crashDump.put(program)
+            documents[uri] = Pair(program, params.textDocument.text)
             println("exit didOpen")
         }
 
@@ -134,6 +138,8 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             return preStart + startLine + change + endLine + postEnd
         }
 
+        val crashDump = CrashDump(5)
+
         override fun didChange(params: DidChangeTextDocumentParams) {
             /* From the spec:
              * The actual content changes. The content changes describe single state
@@ -154,27 +160,35 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             println("enter didChange")
             val uri = params.textDocument?.uri ?: return
             val (doc, text) = documents[uri] ?: return
-            for(change in params.contentChanges) {
-                if(change.range != null) {
-                    val start = Span(change.range.start.line, change.range.start.character)
-                    val end = Span(change.range.end.line, change.range.end.character)
-                    val iter = constructChangeIterator(doc, change.text, start, end)
-                    val outProgram = parseProgram(iter)
+            for(contentChange in params.contentChanges) {
+                if(contentChange.range != null) {
+                    val start = Span(contentChange.range.start.line, contentChange.range.start.character)
+                    val end = Span(contentChange.range.end.line, contentChange.range.end.character)
+                    val change = Change(contentChange.text, start, end)
+                    crashDump.put(change)
+                    try {
+                        val iter = constructChangeIterator(doc, change)
+                        val outProgram = parseProgram(iter)
 
-                    val gold = generateGoldText(text, change.text, start, end)
-                    val goldIterator = ParserIterator()
-                    goldIterator.add(gold)
-                    val goldProgram = parseProgram(goldIterator)
+                        val gold = generateGoldText(text, contentChange.text, start, end)
+                        val goldIterator = ParserIterator()
+                        goldIterator.add(gold)
+                        val goldProgram = parseProgram(goldIterator)
 
-                    if(outProgram != goldProgram) {
-                        println("Not equal")
+
+                        if(outProgram != goldProgram) {
+                            print(crashDump.dumpString())
+                        }
+                        crashDump.put(goldProgram)
+
+                        documents[uri] = Pair(outProgram, gold)
+                    } catch (e: Exception) {
+                        print(crashDump.dumpString())
                     }
-
-                    documents[uri] = Pair(outProgram, gold)
                 } else {//full document change
                     val iter = ParserIterator()
-                    iter.add(change.text)
-                    documents[uri] = Pair(parseProgram(iter), change.text)
+                    iter.add(contentChange.text)
+                    documents[uri] = Pair(parseProgram(iter), contentChange.text)
                 }
             }
 

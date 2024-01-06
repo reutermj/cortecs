@@ -72,7 +72,7 @@ fun generateIfEnvironment(ifAst: IfAst): Environment {
     if(ifAst.condition == null) return EmptyEnvironment
     if(ifAst.block == null) return EmptyEnvironment
     val environment = ifAst.condition.environment + ifAst.block.environment.copy(bindings = emptyMap())
-    return environment.copy(substitution = environment.substitution.unify(ifAst.condition.type, BooleanType))
+    return environment.copy(substitution = environment.substitution.unify(ifAst.condition.expressionType, BooleanType))
 }
 
 fun generateLetEnvironment(let: LetAst): Environment {
@@ -81,11 +81,11 @@ fun generateLetEnvironment(let: LetAst): Environment {
     val environment = let.expression.environment
     val freeUserDefinedTypeVariable = mutableSetOf<UserDefinedTypeVariable>()
     val (type, substitution) =
-        if(let.typeAnnotation == null) generalize(let.expression.type, environment.substitution)
+        if(let.typeAnnotation == null) generalize(let.expression.expressionType, environment.substitution)
         else {
             val annotation = tokenToType(let.typeAnnotation)
             if(annotation is UserDefinedTypeVariable) freeUserDefinedTypeVariable.add(annotation)
-            Pair(TypeScheme(emptyList(), annotation), environment.substitution.unify(annotation, let.expression.type))
+            Pair(TypeScheme(emptyList(), annotation), environment.substitution.unify(annotation, let.expression.expressionType))
         }
 
     return BlockEnvironment(substitution, mapOf(let.name to type), environment.requirements, freeUserDefinedTypeVariable)
@@ -93,7 +93,7 @@ fun generateLetEnvironment(let: LetAst): Environment {
 
 fun generateReturnEnvironment(returnAst: ReturnAst): Environment {
     if(returnAst.expression == null) return EmptyEnvironment
-    return returnAst.expression.environment.addRequirement(ReturnTypeToken, returnAst.expression.type)
+    return returnAst.expression.environment.addRequirement(ReturnTypeToken, returnAst.expression.expressionType)
 }
 
 fun generateFnCallExpressionEnvironment(fnCall: FnCallExpression): Pair<Type, Environment> {
@@ -101,21 +101,21 @@ fun generateFnCallExpressionEnvironment(fnCall: FnCallExpression): Pair<Type, En
     val argTypes = mutableListOf<Type>()
     val environment = fnCall.arguments.fold(fnCall.function.environment) { env, arg ->
         val environment = env + arg.argument.environment //need to access environment before type
-        argTypes.add(arg.argument.type)
+        argTypes.add(arg.argument.expressionType)
         environment
     }
     val retType = freshUnificationVariable()
-    val substitution = environment.substitution.unify(fnCall.function.type, ArrowType(typesToType(argTypes), retType))
+    val substitution = environment.substitution.unify(fnCall.function.expressionType, ArrowType(typesToType(argTypes), retType))
     return Pair(retType, BlockEnvironment(substitution, emptyMap(), environment.requirements, emptySet()))
 }
 
 fun generateBinaryExpressionEnvironment(binaryExpression: BinaryExpression): Pair<Type, Environment> {
     if(binaryExpression.rhs == null) return Pair(Invalid, EmptyEnvironment)
     val lEnvironment = binaryExpression.lhs.environment
-    val lType = binaryExpression.lhs.type
+    val lType = binaryExpression.lhs.expressionType
 
     val rEnvironment = binaryExpression.rhs.environment
-    val rType = binaryExpression.rhs.type
+    val rType = binaryExpression.rhs.expressionType
 
     val retType = freshUnificationVariable()
     val opType = ArrowType(ProductType(listOf(lType, rType)), retType)
@@ -125,7 +125,7 @@ fun generateBinaryExpressionEnvironment(binaryExpression: BinaryExpression): Pai
 fun generateUnaryExpressionEnvironment(unaryExpression: UnaryExpression): Pair<Type, Environment> {
     if(unaryExpression.expression == null) return Pair(Invalid, EmptyEnvironment)
     val uEnvironment = unaryExpression.expression.environment
-    val uType = unaryExpression.expression.type
+    val uType = unaryExpression.expression.expressionType
 
     val retType = freshUnificationVariable()
     return Pair(retType, uEnvironment.addRequirement(unaryExpression.op, ArrowType(uType, retType)))
@@ -134,7 +134,7 @@ fun generateUnaryExpressionEnvironment(unaryExpression: UnaryExpression): Pair<T
 fun generateGroupingExpressionEnvironment(groupingExpression: GroupingExpression): Pair<Type, Environment> {
     if(groupingExpression.expression == null) return Pair(Invalid, EmptyEnvironment)
     val environment = groupingExpression.expression.environment //type is lateinit and accessing environment initializes type
-    return Pair(groupingExpression.expression.type, environment)
+    return Pair(groupingExpression.expression.expressionType, environment)
 }
 
 fun generateAtomicExpressionEnvironment(a: AtomicExpression): Pair<Type, Environment> =

@@ -1,92 +1,135 @@
 package parser
 
+import kotlinx.serialization.*
+import kotlinx.serialization.modules.*
 import typechecker.*
 
-sealed interface Token: Ast {
-    val value: String
-}
 
-sealed class TokenImpl(override val value: String): Token {
-    override val environment = EmptyEnvironment
-    override val span: Span
-        get() = Span(0, value.length)
-    override val firstTokenOrNull: Token?
-        get() = this
-    override val nodes: List<Ast>
-        get() = listOf(this)
+sealed interface Token
 
-    override fun addToIterator(change: String, start: Span, end: Span, iter: ParserIterator, next: Token?) {
-        if(keepOrDelete(start, end, iter, next)) return
-
-        if(start.line == 0 && start.column >= 0) iter.add(value.substring(0, start.column))
-        if(start > Span.zero) iter.add(change)
-        if(end.line == 0 && end.column < value.length) iter.add(value.substring(end.column))
+@Serializable
+sealed class TokenImpl: Ast(), Token {
+    abstract val value: String
+    override fun generateEnvironment() = EmptyEnvironment
+    override val span get() = Span(0, value.length)
+    override fun firstToken() = this
+    override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {
+        if(keepOrDelete(change.start, change.end, iter, next)) return
+        if(change.start.line == 0 && change.start.column >= 0) iter.add(value.substring(0, change.start.column))
+        if(change.start > Span.zero) iter.add(change.text)
+        if(change.end.line == 0 && change.end.column < value.length) iter.add(value.substring(change.end.column))
     }
 
     override fun forceReparse(iter: ParserIterator) {
         iter.add(value)
     }
-
-    override fun toString() = value
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is Token) return false
-        if(this::class != other::class) return false
-        return value == other.value
-    }
-
-    override fun hashCode() = 0x13cd430a xor value.hashCode()
 }
 
-object NewLineToken: TokenImpl("\n") {
+@Serializable
+data object NewLineToken: TokenImpl() {
     override val value = "\n"
-    override val span: Span
-        get() = Span(1, 0)
+    override val span get() = Span(1, 0)
 
-    override fun addToIterator(change: String, start: Span, end: Span, iter: ParserIterator, next: Token?) {
-        if(keepOrDelete(start, end, iter, next)) return
-
+    override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {
+        if(keepOrDelete(change.start, change.end, iter, next)) return
         iter.add(value)
-        if(start > Span.zero) iter.add(change)
+        if(change.start > Span.zero) iter.add(change.text)
     }
 }
+
 
 sealed interface BindableToken: Token
 //only used internally in the typechecker
-object ReturnTypeToken: TokenImpl("<return type>"), BindableToken
+@Serializable
+data object ReturnTypeToken: TokenImpl(), BindableToken {
+    override val value = "<return type>"
+}
 
-sealed interface TypeAnnotationToken: Token
 
 sealed interface Keyword: Token
-sealed interface TopLevelKeyword: Token
-sealed interface BodyKeyword: Token
-object LetToken: TokenImpl("let"), Keyword, BodyKeyword
-object IfToken: TokenImpl("if"), Keyword, BodyKeyword
-object FnToken: TokenImpl("fn"), Keyword, TopLevelKeyword
-object ReturnToken: TokenImpl("return"), Keyword, BodyKeyword
 
-class WhitespaceToken(value: String): TokenImpl(value)
-class OperatorToken(value: String): TokenImpl(value), BindableToken
-class TypeToken(value: String): TokenImpl(value), TypeAnnotationToken
-class BadToken(value: String): TokenImpl(value)
+sealed interface TopLevelKeyword: Keyword
+
+sealed interface BodyKeyword: Keyword
+@Serializable
+data object LetToken: TokenImpl(), BodyKeyword {
+    override val value = "let"
+}
+@Serializable
+data object IfToken: TokenImpl(), BodyKeyword {
+    override val value = "if"
+}
+@Serializable
+data object FnToken: TokenImpl(), TopLevelKeyword {
+    override val value = "fn"
+}
+@Serializable
+data object ReturnToken: TokenImpl(), BodyKeyword {
+    override val value = "return"
+}
+
+@Serializable
+data class WhitespaceToken(override val value: String): TokenImpl()
+@Serializable
+data class OperatorToken(override val value: String): TokenImpl(), BindableToken
+
+sealed interface TypeAnnotationToken: Token
+@Serializable
+data class TypeToken(override val value: String): TokenImpl(), TypeAnnotationToken
+@Serializable
+data class BadToken(override val value: String): TokenImpl()
+
 
 sealed interface AtomicExpressionToken: Token
-class NameToken(value: String): TokenImpl(value), AtomicExpressionToken, BindableToken, TypeAnnotationToken
-class StringToken(value: String): TokenImpl(value), AtomicExpressionToken
-class BadStringToken(value: String): TokenImpl(value), AtomicExpressionToken
-class CharToken(value: String): TokenImpl(value), AtomicExpressionToken
-class BadCharToken(value: String): TokenImpl(value), AtomicExpressionToken
-class IntToken(value: String): TokenImpl(value), AtomicExpressionToken
-class FloatToken(value: String): TokenImpl(value), AtomicExpressionToken
-class BadNumberToken(value: String): TokenImpl(value), AtomicExpressionToken
-
-object OpenParenToken: TokenImpl("(")
-object CloseParenToken: TokenImpl(")")
-object OpenCurlyToken: TokenImpl("{")
-object CloseCurlyToken: TokenImpl("}")
-
-object CommaToken: TokenImpl(",")
-object DotToken: TokenImpl(".")
-object ColonToken: TokenImpl(":")
-object BackSlashToken: TokenImpl("\\")
-object EqualSignToken: TokenImpl("=")
+@Serializable
+data class NameToken(override val value: String): TokenImpl(), AtomicExpressionToken, BindableToken, TypeAnnotationToken
+@Serializable
+data class StringToken(override val value: String): TokenImpl(), AtomicExpressionToken
+@Serializable
+data class BadStringToken(override val value: String): TokenImpl(), AtomicExpressionToken
+@Serializable
+data class CharToken(override val value: String): TokenImpl(), AtomicExpressionToken
+@Serializable
+data class BadCharToken(override val value: String): TokenImpl(), AtomicExpressionToken
+@Serializable
+data class IntToken(override val value: String): TokenImpl(), AtomicExpressionToken
+@Serializable
+data class FloatToken(override val value: String): TokenImpl(), AtomicExpressionToken
+@Serializable
+data class BadNumberToken(override val value: String): TokenImpl(), AtomicExpressionToken
+@Serializable
+data object OpenParenToken: TokenImpl() {
+    override val value = "("
+}
+@Serializable
+data object CloseParenToken: TokenImpl() {
+    override val value = ")"
+}
+@Serializable
+data object OpenCurlyToken: TokenImpl() {
+    override val value = "{"
+}
+@Serializable
+data object CloseCurlyToken: TokenImpl() {
+    override val value = "}"
+}
+@Serializable
+data object CommaToken: TokenImpl() {
+    override val value = ","
+}
+@Serializable
+data object DotToken: TokenImpl() {
+    override val value = "."
+}
+@Serializable
+data object ColonToken: TokenImpl() {
+    override val value = ":"
+}
+@Serializable
+data object BackSlashToken: TokenImpl() {
+    override val value = "/"
+}
+@Serializable
+data object EqualSignToken: TokenImpl() {
+    override val value = "="
+}

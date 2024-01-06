@@ -1,9 +1,60 @@
 package typechecker
 
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
+import kotlinx.serialization.modules.plus
 import parser.*
 import kotlin.test.*
 
 class ExpressionSubstitutionTests {
+//    @Test
+//    fun testSerialization001() {
+//        val format = Json { allowStructuredMapKeys = true
+//            serializersModule = atomicExpressionTokenModule + typeAnnotationTokenModule + bodyKeywordModule +
+//                    topLevelKeywordModule + keywordModule + bindableTokenModule + tokenModule }
+//        val data = NameToken("helloworld")
+//        assertEquals("{\"value\":\"helloworld\"}", format.encodeToString(data))
+//    }
+//
+//    @Test
+//    fun testSerialization002() {
+//        val format = Json { allowStructuredMapKeys = true
+//            serializersModule = atomicExpressionTokenModule + typeAnnotationTokenModule + bodyKeywordModule +
+//                    topLevelKeywordModule + keywordModule + bindableTokenModule + tokenModule }
+//        val data: Token = NameToken("helloworld")
+//        assertEquals("{\"type\":\"parser.NameToken\",\"value\":\"helloworld\"}", format.encodeToString(data))
+//    }
+//
+//    @Test
+//    fun testSerialization003() {
+//        val format = Json { allowStructuredMapKeys = true
+//            serializersModule = atomicExpressionTokenModule + typeAnnotationTokenModule + bodyKeywordModule +
+//                    topLevelKeywordModule + keywordModule + bindableTokenModule + tokenModule }
+//
+//        val s = "x + x"
+//        val iterator = ParserIterator()
+//        iterator.add(s)
+//        val builder = SequenceBuilder(iterator)
+//        val expression = parseExpression(builder)!!
+//
+//        assertEquals("{\"type\":\"parser.BinaryExpression\",\"nodes\":[{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},{\"type\":\"parser.OperatorToken\",\"value\":\"+\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"},{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}],\"lhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},\"op\":{\"value\":\"+\"},\"rhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}}", format.encodeToString(expression))
+//    }
+//
+//    @Test
+//    fun testSerialization004() {
+//        val format = Json { allowStructuredMapKeys = true
+//            serializersModule = atomicExpressionTokenModule + typeAnnotationTokenModule + bodyKeywordModule +
+//                    topLevelKeywordModule + keywordModule + bindableTokenModule + tokenModule }
+//
+//        val s = "x + x"
+//        val iterator = ParserIterator()
+//        iterator.add(s)
+//        val builder = SequenceBuilder(iterator)
+//        val expression: Ast = parseExpression(builder)!!
+//
+//        assertEquals("{\"type\":\"parser.BinaryExpression\",\"nodes\":[{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},{\"type\":\"parser.OperatorToken\",\"value\":\"+\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"},{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}],\"lhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},\"op\":{\"value\":\"+\"},\"rhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}}", format.encodeToString(expression))
+//    }
+
     @Test
     fun test001() {
         val s = "x"
@@ -12,7 +63,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -29,7 +80,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -58,7 +109,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -92,7 +143,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -118,7 +169,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -144,7 +195,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -173,7 +224,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -206,7 +257,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -240,7 +291,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -280,7 +331,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -315,7 +366,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -353,7 +404,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -396,7 +447,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -446,7 +497,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -512,7 +563,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -554,7 +605,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<I8Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -569,7 +620,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<I16Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -584,7 +635,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<I32Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -599,7 +650,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<I64Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -614,7 +665,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<U8Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -629,7 +680,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<U16Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -644,7 +695,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<U32Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -659,7 +710,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<U64Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -674,7 +725,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<F32Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -689,7 +740,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         assertIs<F64Type>(type)
         assertEquals(Substitution.empty, environment.substitution)
@@ -704,7 +755,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val plusTypes = environment.requirements[OperatorToken("+")]
         assertIs<List<Type>>(plusTypes)
@@ -725,7 +776,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -754,7 +805,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val xTypes = environment.requirements[NameToken("x")]
         assertIs<List<Type>>(xTypes)
@@ -783,7 +834,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val plusTypes = environment.requirements[OperatorToken("+")]
         assertIs<List<Type>>(plusTypes)
@@ -807,7 +858,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val plusTypes = environment.requirements[OperatorToken("+")]
         assertIs<List<Type>>(plusTypes)
@@ -831,7 +882,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val fTypes = environment.requirements[NameToken("f")]
         assertIs<List<Type>>(fTypes)
@@ -852,7 +903,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val fTypes = environment.requirements[NameToken("f")]
         assertIs<List<Type>>(fTypes)
@@ -876,7 +927,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val fTypes = environment.requirements[NameToken("f")]
         assertIs<List<Type>>(fTypes)
@@ -900,7 +951,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val fTypes = environment.requirements[NameToken("f")]
         assertIs<List<Type>>(fTypes)
@@ -925,7 +976,7 @@ class ExpressionSubstitutionTests {
         val builder = SequenceBuilder(iterator)
         val expression = parseExpression(builder)!!
         val environment = expression.environment
-        val type = environment.substitution.apply(expression.type)
+        val type = environment.substitution.apply(expression.expressionType)
 
         val fTypes = environment.requirements[NameToken("f")]
         assertIs<List<Type>>(fTypes)
