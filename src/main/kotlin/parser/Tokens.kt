@@ -12,7 +12,7 @@ sealed class TokenImpl: Ast(), Token {
     abstract val value: String
     override fun generateEnvironment() = EmptyEnvironment
     override val span get() = Span(0, value.length)
-    override fun firstToken() = this
+    override fun firstTokenOrNull() = this
     override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {
         if(keepOrDelete(change.start, change.end, iter, next)) return
         if(change.start.line == 0 && change.start.column >= 0) iter.add(value.substring(0, change.start.column))

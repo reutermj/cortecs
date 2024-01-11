@@ -1,13 +1,13 @@
 package lsp
 
-import kotlinx.serialization.*
-import kotlinx.serialization.json.*
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.eclipse.lsp4j.services.*
 import parser.*
+import java.io.*
 import java.net.*
+import java.nio.file.*
 import java.util.concurrent.*
 import kotlin.system.*
 
@@ -17,10 +17,18 @@ object CortecsServer: LanguageServer, LanguageClientAware {
     var hasWorkspaceFolderCapability = false
     var hasDiagnosticRelatedInformationCapability = false
     var client: LanguageClient? = null
+    lateinit var workspaceRoot: Path
+    lateinit var dotCortecsRoot: Path
+    lateinit var crashDumpRoot: Path
 
     var maxNumberOfProblems = 100.0
     override fun initialize(params: InitializeParams?): CompletableFuture<InitializeResult> {
         println("enter initialize")
+        workspaceRoot = Paths.get(URI.create(params?.workspaceFolders?.first()?.uri!!))
+        dotCortecsRoot = workspaceRoot.resolve(".cortecs")
+        crashDumpRoot = dotCortecsRoot.resolve("crash-dumps")
+        val crashDumpRootFile = crashDumpRoot.toFile()
+        if(!crashDumpRootFile.exists()) crashDumpRootFile.mkdirs()
 
         hasConfigurationCapability = params?.capabilities?.workspace?.configuration ?: false
         hasWorkspaceFolderCapability = params?.capabilities?.workspace?.configuration ?: false
@@ -177,13 +185,13 @@ object CortecsServer: LanguageServer, LanguageClientAware {
 
 
                         if(outProgram != goldProgram) {
-                            print(crashDump.dumpString())
+                            crashDump.dump(crashDumpRoot)
                         }
                         crashDump.put(goldProgram)
 
                         documents[uri] = Pair(outProgram, gold)
                     } catch (e: Exception) {
-                        print(crashDump.dumpString())
+                        crashDump.dump(crashDumpRoot)
                     }
                 } else {//full document change
                     val iter = ParserIterator()
@@ -213,6 +221,10 @@ object CortecsServer: LanguageServer, LanguageClientAware {
     override fun getTextDocumentService() = TextDocumentServiceLsp
 
     object WorkspaceServiceLsp : WorkspaceService {
+        override fun didChangeWorkspaceFolders(params: DidChangeWorkspaceFoldersParams) {
+            println("enter/exit didChangeWorkspaceFolders")
+        }
+
         override fun didChangeConfiguration(params: DidChangeConfigurationParams?) {
             println("enter didChangeConfiguration")
             val settings = params?.settings
@@ -244,4 +256,12 @@ fun main() {
     val bla = LSPLauncher.createServerLauncher(CortecsServer, socket.inputStream, socket.outputStream)
     CortecsServer.connect(bla.remoteProxy)
     bla.startListening()
+
+    /*val dump = File("/home/mark/.data/CodeProjects/test/.cortecs/crash-dumps/2024-01-11-07-35-48-177.dump").readLines()
+    var program = astJsonFormat.decodeFromString<StarAst<TopLevelAst>>(dump.first())
+    val changes = dump.drop(1).map { astJsonFormat.decodeFromString<Change>(it) }
+    for(change in changes) {
+        val iter = constructChangeIterator(program, change)
+        program = parseProgram(iter)
+    }*/
 }

@@ -56,7 +56,7 @@ class SequenceBuilder(override val iterator: ParserIterator): AstBuilder() {
                 //this is in a while loop so that PersistentVectors get unrolled all
                 //the way down the left subtree
                 val node = iterator.peekNode()
-                val firstToken = node.firstToken()
+                val firstToken = node.firstTokenOrNull()
                 if(firstToken is T) {
                     iterator.next()
                     when(node) {

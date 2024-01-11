@@ -17,7 +17,7 @@ sealed class Ast {
     abstract val span: Span
     fun shouldKeep(start: Span, end: Span) = end < Span.zero || span < start
     fun shouldDelete(start: Span, end: Span) = span == Span.zero || start <= Span.zero && span <= end
-    abstract fun firstToken(): TokenImpl
+    abstract fun firstTokenOrNull(): TokenImpl?
 
     abstract fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?)
     abstract fun forceReparse(iter: ParserIterator)
@@ -40,9 +40,17 @@ sealed class AstImpl: Ast() {
             return _span!!
         }
     private var _firstToken: TokenImpl? = null
-    override fun firstToken(): TokenImpl {
-        if(_firstToken == null) _firstToken = nodes.first().firstToken()
-        return _firstToken!!
+    override fun firstTokenOrNull(): TokenImpl? {
+        if(_firstToken != null) return _firstToken
+
+        for(node in nodes) {
+            val first = node.firstTokenOrNull()
+            if(first != null) {
+                _firstToken = first
+                return first
+            }
+        }
+        return null
     }
     override fun forceReparse(iter: ParserIterator) {
         for(node in nodes.dropLast(1)) iter.add(node)
@@ -54,9 +62,7 @@ sealed class AstImpl: Ast() {
         var s = change.start
         var e = change.end
         for (i in nodes.indices) {
-            val eNext =
-                if(i + 1 in nodes.indices) nodes[i + 1].firstToken()
-                else next
+            val eNext = nodes.drop(i + 1).firstNotNullOfOrNull { it.firstTokenOrNull() } ?: next
             nodes[i].addToIterator(change.copy(start = s, end = e), iter, eNext)
 
             s -= nodes[i].span

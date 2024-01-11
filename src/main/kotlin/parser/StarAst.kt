@@ -26,7 +26,7 @@ object StarLeaf: StarAst<Nothing>() {
     override val span: Span
         get() = Span.zero
 
-    override fun firstToken() = throw Exception()
+    override fun firstTokenOrNull() = null
     override fun forceReparse(iter: ParserIterator) = throw Exception()
     override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {}
     override fun inOrder(f: (Nothing) -> Unit) {}
@@ -42,9 +42,17 @@ class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<
         }
 
     private var _firstToken: TokenImpl? = null
-    override fun firstToken(): TokenImpl {
-        if(_firstToken == null) _firstToken = nodes.first().firstToken()
-        return _firstToken!!
+    override fun firstTokenOrNull(): TokenImpl? {
+        if(_firstToken != null) return _firstToken
+
+        for(node in nodes) {
+            val first = node.firstTokenOrNull()
+            if(first != null) {
+                _firstToken = first
+                return first
+            }
+        }
+        return null
     }
 
     override fun forceReparse(iter: ParserIterator) {
@@ -57,9 +65,7 @@ class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<
         var s = change.start
         var e = change.end
         for (i in nodes.indices) {
-            val eNext =
-                if(i + 1 in nodes.indices) nodes[i + 1].firstToken()
-                else next
+            val eNext = nodes.drop(i + 1).firstNotNullOfOrNull { it.firstTokenOrNull() } ?: next
             nodes[i].addToIterator(change.copy(start = s, end = e), iter, eNext)
 
             s -= nodes[i].span

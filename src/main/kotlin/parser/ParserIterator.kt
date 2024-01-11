@@ -82,7 +82,7 @@ internal class ParserNodeIterator(val node: Ast): IParserIterator {
     override fun hasNext() = i
     override fun isToken() = node is Token
     override fun peekToken() =
-        if(i) node.firstToken()
+        if(i) node.firstTokenOrNull()!!
         else throw Exception("Programmer Error")
     override fun peekNode() = if(i) node else throw Exception("Programmer Error")
     override fun next() { i = false }

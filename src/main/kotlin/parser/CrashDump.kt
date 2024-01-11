@@ -2,6 +2,10 @@ package parser
 
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
+import java.nio.file.*
+import java.text.*
+import java.util.*
+
 class CrashDump(val capacity: Int) {
     val changes = Array<Change?>(capacity) { null }
     val asts = Array<StarAst<TopLevelAst>>(capacity) { StarLeaf }
@@ -20,6 +24,25 @@ class CrashDump(val capacity: Int) {
 
     fun put(program: StarAst<TopLevelAst>) {
         asts[modInc(tail)] = program
+    }
+
+    fun dump(crashDumpRoot: Path) {
+        if(any()) {
+            val dateTime = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS").format(Calendar.getInstance().time)
+            val crashDump = crashDumpRoot.resolve("$dateTime.dump").toFile()
+
+            crashDump.appendText(astJsonFormat.encodeToString(asts[head]))
+            crashDump.appendText("\n")
+
+            var index = head
+            do {
+                crashDump.appendText(Json.encodeToString(changes[index]))
+                crashDump.appendText("\n")
+                index = modInc(index)
+            } while(index != tail)
+            crashDump.appendText(Json.encodeToString(changes[index]))
+            crashDump.appendText("\n")
+        }
     }
 
     fun dumpString(): String {
