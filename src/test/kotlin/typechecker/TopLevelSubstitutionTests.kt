@@ -457,7 +457,13 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test021() {
+        val s = """fn foo() {}
+            |fn id""".trimMargin()
 
+        val iterator = ParserIterator()
+        iterator.add(s)
+        val fn = parseProgram(iterator)
+        println()
     }
 
     @Test

@@ -1,5 +1,6 @@
 package parser
 
+import errors.CortecsError
 import kotlinx.serialization.Serializable
 import typechecker.*
 import kotlin.math.max
@@ -23,6 +24,7 @@ sealed class StarAst<out T: Ast>: Ast() {
 object StarLeaf: StarAst<Nothing>() {
     override fun generateEnvironment() = EmptyEnvironment
     override val height = 0
+    override val errors = emptyList<CortecsError>()
     override val span: Span
         get() = Span.zero
 
@@ -34,6 +36,11 @@ object StarLeaf: StarAst<Nothing>() {
 @Serializable
 class StarNode<T: Ast>(val left: StarAst<T>, val element: T, val right: StarAst<T>): StarAst<T>() {
     val nodes = createList(left, element, right)
+    override val errors = run {
+        val updatedElementErrors = element.errors.map { it.copy(offset = left.span + it.offset) }
+        val updatedRightErrors = right.errors.map { it.copy(offset = left.span + element.span + it.offset) }
+        left.errors + updatedElementErrors + updatedRightErrors
+    }
     private var _span: Span? = null
     override val span: Span
         get() {

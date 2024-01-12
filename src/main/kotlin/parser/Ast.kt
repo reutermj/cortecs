@@ -1,12 +1,13 @@
 package parser
 
+import errors.*
 import kotlinx.serialization.*
 import kotlinx.serialization.modules.*
 import typechecker.*
 
-
 @Serializable
 sealed class Ast {
+    abstract val errors: List<CortecsError>
     var _environment: Environment? = null
     val environment: Environment
         get() {
@@ -53,8 +54,9 @@ sealed class AstImpl: Ast() {
         return null
     }
     override fun forceReparse(iter: ParserIterator) {
-        for(node in nodes.dropLast(1)) iter.add(node)
-        nodes.last().forceReparse(iter)
+        val nonEmptyNodes = nodes.filter { it.span != Span.zero } //TODO have a better way of dealing with empty nodes
+        for(node in nonEmptyNodes.dropLast(1)) iter.add(node)
+        nonEmptyNodes.last().forceReparse(iter)
     }
 
     override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {
@@ -74,33 +76,33 @@ sealed class AstImpl: Ast() {
 @Serializable
 sealed class TopLevelAst: AstImpl()
 @Serializable
-data class FnAst(override val nodes: List<Ast>, val name: NameToken?, val parameters: StarAst<ParameterAst>?, val returnType: TypeAnnotationToken?, val block: StarAst<BodyAst>?): TopLevelAst() {
+data class FnAst(override val nodes: List<Ast>, override val errors: List<CortecsError>, val name: NameToken?, val parameters: StarAst<ParameterAst>?, val returnType: TypeAnnotationToken?, val block: StarAst<BodyAst>?): TopLevelAst() {
     override fun generateEnvironment() = generateFnEnvironment(this)
 }
 @Serializable
-data class ParameterAst(override val nodes: List<Ast>, val name: NameToken, val typeAnnotation: TypeAnnotationToken?): AstImpl() {
+data class ParameterAst(override val nodes: List<Ast>, override val errors: List<CortecsError>, val name: NameToken, val typeAnnotation: TypeAnnotationToken?): AstImpl() {
     override fun generateEnvironment() = EmptyEnvironment
 }
 @Serializable
 sealed class BodyAst: AstImpl()
 @Serializable
-data class LetAst(override val nodes: List<Ast>, val name: NameToken?, val typeAnnotation: TypeAnnotationToken?, val expression: Expression?): BodyAst() {
+data class LetAst(override val nodes: List<Ast>, override val errors: List<CortecsError>, val name: NameToken?, val typeAnnotation: TypeAnnotationToken?, val expression: Expression?): BodyAst() {
     override fun generateEnvironment() = generateLetEnvironment(this)
 }
 @Serializable
-data class ReturnAst(override val nodes: List<Ast>, val expression: Expression?): BodyAst() {
+data class ReturnAst(override val nodes: List<Ast>, override val errors: List<CortecsError>, val expression: Expression?): BodyAst() {
     override fun generateEnvironment() = generateReturnEnvironment(this)
 }
 @Serializable
-data class IfAst(override val nodes: List<Ast>, val condition: Expression?, val block: StarAst<BodyAst>?): BodyAst() {
+data class IfAst(override val nodes: List<Ast>, override val errors: List<CortecsError>, val condition: Expression?, val block: StarAst<BodyAst>?): BodyAst() {
     override fun generateEnvironment() = generateIfEnvironment(this)
 }
 @Serializable
-data class TopGarbageAst(override val nodes: List<Ast>): TopLevelAst() {
+data class TopGarbageAst(override val nodes: List<Ast>, override val errors: List<CortecsError>): TopLevelAst() {
     override fun generateEnvironment() = EmptyEnvironment
 }
 @Serializable
-data class BodyGarbageAst(override val nodes: List<Ast>): BodyAst() {
+data class BodyGarbageAst(override val nodes: List<Ast>, override val errors: List<CortecsError>): BodyAst() {
     override fun generateEnvironment() =  EmptyEnvironment
 }
 @Serializable
@@ -117,31 +119,37 @@ sealed class Expression: AstImpl() {
     abstract fun generateEnvironmentAndType(): Pair<Type, Environment>
 }
 @Serializable
+data class EmptyExpression(override val errors: List<CortecsError>): Expression() {
+    override val nodes = emptyList<Ast>()
+    override fun generateEnvironmentAndType() = Pair(Invalid, EmptyEnvironment)
+}
+
+@Serializable
 sealed class SingleExpression: Expression()
 @Serializable
-data class UnaryExpression(override val nodes: List<Ast>, val op: OperatorToken, val expression: Expression?): SingleExpression() {
+data class UnaryExpression(override val nodes: List<Ast>, override val errors: List<CortecsError>, val op: OperatorToken, val expression: Expression?): SingleExpression() {
     override fun generateEnvironmentAndType() = generateUnaryExpressionEnvironment(this)
 }
 @Serializable
-data class GroupingExpression(override val nodes: List<Ast>, val expression: Expression?): SingleExpression() {
+data class GroupingExpression(override val nodes: List<Ast>, override val errors: List<CortecsError>, val expression: Expression?): SingleExpression() {
     override fun generateEnvironmentAndType() = generateGroupingExpressionEnvironment(this)
 }
 @Serializable
-data class AtomicExpression(override val nodes: List<Ast>, val atom: AtomicExpressionToken): SingleExpression() {
+data class AtomicExpression(override val nodes: List<Ast>, override val errors: List<CortecsError>, val atom: AtomicExpressionToken): SingleExpression() {
     override fun generateEnvironmentAndType() = generateAtomicExpressionEnvironment(this)
 }
 @Serializable
 sealed class CompoundExpression: Expression()
 @Serializable
-data class FnCallExpression(override val nodes: List<Ast>, val function: Expression, val arguments: StarAst<Argument>?): CompoundExpression() {
+data class FnCallExpression(override val nodes: List<Ast>, override val errors: List<CortecsError>, val function: Expression, val arguments: StarAst<Argument>?): CompoundExpression() {
     override fun generateEnvironmentAndType() = generateFnCallExpressionEnvironment(this)
 }
 @Serializable
-data class BinaryExpression(override val nodes: List<Ast>, val lhs: Expression, val op: OperatorToken, val rhs: Expression?): CompoundExpression() {
+data class BinaryExpression(override val nodes: List<Ast>, override val errors: List<CortecsError>, val lhs: Expression, val op: OperatorToken, val rhs: Expression?): CompoundExpression() {
     override fun generateEnvironmentAndType() = generateBinaryExpressionEnvironment(this)
 }
 
 @Serializable
-data class Argument(override val nodes: List<Ast>, val argument: Expression): AstImpl() {
+data class Argument(override val nodes: List<Ast>, override val errors: List<CortecsError>, val argument: Expression): AstImpl() {
     override fun generateEnvironment() = argument.environment
 }

@@ -16,7 +16,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
     var hasConfigurationCapability = false
     var hasWorkspaceFolderCapability = false
     var hasDiagnosticRelatedInformationCapability = false
-    var client: LanguageClient? = null
+    lateinit var client: LanguageClient
     lateinit var workspaceRoot: Path
     lateinit var dotCortecsRoot: Path
     lateinit var crashDumpRoot: Path
@@ -78,8 +78,14 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             }
             i++
         }
-
-        //client?.publishDiagnostics(PublishDiagnosticsParams(document.uri, diagnostics))
+        val diagnostics = mutableListOf<Diagnostic>()
+        val diagnostic = Diagnostic()
+        diagnostic.severity = DiagnosticSeverity.Warning
+        diagnostic.range = Range(Position(i, index), Position(i, index + 10))
+        diagnostic.message = String.format("%s should be spelled TypeScript", line.substring(index, index + 10))
+        diagnostic.source = "ex"
+        diagnostics.add(diagnostic)
+        client?.publishDiagnostics(PublishDiagnosticsParams(document.uri, diagnostics))
     }*/
 
     object TextDocumentServiceLsp : TextDocumentServiceImpl {
@@ -93,12 +99,29 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             println("exit signatureHelp")
             return CompletableFuture.completedFuture(SignatureHelp())
         }
+
+        fun reportErrors(uri: String, program: StarAst<TopLevelAst>) {
+            val diagnostics = mutableListOf<Diagnostic>()
+            for(error in program.errors) {
+
+                val diagnostic = Diagnostic()
+                diagnostic.severity = DiagnosticSeverity.Error
+                diagnostic.range = Range(Position(error.offset.line, error.offset.column), Position(error.offset.line + error.span.line, error.offset.column + error.span.column))
+                diagnostic.message = error.message
+                diagnostic.source = "ex"
+                diagnostics.add(diagnostic)
+
+            }
+            client.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
+        }
+
         override fun didOpen(params: DidOpenTextDocumentParams?) {
             println("enter didOpen")
             val uri = params?.textDocument?.uri ?: return
             val iter = ParserIterator()
             iter.add(params.textDocument.text)
             val program = parseProgram(iter)
+            reportErrors(uri, program)
             crashDump.put(program)
             documents[uri] = Pair(program, params.textDocument.text)
             println("exit didOpen")
@@ -146,7 +169,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             return preStart + startLine + change + endLine + postEnd
         }
 
-        val crashDump = CrashDump(5)
+        val crashDump = CrashDump(20)
 
         override fun didChange(params: DidChangeTextDocumentParams) {
             /* From the spec:
@@ -177,6 +200,8 @@ object CortecsServer: LanguageServer, LanguageClientAware {
                     try {
                         val iter = constructChangeIterator(doc, change)
                         val outProgram = parseProgram(iter)
+                        reportErrors(uri, outProgram)
+
 
                         val gold = generateGoldText(text, contentChange.text, start, end)
                         val goldIterator = ParserIterator()
@@ -257,7 +282,7 @@ fun main() {
     CortecsServer.connect(bla.remoteProxy)
     bla.startListening()
 
-    /*val dump = File("/home/mark/.data/CodeProjects/test/.cortecs/crash-dumps/2024-01-11-07-35-48-177.dump").readLines()
+    /*val dump = File("/home/mark/.data/CodeProjects/test/.cortecs/crash-dumps/2024-01-16-05-50-30-041.dump").readLines()
     var program = astJsonFormat.decodeFromString<StarAst<TopLevelAst>>(dump.first())
     val changes = dump.drop(1).map { astJsonFormat.decodeFromString<Change>(it) }
     for(change in changes) {

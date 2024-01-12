@@ -79,11 +79,16 @@ internal class ParserStringIterator(val text: String): IParserIterator {
 
 internal class ParserNodeIterator(val node: Ast): IParserIterator {
     private var i = true
-    override fun hasNext() = i
+    override fun hasNext() = node !is StarLeaf && i
     override fun isToken() = node is Token
     override fun peekToken() =
-        if(i) node.firstTokenOrNull()!!
-        else throw Exception("Programmer Error")
+        if(i) {
+            val firstOrNull = node.firstTokenOrNull()
+            if(firstOrNull == null) {
+                throw Exception()
+            }
+            firstOrNull
+        } else throw Exception("Programmer Error")
     override fun peekNode() = if(i) node else throw Exception("Programmer Error")
     override fun next() { i = false }
 

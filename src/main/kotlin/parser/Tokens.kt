@@ -1,5 +1,6 @@
 package parser
 
+import errors.CortecsError
 import kotlinx.serialization.*
 import kotlinx.serialization.modules.*
 import typechecker.*
@@ -12,6 +13,7 @@ sealed class TokenImpl: Ast(), Token {
     abstract val value: String
     override fun generateEnvironment() = EmptyEnvironment
     override val span get() = Span(0, value.length)
+    override val errors = emptyList<CortecsError>()
     override fun firstTokenOrNull() = this
     override fun addToIterator(change: Change, iter: ParserIterator, next: TokenImpl?) {
         if(keepOrDelete(change.start, change.end, iter, next)) return
