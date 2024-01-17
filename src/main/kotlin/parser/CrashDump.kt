@@ -7,22 +7,22 @@ import java.text.*
 import java.util.*
 
 class CrashDump(val capacity: Int) {
-    val changes = Array<Change?>(capacity) { null }
-    val asts = Array<StarAst<TopLevelAst>>(capacity) { StarLeaf }
+    val changes = Array<Change?>(capacity) {null}
+    val asts = Array<ProgramAst>(capacity) {ProgramAst.empty}
     var tail = -1
     var head = 0
     fun modInc(i: Int) = (i + 1) % capacity
     fun any() = tail != -1
 
     fun put(item: Change) {
-        if (tail != -1) {
+        if(tail != -1) {
             tail = modInc(tail)
             if(head == tail) head = modInc(head)
         } else tail = 0
         changes[tail] = item
     }
 
-    fun put(program: StarAst<TopLevelAst>) {
+    fun put(program: ProgramAst) {
         asts[modInc(tail)] = program
     }
 

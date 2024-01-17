@@ -5,7 +5,6 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.eclipse.lsp4j.services.*
 import parser.*
-import java.io.*
 import java.net.*
 import java.nio.file.*
 import java.util.concurrent.*
@@ -88,8 +87,8 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         client?.publishDiagnostics(PublishDiagnosticsParams(document.uri, diagnostics))
     }*/
 
-    object TextDocumentServiceLsp : TextDocumentServiceImpl {
-        val documents = mutableMapOf<String, Pair<StarAst<TopLevelAst>, String>>()
+    object TextDocumentServiceLsp: TextDocumentServiceImpl {
+        val documents = mutableMapOf<String, Pair<ProgramAst, String>>()
 
         override fun signatureHelp(params: SignatureHelpParams): CompletableFuture<SignatureHelp> {
             println("enter signatureHelp")
@@ -100,19 +99,18 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             return CompletableFuture.completedFuture(SignatureHelp())
         }
 
-        fun reportErrors(uri: String, program: StarAst<TopLevelAst>) {
-            val diagnostics = mutableListOf<Diagnostic>()
-            for(error in program.errors) {
-
-                val diagnostic = Diagnostic()
-                diagnostic.severity = DiagnosticSeverity.Error
-                diagnostic.range = Range(Position(error.offset.line, error.offset.column), Position(error.offset.line + error.span.line, error.offset.column + error.span.column))
-                diagnostic.message = error.message
-                diagnostic.source = "ex"
-                diagnostics.add(diagnostic)
-
-            }
-            client.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
+        fun reportErrors(uri: String, program: ProgramAst) { //            val diagnostics = mutableListOf<Diagnostic>()
+            //            for(error in program.errors) {
+            //
+            //                val diagnostic = Diagnostic()
+            //                diagnostic.severity = DiagnosticSeverity.Error
+            //                diagnostic.range = Range(Position(error.offset.line, error.offset.column), Position(error.offset.line + error.span.line, error.offset.column + error.span.column))
+            //                diagnostic.message = error.message
+            //                diagnostic.source = "ex"
+            //                diagnostics.add(diagnostic)
+            //
+            //            }
+            //            client.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
         }
 
         override fun didOpen(params: DidOpenTextDocumentParams?) {
@@ -144,10 +142,10 @@ object CortecsServer: LanguageServer, LanguageClientAware {
 
         override fun resolveCompletionItem(unresolved: CompletionItem): CompletableFuture<CompletionItem> {
             println("enter resolveCompletionItem")
-            if (unresolved.data == 1.0) {
+            if(unresolved.data == 1.0) {
                 unresolved.detail = "TypeScript details"
                 unresolved.setDocumentation("TypeScript documentation")
-            } else if (unresolved.data == 2.0) {
+            } else if(unresolved.data == 2.0) {
                 unresolved.detail = "JavaScript details"
                 unresolved.setDocumentation("JavaScript documentation")
             }
@@ -157,22 +155,21 @@ object CortecsServer: LanguageServer, LanguageClientAware {
 
         fun generateGoldText(inString: String, change: String, start: Span, end: Span): String {
             val lines = inString.lines()
-            val withNewLines = lines.mapIndexed { i, s ->
+            val withNewLines = lines.mapIndexed {i, s ->
                 if(i == lines.size - 1) s
                 else "$s\n"
             }
 
-            val preStart = withNewLines.filterIndexed { i, _ -> i < start.line }.fold("") { acc, s -> acc + s }
+            val preStart = withNewLines.filterIndexed {i, _ -> i < start.line}.fold("") {acc, s -> acc + s}
             val startLine = withNewLines[start.line].substring(0, start.column)
             val endLine = withNewLines[end.line].substring(end.column)
-            val postEnd = withNewLines.filterIndexed { i, _ -> i > end.line }.fold("") { acc, s -> acc + s }
+            val postEnd = withNewLines.filterIndexed {i, _ -> i > end.line}.fold("") {acc, s -> acc + s}
             return preStart + startLine + change + endLine + postEnd
         }
 
         val crashDump = CrashDump(20)
 
-        override fun didChange(params: DidChangeTextDocumentParams) {
-            /* From the spec:
+        override fun didChange(params: DidChangeTextDocumentParams) {/* From the spec:
              * The actual content changes. The content changes describe single state
              * changes to the document. So if there are two content changes c1 (at
              * array index 0) and c2 (at array index 1) for a document in state S then
@@ -191,6 +188,8 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             println("enter didChange")
             val uri = params.textDocument?.uri ?: return
             val (doc, text) = documents[uri] ?: return
+            var last = doc
+            var lastText = text
             for(contentChange in params.contentChanges) {
                 if(contentChange.range != null) {
                     val start = Span(contentChange.range.start.line, contentChange.range.start.character)
@@ -198,30 +197,33 @@ object CortecsServer: LanguageServer, LanguageClientAware {
                     val change = Change(contentChange.text, start, end)
                     crashDump.put(change)
                     try {
-                        val iter = constructChangeIterator(doc, change)
+                        val iter = last.createChangeIterator(change)
                         val outProgram = parseProgram(iter)
+                        last = outProgram
                         reportErrors(uri, outProgram)
 
-
-                        val gold = generateGoldText(text, contentChange.text, start, end)
+                        val goldText = generateGoldText(lastText, contentChange.text, start, end)
+                        lastText = goldText
                         val goldIterator = ParserIterator()
-                        goldIterator.add(gold)
+                        goldIterator.add(goldText)
                         val goldProgram = parseProgram(goldIterator)
-
 
                         if(outProgram != goldProgram) {
                             crashDump.dump(crashDumpRoot)
                         }
                         crashDump.put(goldProgram)
 
-                        documents[uri] = Pair(outProgram, gold)
-                    } catch (e: Exception) {
+                        documents[uri] = Pair(outProgram, goldText)
+
+                    } catch(e: Exception) {
                         crashDump.dump(crashDumpRoot)
                     }
-                } else {//full document change
+                } else { //full document change
                     val iter = ParserIterator()
                     iter.add(contentChange.text)
-                    documents[uri] = Pair(parseProgram(iter), contentChange.text)
+                    val outProgram = parseProgram(iter)
+                    documents[uri] = Pair(outProgram, contentChange.text)
+                    last = outProgram
                 }
             }
 
@@ -229,15 +231,16 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         }
 
         override fun didClose(params: DidCloseTextDocumentParams) {
-            println("enter didClose")
-            //documents.remove(params?.textDocument?.uri ?: return)
+            println("enter didClose") //documents.remove(params?.textDocument?.uri ?: return)
             println("exit didClose")
         }
 
         override fun didSave(params: DidSaveTextDocumentParams) {
             println("enter didSave")
             val uri = params.textDocument?.uri ?: return
-            println(documents[uri])
+            val builder = StringBuilder()
+            documents[uri]?.first?.stringify(builder)
+            println(builder)
             println("exit didSave")
         }
 
@@ -245,7 +248,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
 
     override fun getTextDocumentService() = TextDocumentServiceLsp
 
-    object WorkspaceServiceLsp : WorkspaceService {
+    object WorkspaceServiceLsp: WorkspaceService {
         override fun didChangeWorkspaceFolders(params: DidChangeWorkspaceFoldersParams) {
             println("enter/exit didChangeWorkspaceFolders")
         }
@@ -257,8 +260,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             val languageServerExample = settings["languageServerExample"] ?: return
             if(languageServerExample !is Map<*, *>) return
             maxNumberOfProblems = (languageServerExample["languageServerExample"] ?: languageServerExample) as Double
-            println("exit didChangeConfiguration")
-            //for((_, doc) in TextDocumentServiceLsp.documents) validateDocument(doc)
+            println("exit didChangeConfiguration") //for((_, doc) in TextDocumentServiceLsp.documents) validateDocument(doc)
         }
 
         override fun didChangeWatchedFiles(params: DidChangeWatchedFilesParams?) {
@@ -268,6 +270,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         }
 
     }
+
     override fun getWorkspaceService() = WorkspaceServiceLsp
 
     override fun connect(client: LanguageClient) {

@@ -1,35 +1,34 @@
 package parser
 
-fun nextToken(text: String, start: Int): TokenImpl =
-    when(text[start]) {
-        in initialNameOrType -> nextToken(text, start, allNameOrType, ::toKeywordOrNameOrTypeToken)
-        in whiteSpace -> nextToken(text, start, whiteSpace, ::WhitespaceToken)
-        in operators -> nextToken(text, start, operators, ::toOperatorToken)
+fun nextToken(text: String, start: Int): TokenImpl = when(text[start]) {
+    in initialNameOrType -> nextToken(text, start, allNameOrType, ::toKeywordOrNameOrTypeToken)
+    in whiteSpace -> nextToken(text, start, whiteSpace, ::WhitespaceToken)
+    in operatorChars -> nextToken(text, start, operatorChars, ::toOperatorToken)
 
-        in numbers -> nextIntOrFloatToken(text, start)
-        '.' -> nextDotOrFloatToken(text, start)
+    in numbers -> nextIntOrFloatToken(text, start)
+    '.' -> nextDotOrFloatToken(text, start)
 
-        '"' -> nextString(text, start)
-        '\'' -> nextChar(text, start)
+    '"' -> nextString(text, start)
+    '\'' -> nextChar(text, start)
 
-        '\n' -> NewLineToken
-        ',' -> CommaToken
-        ':' -> ColonToken
-        '(' -> OpenParenToken
-        ')' -> CloseParenToken
-        '{' -> OpenCurlyToken
-        '}' -> CloseCurlyToken
-        else -> nextBadToken(text, start)
-    }
+    '\n' -> NewLineToken
+    ',' -> CommaToken
+    ':' -> ColonToken
+    '(' -> OpenParenToken
+    ')' -> CloseParenToken
+    '{' -> OpenCurlyToken
+    '}' -> CloseCurlyToken
+    else -> nextBadToken(text, start)
+}
 
-val operators = setOf('=', '<', '>', '!', '|', '&', '+', '-', '*', '/', '%', '~')
+val operatorChars = setOf('=', '<', '>', '!', '|', '&', '+', '-', '*', '/', '%', '~', '^')
 val whiteSpace = setOf('\r', '\t', ' ')
 val initialType = ('A'..'Z').toSet()
 val initialName = ('a'..'z').toSet() + setOf('_')
 val initialNameOrType = initialType + initialName
 val allNameOrType = initialNameOrType + ('0'..'9').toSet()
 val numbers = ('0'..'9').toSet()
-val valid = operators + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
+val valid = operatorChars + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
 
 private fun nextToken(s: String, start: Int, acceptableChars: Set<Char>, toToken: (String) -> TokenImpl): TokenImpl {
     var end = start + 1
@@ -58,7 +57,7 @@ private fun nextString(text: String, start: Int): TokenImpl {
         }
     }
 
-    return if(isEscaped) BadStringToken(text.substring(start, end))
+    return if(isEscaped || text[end - 1] != '\"') BadStringToken(text.substring(start, end))
     else StringToken(text.substring(start, end))
 }
 
@@ -81,7 +80,7 @@ private fun nextChar(text: String, start: Int): TokenImpl {
         }
     }
 
-    return if(numChars != 1 || isEscaped) BadCharToken(text.substring(start, end))
+    return if(numChars != 1 || isEscaped || text[end - 1] != '\'') BadCharToken(text.substring(start, end))
     else CharToken(text.substring(start, end))
 }
 
@@ -96,10 +95,12 @@ private fun nextIntOrFloatToken(text: String, start: Int): TokenImpl {
                 end++
                 break
             }
+
             'f', 'F', 'd', 'D' -> {
                 end++
                 return FloatToken(text.substring(start, end))
             }
+
             else -> break
         }
     }
@@ -123,6 +124,7 @@ private fun nextFloatToken(text: String, start: Int, end: Int): TokenImpl {
                 end++
                 break
             }
+
             else -> break
         }
     }
@@ -135,20 +137,16 @@ private fun nextDotOrFloatToken(text: String, start: Int): TokenImpl {
     else DotToken
 }
 
-private fun toKeywordOrNameOrTypeToken(value: String) =
-    when(value) {
-        "let" -> LetToken
-        "if" -> IfToken
-        "fn" -> FnToken
-        "return" -> ReturnToken
-        else ->
-            if(value[0].isUpperCase()) TypeToken(value)
-            else NameToken(value)
-    }
+private fun toKeywordOrNameOrTypeToken(value: String) = when(value) {
+    "let" -> LetToken
+    "if" -> IfToken
+    "function" -> FunctionToken
+    "return" -> ReturnToken
+    else -> if(value[0].isUpperCase()) TypeToken(value)
+    else NameToken(value)
+}
 
-private fun toOperatorToken(value: String): TokenImpl =
-    when(value) {
-        "\\" ->  BackSlashToken
-        "=" ->  EqualSignToken
-        else -> OperatorToken(value)
-    }
+private fun toOperatorToken(value: String): TokenImpl = when(value) {
+    "=" -> EqualSignToken
+    else -> OperatorToken(value)
+}

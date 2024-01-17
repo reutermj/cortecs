@@ -1,113 +1,75 @@
 package parser
 
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 
 @Serializable
 data class Change(val text: String, val start: Span, val end: Span)
 
 class ParserIterator {
-    private val iterators = mutableListOf<IParserIterator>()
-    private var i = 0
+    val elements = mutableListOf<ParserIteratorNodeType>()
+    var tokenCache: TokenImpl? = null
+    var stringIndex = 0
+    fun add(node: Ast) {
+        elements.add(ParserIteratorAst(node))
+    }
 
-    fun add(s: String) {
-        if(s.any()) {
-            val stringIter = iterators.lastOrNull()
-            if(stringIter is ParserStringIterator) {
-                iterators.removeLast()
-                iterators.add(ParserStringIterator(stringIter.text + s))
-            } else iterators.add(ParserStringIterator(s))
+    fun add(text: String) {
+        if(stringIndex != 0) throw Exception("Programmer Error")
+        if(text.isEmpty()) return
+        val last = elements.lastOrNull()
+        if(last is ParserIteratorString) {
+            elements.removeLast()
+            elements.add(ParserIteratorString(text + last.text))
+        } else elements.add(ParserIteratorString(text))
+    }
+
+    fun peekNode(): Ast? = when(val last = elements.lastOrNull()) {
+        null -> null
+        is ParserIteratorAst -> last.node
+        is ParserIteratorString -> null
+    }
+
+    fun nextNode() {
+        when(val last = elements.lastOrNull()) {
+            null -> throw Exception("Iterator is empty")
+            is ParserIteratorAst -> elements.removeLast()
+            is ParserIteratorString -> throw Exception("Current iterator element is not a node")
         }
     }
 
-    fun add(node: Ast) {
-        iterators.add(ParserNodeIterator(node))
-    }
-
-    fun inject(nodes: List<Ast>) {
-        iterators.addAll(i, nodes.map { ParserNodeIterator(it) })
-    }
-
-    fun hasNext() = i < iterators.size
-
-    fun isNextToken() = iterators[i].isToken()
-    fun peekToken() = iterators[i].peekToken()
-    fun peekNode() = iterators[i].peekNode()
-    fun next() {
-        iterators[i].next()
-        while(i < iterators.size && !iterators[i].hasNext()) i++
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if(other !is ParserIterator) return false
-        return iterators == other.iterators
-    }
-
-    override fun hashCode() = iterators.hashCode() xor i.hashCode()
-}
-
-internal sealed interface IParserIterator {
-    fun hasNext(): Boolean
-    fun isToken(): Boolean
-    fun peekToken(): TokenImpl
-    fun peekNode(): Ast
-    fun next()
-}
-
-internal class ParserStringIterator(val text: String): IParserIterator {
-    private var i = 0
-    private var cache: TokenImpl? = null
-
-    override fun hasNext() = i < text.length
-    override fun isToken() = true
-    override fun peekToken(): TokenImpl {
-        if(cache == null) cache = nextToken(text, i)
-        return cache!!
-    }
-    override fun peekNode() = throw Exception("Programmer Error")
-    override fun next() {
-        i += (cache ?: nextToken(text, i)).value.length
-        cache = null
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if(other !is ParserStringIterator) return false
-        return text == other.text
-    }
-
-    override fun hashCode() = text.hashCode() xor i.hashCode()
-}
-
-internal class ParserNodeIterator(val node: Ast): IParserIterator {
-    private var i = true
-    override fun hasNext() = node !is StarLeaf && i
-    override fun isToken() = node is Token
-    override fun peekToken() =
-        if(i) {
-            val firstOrNull = node.firstTokenOrNull()
-            if(firstOrNull == null) {
-                throw Exception()
+    fun peekToken(): Token? = when(val last = elements.lastOrNull()) {
+        null -> null
+        is ParserIteratorString -> {
+            if(tokenCache == null) {
+                val token = nextToken(last.text, stringIndex)
+                stringIndex += token.value.length
+                tokenCache = token
             }
-            firstOrNull
-        } else throw Exception("Programmer Error")
-    override fun peekNode() = if(i) node else throw Exception("Programmer Error")
-    override fun next() { i = false }
+            tokenCache
+        }
 
-    override fun equals(other: Any?): Boolean {
-        if(other !is ParserNodeIterator) return false
-        return node == other.node
+        is ParserIteratorAst -> last.node.firstTokenOrNull() ?: throw Exception("Programmer error")
     }
 
-    override fun hashCode() = node.hashCode() xor i.hashCode()
+    fun nextToken() {
+        when(val last = elements.lastOrNull()) {
+            null -> throw Exception("Iterator is empty")
+            is ParserIteratorString -> {
+                if(stringIndex == last.text.length) {
+                    stringIndex = 0
+                    elements.removeLast()
+                }
+                tokenCache = null
+            }
+
+            is ParserIteratorAst -> {
+                elements.removeLast()
+                last.node.addAllButFirstToIterator(this)
+            }
+        }
+    }
 }
 
-fun constructChangeIterator(node: Ast, change: Change): ParserIterator {
-    val iterator = ParserIterator()
-    val updatedChange =
-        if(change.start == Span.zero) {
-            iterator.add(change.text)
-            change.copy(text = "")
-        } else change
-
-    node.addToIterator(updatedChange, iterator, null)
-    return iterator
-}
+sealed interface ParserIteratorNodeType
+data class ParserIteratorString(val text: String): ParserIteratorNodeType
+data class ParserIteratorAst(val node: Ast): ParserIteratorNodeType

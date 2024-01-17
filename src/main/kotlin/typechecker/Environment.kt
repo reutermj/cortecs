@@ -1,119 +1,138 @@
 package typechecker
 
+import errors.*
 import kotlinx.serialization.*
 import parser.*
-import utilities.*
+
+class Environment {
+    val bindings = Bindings()
+    val requirements = Requirements()
+    val constraints = Constraints()
+}
 
 @Serializable
-sealed class Environment {
-    abstract val substitution: Substitution
-    abstract val bindings: Map<BindableToken, TypeScheme>
-    abstract val requirements: Map<BindableToken, List<Type>>
-    abstract operator fun plus(other: Environment): Environment
-    abstract fun copy(substitution: Substitution = this.substitution, bindings: Map<BindableToken, TypeScheme> = this.bindings, requirements: Map<BindableToken, List<Type>> = this.requirements): Environment
-    fun addRequirement(token: BindableToken, type: Type): Environment = copy(requirements = requirements + (token to ((requirements[token] ?: emptyList()) + type)))
-    fun instantiate(typeScheme: TypeScheme, substitution: Substitution): Pair<Type, Substitution> {
-        val outSubstitution = substitution.mapping.toMutableMap()
-        val mapping =
-            typeScheme.boundVariables.associateWith {
-                when(it) {
-                    is UserDefinedTypeVariable -> freshUnificationVariable()
-                    is UnificationTypeVariable ->
-                        when(val lookup = substitution.find(it)) {
-                            is Representative -> throw Exception("error")
-                            is TypeMapping -> lookup.type//todo does this need to be recusive?
-                            is Compatibility -> {
-                                val fresh = freshUnificationVariable()
-                                outSubstitution[lookup.typeVar] = lookup.copy(typeVars = lookup.typeVars + fresh)
-                                fresh
-                            }
-                        }
-                }
-            }
+class FunctionEnvironment(val requirements: Requirements, val errors: CortecsErrors)
 
-        fun inst(type: Type): Type =
-            when(type) {
-                is TypeVariable -> mapping[type] ?: throw Exception()
-                is ArrowType -> ArrowType(inst(type.lhs), inst(type.rhs))
-                is ProductType -> ProductType(type.types.map { inst(it) })
-                else -> type
-            }
+class Bindings {
+    val stack = mutableListOf(mutableMapOf<NameToken, Type>())
 
-        return Pair(inst(typeScheme.type), Substitution(outSubstitution))
+    fun push() {
+        stack.add(mutableMapOf())
     }
 
-    fun merge(substitution: Substitution, requirements: Map<BindableToken, List<Type>>, bindings: Map<BindableToken, TypeScheme>,
-              otherRequirements: Map<BindableToken, List<Type>>, outRequirements: MutableMap<BindableToken, List<Type>>): Substitution =
-        otherRequirements.fold(substitution) { init, token, otherTypeVars ->
-            val typeScheme = bindings[token]
-            if(typeScheme != null)
-                otherTypeVars.fold(init) { acc, typeVar ->
-                    val (instantiated, instSubstitution) = instantiate(typeScheme, acc)
-                    instSubstitution.unify(typeVar, instantiated)
-                }
-            else if(outRequirements.containsKey(token)) init
-            else {
-                val typeVars = requirements[token]
-                if(typeVars == null) outRequirements[token] = otherTypeVars
-                else outRequirements[token] = typeVars + otherTypeVars
-                init
+    fun pop() {
+        stack.removeLast()
+    }
+
+    fun add(name: NameToken, type: Type) {
+        stack.last()[name] = type
+    }
+
+    operator fun get(name: NameToken): Type? {
+        for(bindings in stack.reversed()) {
+            val type = bindings[name]
+            if(type != null) {
+                return type
             }
         }
+        return null
+    }
 }
+
 @Serializable
-class TopLevelEnvironment(override val substitution: Substitution, override val bindings: Map<BindableToken, TypeScheme>, override val requirements: Map<BindableToken, List<Type>>): Environment() {
-    companion object {
-        val base =
-            mapOf<BindableToken, TypeScheme>(
-                OperatorToken("==") to TypeScheme(emptyList(), ArrowType(ProductType(listOf(I32Type, I32Type)), BooleanType)),
-                OperatorToken("+") to TypeScheme(emptyList(), ArrowType(ProductType(listOf(I32Type, I32Type)), I32Type)),
-                OperatorToken("-") to TypeScheme(emptyList(), ArrowType(ProductType(listOf(I32Type, I32Type)), I32Type)),
-                OperatorToken("*") to TypeScheme(emptyList(), ArrowType(ProductType(listOf(I32Type, I32Type)), I32Type)),
-                OperatorToken("/") to TypeScheme(emptyList(), ArrowType(ProductType(listOf(I32Type, I32Type)), I32Type)),
-            ).let { TopLevelEnvironment(Substitution.empty, it, emptyMap()) }
+class Requirements {
+    val placeholderLookup = mutableMapOf<BindableToken, MutableList<Placeholder>>()
+    val requirementsLookup = mutableMapOf<Long, MutableList<Type>>()
+    fun add(token: BindableToken, placeholder: Placeholder) {
+        val placeholders = placeholderLookup.getOrPut(token) { mutableListOf() }
+        placeholders.add(placeholder)
     }
 
-    override fun copy(substitution: Substitution, bindings: Map<BindableToken, TypeScheme>, requirements: Map<BindableToken, List<Type>>): TopLevelEnvironment = TopLevelEnvironment(substitution, bindings, requirements)
+    fun add(placeholder: Placeholder, type: Type) {
+        val types = requirementsLookup.getOrPut(placeholder.id) { mutableListOf() }
+        types.add(type)
+    }
 
-    override fun plus(other: Environment): TopLevelEnvironment {
-        when(other) {
-            is EmptyEnvironment -> return this
-            is BlockEnvironment -> throw Exception()
-            is TopLevelEnvironment -> {}
-        }
-
-        val outRequirements = mutableMapOf<BindableToken, List<Type>>()
-        val outBindings = bindings + other.bindings
-        val outSubstitution =
-            (substitution + other.substitution).let {
-                merge(it, requirements, bindings, other.requirements, outRequirements)
-            }.let {
-                merge(it, other.requirements, other.bindings, requirements, outRequirements)
+    fun apply(substitution: Substitution) {
+        for((_, items) in requirementsLookup) {
+            for(i in items.indices) {
+                items[i] = substitution.apply(items[i])
             }
-        return TopLevelEnvironment(outSubstitution, outBindings, outRequirements)
+        }
     }
 }
 
-@Serializable
-class BlockEnvironment(override val substitution: Substitution, override val bindings: Map<BindableToken, TypeScheme>, override val requirements: Map<BindableToken, List<Type>>, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>): Environment() {
-    override fun copy(substitution: Substitution, bindings: Map<BindableToken, TypeScheme>, requirements: Map<BindableToken, List<Type>>): BlockEnvironment = BlockEnvironment(substitution, bindings, requirements, freeUserDefinedTypeVariables)
+class Substitution {
+    val substitution = mutableMapOf<Long, Type>()
+    val fillings = mutableMapOf<Long, Type>()
 
-    override fun plus(other: Environment): BlockEnvironment {
-        if(other is EmptyEnvironment) return this
-        if(other !is BlockEnvironment) throw Exception()
-        val outBindings = bindings + other.bindings
-        val outRequirements = mutableMapOf<BindableToken, List<Type>>()
-        val outSubstitution = merge(substitution + other.substitution, requirements, bindings, other.requirements, outRequirements)
-        for((token, typeVars) in requirements) if(!outRequirements.containsKey(token)) outRequirements[token] = typeVars
-        return BlockEnvironment(outSubstitution, outBindings, outRequirements, freeUserDefinedTypeVariables + other.freeUserDefinedTypeVariables)
+    fun add(typeVariable: TypeVariable, type: Type) {
+        substitution[typeVariable.id] = type
     }
+
+    fun fillPlaceholder(placeholder: Placeholder, type: Type) {
+        fillings[placeholder.id] = type
+    }
+
+    fun apply(type: Type, offset: Span? = null): Type =
+        when(type) {
+            is Placeholder -> fillings[type.id]?.let { apply(it, null) } ?: type
+            is ConcreteType ->
+                if(offset != null) type.updateOffset(offset)
+                else type
+            is TypeVariable -> {
+                val out = substitution[type.id]
+                if(out != null) apply(out, type.offset)
+                else type
+            }
+            is ArrowType -> ArrowType(offset ?: type.offset, apply(type.lhs, offset), apply(type.rhs, offset))
+            is ProductType -> ProductType(offset ?: type.offset, type.types.map { apply(type, offset) })
+            else ->
+                TODO()
+        }
 }
 
-@Serializable
-object EmptyEnvironment: Environment() {
-    override val substitution = Substitution.empty
-    override val bindings: Map<BindableToken, TypeScheme> = emptyMap()
-    override val requirements: Map<BindableToken, List<Type>> = emptyMap()
-    override fun plus(other: Environment) = other
-    override fun copy(substitution: Substitution, bindings: Map<BindableToken, TypeScheme>, requirements: Map<BindableToken, List<Type>>) = BlockEnvironment(substitution, bindings, requirements, emptySet())
+class Constraints {
+    val constraints = mutableListOf<Pair<Type, Type>>()
+    fun add(lhs: Type, rhs: Type) {
+        constraints.add(Pair(lhs, rhs))
+    }
+
+    fun unify(requirements: Requirements, errors: MutableList<CortecsError>): Substitution {
+        val substitution = Substitution()
+        for(constraint in constraints) {
+            val lhs = substitution.apply(constraint.first)
+            val rhs = substitution.apply(constraint.second)
+            unify(lhs, rhs, substitution, requirements, errors)
+        }
+        return substitution
+    }
+
+    fun pointAt(substitution: Substitution, typeVariable: TypeVariable, type: Type) {
+        if(type is TypeVariable && type.id == typeVariable.id) {
+            return
+        }
+        substitution.add(typeVariable, type)
+    }
+
+    fun unify(lhs: Type, rhs: Type, substitution: Substitution, requirements: Requirements, errors: MutableList<CortecsError>) {
+        when {
+            lhs is ConcreteType && rhs is ConcreteType && lhs::class == rhs::class -> {}
+            lhs is TypeVariable -> pointAt(substitution, lhs, rhs)
+            rhs is TypeVariable -> pointAt(substitution, rhs, lhs)
+            lhs is Placeholder && rhs !is Placeholder -> requirements.add(lhs, rhs)
+            lhs !is Placeholder && rhs is Placeholder -> requirements.add(rhs, lhs)
+            lhs is ArrowType && rhs is ArrowType -> {
+                unify(lhs.lhs, rhs.lhs, substitution, requirements, errors)
+                unify(lhs.rhs, rhs.rhs, substitution, requirements, errors)
+            }
+            lhs is ProductType && rhs is ProductType -> {
+                if(lhs.types.size != rhs.types.size) TODO()
+                for(i in lhs.types.indices) {
+                    unify(lhs.types[i], rhs.types[i], substitution, requirements, errors)
+                }
+            }
+            else -> errors.add(CortecsError("Unification error", rhs.offset, Span.zero))
+        }
+    }
 }
