@@ -10,8 +10,7 @@ class BlockSubstitutionTests {
                          |let y = x""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         assertNull(environment.requirements[NameToken("x")])
@@ -28,8 +27,7 @@ class BlockSubstitutionTests {
                          |let y = +x""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val xType = environment.substitution.apply(environment.bindings[NameToken("x")]!!)
@@ -56,8 +54,7 @@ class BlockSubstitutionTests {
                          |let y = x + z""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val xType = environment.substitution.apply(environment.bindings[NameToken("x")]!!)
@@ -93,8 +90,7 @@ class BlockSubstitutionTests {
                          |let y = f(x)""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val xType = environment.substitution.apply(environment.bindings[NameToken("x")]!!)
@@ -122,8 +118,7 @@ class BlockSubstitutionTests {
                          |let y = f(x, z)""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val xType = environment.substitution.apply(environment.bindings[NameToken("x")]!!)
@@ -160,8 +155,7 @@ class BlockSubstitutionTests {
                          |let y = x""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val zTypes = environment.requirements[NameToken("z")]
@@ -196,8 +190,7 @@ class BlockSubstitutionTests {
                          |let y = x""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val zType = environment.substitution.apply(environment.bindings[NameToken("z")]!!)
@@ -217,8 +210,7 @@ class BlockSubstitutionTests {
                          |let z = a""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val aTypes = environment.requirements[NameToken("a")]
@@ -245,8 +237,7 @@ class BlockSubstitutionTests {
                          |let z = a""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val aType = environment.substitution.apply(environment.bindings[NameToken("a")]!!)
@@ -269,8 +260,7 @@ class BlockSubstitutionTests {
                          |let z: t = c""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val block = parseBlock(builder)
+        val block = parseBlock(iterator)
         val environment = block.environment
 
         val xType = environment.substitution.apply(environment.bindings[NameToken("x")]!!)

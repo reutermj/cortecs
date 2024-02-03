@@ -6,13 +6,12 @@ import kotlin.test.*
 class TopLevelSubstitutionTests {
     @Test
     fun test001() {
-        val s = """fn id(x) {
+        val s = """function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -24,13 +23,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test002() {
-        val s = """fn foo(x) {
+        val s = """function foo(x) {
                   |return id(x)
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -62,13 +60,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test003() {
-        val s = """fn foo(x) {
+        val s = """function foo(x) {
                   |if(x) {}
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -79,13 +76,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test004() {
-        val s = """fn foo(x) {
+        val s = """function foo(x) {
                   |if(x == 0) {}
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -110,13 +106,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test005() {
-        val s = """fn foo(x) {
+        val s = """function foo(x) {
                   |if(x == 0) {}
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment =  TopLevelEnvironment.base  + fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -129,7 +124,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test006() {
-        val s = """fn fib(x) {
+        val s = """function fib(x) {
                   |if(x == 0) {
                   |return 0
                   |}
@@ -140,8 +135,7 @@ class TopLevelSubstitutionTests {
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment =  TopLevelEnvironment.base  + fn.environment
 
         val fibType = environment.substitution.apply(environment.bindings[NameToken("fib")]!!)
@@ -154,13 +148,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test007() {
-        val s = """fn foo(x) {
+        val s = """function foo(x) {
                   |let z: U32 = x
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment =  TopLevelEnvironment.base  + fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -173,13 +166,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test008() {
-        val s = """fn id(x: U32) {
+        val s = """function id(x: U32) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -190,13 +182,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test009() {
-        val s = """fn foo(x: U32) {
+        val s = """function foo(x: U32) {
                   |return id(x)
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -219,13 +210,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test010() {
-        val s = """fn id(x): U32 {
+        val s = """function id(x): U32 {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -236,13 +226,12 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test011() {
-        val s = """fn foo(x): U32 {
+        val s = """function foo(x): U32 {
                   |return id(x)
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -265,14 +254,13 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test012() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |let x = f(1)
                   |let y = f(1.1)
                   |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val fooType = environment.substitution.apply(environment.bindings[NameToken("foo")]!!)
@@ -293,7 +281,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test013() {
-        val s = """fn id(a) {
+        val s = """function id(a) {
                          |let x = a
                          |let y = a
                          |let z = a
@@ -301,8 +289,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -314,7 +301,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test014() {
-        val s = """fn id(a) {
+        val s = """function id(a) {
                          |let x = a
                          |let y = a
                          |let z = a
@@ -322,8 +309,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -335,7 +321,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test015() {
-        val s = """fn id(a) {
+        val s = """function id(a) {
                          |let x = a
                          |let y = a
                          |let z = a
@@ -343,8 +329,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -356,7 +341,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test016() {
-        val s = """fn id(a) {
+        val s = """function id(a) {
                          |let x = a
                          |let y: I32 = a
                          |let z = a
@@ -364,8 +349,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -375,7 +359,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test017() {
-        val s = """fn id(a: I32) {
+        val s = """function id(a: I32) {
                          |let x = a
                          |let y = a
                          |let z = a
@@ -383,8 +367,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -394,7 +377,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test018() {
-        val s = """fn id(a): I32 {
+        val s = """function id(a): I32 {
                          |let x = a
                          |let y = a
                          |let z = a
@@ -402,8 +385,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -413,7 +395,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test019() {
-        val s = """fn id(a: t) {
+        val s = """function id(a: t) {
                          |let x = a
                          |let y = a
                          |let z = a
@@ -421,8 +403,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -435,7 +416,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test020() {
-        val s = """fn id(a): t {
+        val s = """function id(a): t {
                          |let x = a
                          |let y = a
                          |let z = a
@@ -443,8 +424,7 @@ class TopLevelSubstitutionTests {
                          |}""".trimMargin()
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val fn = parseFn(builder)
+        val fn = parseFunction(iterator)
         val environment = fn.environment
 
         val idType = environment.substitution.apply(environment.bindings[NameToken("id")]!!)
@@ -457,7 +437,7 @@ class TopLevelSubstitutionTests {
 
     @Test
     fun test021() {
-        val s = """fn foo() {}
+        val s = """function foo() {}
             |fn id""".trimMargin()
 
         val iterator = ParserIterator()

@@ -8,7 +8,7 @@ import java.util.*
 
 class CrashDump(val capacity: Int) {
     val changes = Array<Change?>(capacity) { null }
-    val asts = Array<StarAst<TopLevelAst>>(capacity) { StarLeaf }
+    val asts = Array<ProgramAst>(capacity) { ProgramAst.empty }
     var tail = -1
     var head = 0
     fun modInc(i: Int) = (i + 1) % capacity
@@ -22,7 +22,7 @@ class CrashDump(val capacity: Int) {
         changes[tail] = item
     }
 
-    fun put(program: StarAst<TopLevelAst>) {
+    fun put(program: ProgramAst) {
         asts[modInc(tail)] = program
     }
 

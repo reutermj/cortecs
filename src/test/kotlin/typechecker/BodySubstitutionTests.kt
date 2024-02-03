@@ -9,8 +9,7 @@ class BodySubstitutionTests {
         val s = "let y = x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -30,8 +29,7 @@ class BodySubstitutionTests {
         val s = "let y = +x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -59,8 +57,7 @@ class BodySubstitutionTests {
         val s = "let y = x + z"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -97,8 +94,7 @@ class BodySubstitutionTests {
         val s = "let y = 1"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val yType = environment.substitution.apply(environment.bindings[NameToken("y")]!!)
@@ -111,8 +107,7 @@ class BodySubstitutionTests {
         val s = "return 1"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val returnAst = parseReturn(builder)
+        val returnAst = parseReturn(iterator)
         val environment = returnAst.environment
 
         val returnTypes = environment.requirements[ReturnTypeToken]
@@ -127,8 +122,7 @@ class BodySubstitutionTests {
         val s = "return x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val returnAst = parseReturn(builder)
+        val returnAst = parseReturn(iterator)
         val environment = returnAst.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -148,8 +142,7 @@ class BodySubstitutionTests {
         val s = "return +x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val returnAst = parseReturn(builder)
+        val returnAst = parseReturn(iterator)
         val environment = returnAst.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -176,8 +169,7 @@ class BodySubstitutionTests {
         val s = "return x + z"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val returnAst = parseReturn(builder)
+        val returnAst = parseReturn(iterator)
         val environment = returnAst.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -213,8 +205,7 @@ class BodySubstitutionTests {
         val s = "if(x) {}"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val ifAst = parseIf(builder)
+        val ifAst = parseIf(iterator)
         val environment = ifAst.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -229,8 +220,7 @@ class BodySubstitutionTests {
         val s = "if(x == 1) {}"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val ifAst = parseIf(builder)
+        val ifAst = parseIf(iterator)
         val environment = ifAst.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -256,8 +246,7 @@ class BodySubstitutionTests {
         val s = "let y: U32 = x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -275,8 +264,7 @@ class BodySubstitutionTests {
         val s = "let y: U32 = +x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -301,8 +289,7 @@ class BodySubstitutionTests {
         val s = "let y: t = x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val xTypes = environment.requirements[NameToken("x")]
@@ -321,8 +308,7 @@ class BodySubstitutionTests {
         val s = "let y: t = +x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val let = parseLet(builder)
+        val let = parseLet(iterator)
         val environment = let.environment
 
         val xTypes = environment.requirements[NameToken("x")]
