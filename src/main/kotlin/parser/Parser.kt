@@ -193,3 +193,19 @@ fun infixBindingPower(op: OperatorToken) =
         '*', '/', '%' -> Pair(13, 14)
         else -> TODO()
     }
+
+//P1  -> P2 P1'
+//P1' -> `|` P2 P1' | epsilon
+//P2  -> P3 P2'
+//P2' -> ^ P3 P2' | epsilon
+//P3  -> P4 P3'
+//P3' -> & P4 P3' | epsilon
+//P4  -> P5 P4'
+//P4' -> = P5 P4' | ! P5 P4' | epsilon
+//P5  -> P6 P5'
+//P5' -> > P6 P5' | < P6 P5' | epsilon
+//P6  -> P7 P6'
+//P6' -> + P7 P6' | - P7 P6' | epsilon
+//P7  -> E P7'
+//P7' -> * E P7' | / E P7' | % E P7' | epsilon
+//E  -> (P1) | atom
