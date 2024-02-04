@@ -58,7 +58,7 @@ private fun nextString(text: String, start: Int): TokenImpl {
         }
     }
 
-    return if(isEscaped) BadStringToken(text.substring(start, end))
+    return if(isEscaped || text[end - 1] != '\"') BadStringToken(text.substring(start, end))
     else StringToken(text.substring(start, end))
 }
 
@@ -81,7 +81,7 @@ private fun nextChar(text: String, start: Int): TokenImpl {
         }
     }
 
-    return if(numChars != 1 || isEscaped) BadCharToken(text.substring(start, end))
+    return if(numChars != 1 || isEscaped || text[end - 1] != '\'') BadCharToken(text.substring(start, end))
     else CharToken(text.substring(start, end))
 }
 

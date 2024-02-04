@@ -31,3 +31,5 @@ val whitespaceCombos: List<String> = run {
 
     whitespaceCombos
 }
+
+val whitespaceCombosStartingWithNewLine = whitespaceCombos.filter { it.firstOrNull() != ' ' }

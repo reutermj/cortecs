@@ -23,7 +23,6 @@ val astJsonFormat: Json by lazy {
             subclass(BadCharToken::class)
             subclass(IntToken::class)
             subclass(FloatToken::class)
-            subclass(BadNumberToken::class)
             subclass(OpenParenToken::class)
             subclass(CloseParenToken::class)
             subclass(OpenCurlyToken::class)

@@ -107,8 +107,6 @@ data class IntToken(override val value: String): TokenImpl(), AtomicExpressionTo
 @Serializable
 data class FloatToken(override val value: String): TokenImpl(), AtomicExpressionToken
 @Serializable
-data class BadNumberToken(override val value: String): TokenImpl(), AtomicExpressionToken
-@Serializable
 data object OpenParenToken: TokenImpl() {
     override val value = "("
 }
