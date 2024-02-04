@@ -3,11 +3,10 @@ package parser_v2
 import errors.*
 import kotlinx.serialization.*
 
-@Serializable
-sealed class Ast {
-    abstract val span: Span
-    abstract val errors: CortecsErrors
-    abstract fun firstTokenOrNull(): TokenImpl?
+sealed interface Ast {
+    val span: Span
+    val errors: CortecsErrors
+    fun firstTokenOrNull(): Token?
     fun shouldKeep(start: Span, end: Span) = end < Span.zero || span < start
     fun shouldDelete(start: Span, end: Span) = span == Span.zero || start <= Span.zero && span <= end
     fun createChangeIterator(change: Change): ParserIterator {
@@ -16,17 +15,18 @@ sealed class Ast {
         if(change.start == Span.zero) iterator.add(change.text)
         return iterator
     }
-    abstract fun addToIterator(change: Change, iter: ParserIterator, wasNextTokenModified: Boolean): Boolean
-    abstract fun addAllButFirstToIterator(iter: ParserIterator)
-    abstract fun forceReparse(iter: ParserIterator)
+    fun addToIterator(change: Change, iter: ParserIterator, wasNextTokenModified: Boolean): Boolean
+    fun addAllButFirstToIterator(iter: ParserIterator)
+    fun forceReparse(iter: ParserIterator)
+    fun stringify(builder: StringBuilder)
 }
 
 @Serializable
-sealed class AstImpl: Ast() {
+sealed class AstImpl: Ast {
     abstract val nodes: List<Ast>
 
-    private var _firstToken: TokenImpl? = null
-    override fun firstTokenOrNull(): TokenImpl? {
+    private var _firstToken: Token? = null
+    override fun firstTokenOrNull(): Token? {
         if(_firstToken != null) return _firstToken
 
         for(node in nodes) {
@@ -80,6 +80,10 @@ sealed class AstImpl: Ast() {
         }
 
         return modified
+    }
+
+    override fun stringify(builder: StringBuilder) {
+        for(node in nodes) node.stringify(builder)
     }
 }
 

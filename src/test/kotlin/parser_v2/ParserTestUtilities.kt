@@ -1,6 +1,6 @@
 package parser_v2
 
-val whitespaceCombos = run {
+val whitespaceCombos: List<String> = run {
     val whitespaceCombos = mutableListOf("")
     val whitespaceCharacters = listOf(" ", "\n")
     whitespaceCombos.addAll(whitespaceCharacters)

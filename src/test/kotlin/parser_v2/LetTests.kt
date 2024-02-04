@@ -2,10 +2,9 @@ package parser_v2
 
 import kotlin.test.*
 
-class ParseValidLetTests {
+class LetTests {
     @Test
-    fun test001() {
-        //test whitespace handling
+    fun testWhitespaceHandling() {
         for(i in whitespaceCombos)
             for(j in whitespaceCombos)
                 for(k in whitespaceCombos)
@@ -14,11 +13,16 @@ class ParseValidLetTests {
                         val iterator = ParserIterator()
                         iterator.add(s)
                         val let = parseLet(iterator)
+
                         assertEquals(NameToken("x"), let.name())
                         val expression = let.expression()
                         assertIs<AtomicExpression>(expression)
                         assertEquals(NameToken("y"), expression.atom())
                         assertFails { iterator.nextToken() }
+
+                        val builder = StringBuilder()
+                        let.stringify(builder)
+                        assertEquals(s, builder.toString())
                     }
     }
 

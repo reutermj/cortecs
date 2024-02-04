@@ -148,7 +148,6 @@ private fun toKeywordOrNameOrTypeToken(value: String) =
 
 private fun toOperatorToken(value: String): TokenImpl =
     when(value) {
-        "\\" ->  BackSlashToken
         "=" ->  EqualSignToken
         else -> OperatorToken(value)
     }

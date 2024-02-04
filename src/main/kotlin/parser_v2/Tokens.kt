@@ -3,15 +3,15 @@ package parser_v2
 import errors.*
 import kotlinx.serialization.*
 
-sealed interface Token
+sealed interface Token: Ast
 
 @Serializable
-sealed class TokenImpl: Ast(), Token {
+sealed class TokenImpl: Ast, Token {
     override val errors: CortecsErrors
         get() = CortecsErrors(null, emptyList())
     abstract val value: String
     override val span get() = Span(0, value.length)
-    override fun firstTokenOrNull(): TokenImpl? = this
+    override fun firstTokenOrNull(): Token? = this
     override fun forceReparse(iter: ParserIterator) {
         iter.add(value)
     }
@@ -28,6 +28,9 @@ sealed class TokenImpl: Ast(), Token {
         return true
     }
     override fun addAllButFirstToIterator(iter: ParserIterator) {}
+    override fun stringify(builder: StringBuilder) {
+        builder.append(value)
+    }
 }
 
 @Serializable
@@ -132,10 +135,6 @@ data object DotToken: TokenImpl() {
 @Serializable
 data object ColonToken: TokenImpl() {
     override val value = ":"
-}
-@Serializable
-data object BackSlashToken: TokenImpl() {
-    override val value = "/"
 }
 @Serializable
 data object EqualSignToken: TokenImpl() {

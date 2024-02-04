@@ -37,7 +37,7 @@ class ParserIterator {
         }
     }
 
-    fun peekToken(): TokenImpl? =
+    fun peekToken(): Token? =
         when(val last = elements.lastOrNull()) {
             null -> null
             is ParserIteratorString -> {
