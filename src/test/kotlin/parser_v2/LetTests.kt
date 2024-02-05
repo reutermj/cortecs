@@ -10,19 +10,12 @@ class LetTests {
                 for(k in whitespaceCombos)
                     for(l in whitespaceCombos) {
                         val s = "let ${i}x${j}=${k}y${l}"
-                        val iterator = ParserIterator()
-                        iterator.add(s)
-                        val let = parseLet(iterator)
-
-                        assertEquals(NameToken("x"), let.name())
-                        val expression = let.expression()
-                        assertIs<AtomicExpression>(expression)
-                        assertEquals(NameToken("y"), expression.atom())
-                        assertFails { iterator.nextToken() }
-
-                        val builder = StringBuilder()
-                        let.stringify(builder)
-                        assertEquals(s, builder.toString())
+                        tryParse(s, ::parseLet) {
+                            assertEquals(NameToken("x"), it.name())
+                            val expression = it.expression()
+                            assertIs<AtomicExpression>(expression)
+                            assertEquals(NameToken("y"), expression.atom())
+                        }
                     }
     }
 

@@ -22,7 +22,7 @@ fun nextToken(text: String, start: Int): TokenImpl =
         else -> nextBadToken(text, start)
     }
 
-val operators = setOf('=', '<', '>', '!', '|', '&', '+', '-', '*', '/', '%', '~')
+val operators = setOf('=', '<', '>', '!', '|', '&', '+', '-', '*', '/', '%', '~', '^')
 val whiteSpace = setOf('\r', '\t', ' ')
 val initialType = ('A'..'Z').toSet()
 val initialName = ('a'..'z').toSet() + setOf('_')
