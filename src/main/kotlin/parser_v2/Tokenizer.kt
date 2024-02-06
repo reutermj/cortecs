@@ -4,7 +4,7 @@ fun nextToken(text: String, start: Int): TokenImpl =
     when(text[start]) {
         in initialNameOrType -> nextToken(text, start, allNameOrType, ::toKeywordOrNameOrTypeToken)
         in whiteSpace -> nextToken(text, start, whiteSpace, ::WhitespaceToken)
-        in operators -> nextToken(text, start, operators, ::toOperatorToken)
+        in operatorChars -> nextToken(text, start, operatorChars, ::toOperatorToken)
 
         in numbers -> nextIntOrFloatToken(text, start)
         '.' -> nextDotOrFloatToken(text, start)
@@ -22,14 +22,14 @@ fun nextToken(text: String, start: Int): TokenImpl =
         else -> nextBadToken(text, start)
     }
 
-val operators = setOf('=', '<', '>', '!', '|', '&', '+', '-', '*', '/', '%', '~', '^')
+val operatorChars = setOf('=', '<', '>', '!', '|', '&', '+', '-', '*', '/', '%', '~', '^')
 val whiteSpace = setOf('\r', '\t', ' ')
 val initialType = ('A'..'Z').toSet()
 val initialName = ('a'..'z').toSet() + setOf('_')
 val initialNameOrType = initialType + initialName
 val allNameOrType = initialNameOrType + ('0'..'9').toSet()
 val numbers = ('0'..'9').toSet()
-val valid = operators + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
+val valid = operatorChars + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
 
 private fun nextToken(s: String, start: Int, acceptableChars: Set<Char>, toToken: (String) -> TokenImpl): TokenImpl {
     var end = start + 1

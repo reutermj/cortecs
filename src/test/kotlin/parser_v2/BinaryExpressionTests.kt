@@ -3,8 +3,6 @@ package parser_v2
 import kotlin.test.*
 
 class BinaryExpressionTests {
-    val operators = listOf("|", "^", "&", "==", "!", ">", "<", "+", "-", "~", "*", "/", "%")
-
     fun opToPrecedence(op: OperatorToken): Int =
         when(op.value.first()) {
             '|' -> 1
@@ -34,7 +32,7 @@ class BinaryExpressionTests {
         }
 
     @Test
-    fun testParsing() {
+    fun testPrecedenceParsing() {
         repeat(100) {
             for (w in whitespaceCombos) {
                 val op1 = operators.random()
@@ -75,6 +73,46 @@ class BinaryExpressionTests {
             }
         }
     }
+    @Test
+    fun testParsingWithUnaryExpressions() {
+        repeat(100) {
+            for (w in whitespaceCombos) {
+                val op1 = operators.random()
+                val op2 = operators.random()
+
+                val s1 = "${op1}a$w$op2${w}b$w"
+                testParse(s1, ::parseExpression) {
+                    assertIs<BinaryExpression>(it)
+                    assertEquals(op2, it.op().value)
+                    val l = it.lhs()
+                    assertIs<UnaryExpression>(l)
+                    assertEquals(op1, l.op().value)
+                    val le = l.expression()
+                    assertIs<AtomicExpression>(le)
+                    assertEquals(NameToken("a"), le.atom())
+                    val r = it.rhs()
+                    assertIs<AtomicExpression>(r)
+                    assertEquals(NameToken("b"), r.atom())
+                }
+
+                val s2 = "a$w$op2${w} ${op1}b$w"
+                testParse(s2, ::parseExpression) {
+                    assertIs<BinaryExpression>(it)
+                    assertEquals(op2, it.op().value)
+                    val l = it.lhs()
+                    assertIs<AtomicExpression>(l)
+                    assertEquals(NameToken("a"), l.atom())
+                    val r = it.rhs()
+                    assertIs<UnaryExpression>(r)
+                    assertEquals(op1, r.op().value)
+                    val re = r.expression()
+                    assertIs<AtomicExpression>(re)
+                    assertEquals(NameToken("b"), re.atom())
+                }
+            }
+        }
+    }
+
 
     @Test
     fun testInsertAfter() {

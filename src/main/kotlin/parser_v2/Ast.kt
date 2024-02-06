@@ -138,6 +138,15 @@ data class GroupingExpression(override val nodes: List<Ast>, override val errors
         else nodes[expressionIndex] as Expression
 }
 @Serializable
+data class UnaryExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val opIndex: Int, val expressionIndex: Int): BaseExpression() {
+    fun op(): OperatorToken =
+        if(opIndex == -1) throw Exception("op not available")
+        else nodes[opIndex] as OperatorToken
+    fun expression(): Expression =
+        if(expressionIndex == -1) throw Exception("Name not available")
+        else nodes[expressionIndex] as Expression
+}
+@Serializable
 sealed class BinaryExpression: Expression() {
     abstract val lhsIndex: Int
     abstract val rhsIndex: Int

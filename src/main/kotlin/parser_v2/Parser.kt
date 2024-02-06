@@ -107,8 +107,22 @@ fun parseBaseExpression(iterator: ParserIterator): Expression? {
     return when(iterator.peekToken()) {
         is OpenParenToken -> parseGroupingExpression(iterator)
         is AtomicExpressionToken -> parseAtomicExpression(iterator)
+        is OperatorToken -> parseUnaryExpression(iterator)
         else -> null
     }
+}
+
+fun parseUnaryExpression(iterator: ParserIterator): Expression {
+    val builder = AstBuilder(iterator)
+    val opIndex = builder.consume<OperatorToken>()
+    consumeWhitespace(builder)
+    val expressionIndex = builder.addSubnode(parseBaseExpression(iterator))
+    if(expressionIndex == -1) {
+        builder.emitError("Expected expression", Span.zero)
+        return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex)
+    }
+    consumeWhitespace(builder)
+    return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex)
 }
 
 fun parseAtomicExpression(iterator: ParserIterator): Expression {
@@ -124,6 +138,10 @@ fun parseGroupingExpression(iterator: ParserIterator): Expression {
     consumeWhitespace(builder)
 
     val expressionIndex = builder.addSubnode(parseExpression(iterator))
+    if(expressionIndex == -1) {
+        builder.emitError("Expected expression", Span.zero)
+        return GroupingExpression(builder.nodes(), builder.errors(), expressionIndex)
+    }
     if(builder.consume<CloseParenToken>() == -1) builder.emitError("Expected )", Span.zero)
     consumeRemainingWhitespace(builder)
 

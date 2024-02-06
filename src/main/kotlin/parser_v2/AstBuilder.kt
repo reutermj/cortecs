@@ -3,11 +3,11 @@ package parser_v2
 import errors.*
 
 class AstBuilder(val iterator: ParserIterator) {
-    private var errorLocation: Span? = null
-    private var currentLocation = Span.zero
+    private var _errorLocation: Span? = null
+    private var _currentLocation = Span.zero
 
     private var _nodes = mutableListOf<Ast>()
-    private var errors = mutableListOf<CortecsErrorV2>()
+    private var _errors = mutableListOf<CortecsErrorV2>()
 
     inline fun <reified T: Token>consume(): Int {
         val token = iterator.peekToken()
@@ -23,22 +23,22 @@ class AstBuilder(val iterator: ParserIterator) {
 
         _nodes.add(node)
         node.errors.errorSpan?.let {
-            errorLocation = currentLocation + it
+            _errorLocation = _currentLocation + it
         }
-        currentLocation += node.span
+        _currentLocation += node.span
         return _nodes.size - 1
     }
 
     fun emitError(text: String, span: Span) {
-        errors.add(CortecsErrorV2(text, errorLocation ?: Span.zero, span))
+        _errors.add(CortecsErrorV2(text, _errorLocation ?: Span.zero, span))
     }
 
     fun markErrorLocation() {
-        errorLocation = currentLocation
+        _errorLocation = _currentLocation
     }
 
     fun iterator() = iterator
     fun nodes(): List<Ast> = _nodes
-    fun errors(): CortecsErrors = CortecsErrors(errorLocation, errors)
+    fun errors(): CortecsErrors = CortecsErrors(_errorLocation, _errors)
 }
 

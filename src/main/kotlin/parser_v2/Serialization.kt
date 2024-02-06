@@ -35,6 +35,7 @@ val astJsonFormat: Json by lazy {
             subclass(ReturnAst::class)
             subclass(AtomicExpression::class)
             subclass(GroupingExpression::class)
+            subclass(UnaryExpression::class)
             subclass(BinaryExpressionP1::class)
             subclass(BinaryExpressionP2::class)
             subclass(BinaryExpressionP3::class)
