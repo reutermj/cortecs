@@ -1,13 +1,12 @@
 package parser_v2
 
-import kotlinx.serialization.*
 import kotlin.test.*
 
 class AtomicExpressionTests {
     private inline fun <reified T: AtomicExpressionToken>tryParsing(text: String, whitespaceCombos: List<String>) {
         for (i in whitespaceCombos) {
             val s = "$text$i"
-            tryParse(s, ::parseExpression) {
+            testParse(s, ::parseExpression) {
                 assertIs<AtomicExpression>(it)
                 assertIs<T>(it.atom())
 
@@ -20,7 +19,7 @@ class AtomicExpressionTests {
     }
 
     @Test
-    fun testParsing() {
+    fun testParse() {
         tryParsing<NameToken>("a", whitespaceCombos)
         tryParsing<StringToken>("\"hello world\"", whitespaceCombos)
         tryParsing<BadStringToken>("\"hello world", whitespaceCombosStartingWithNewLine)
@@ -32,7 +31,7 @@ class AtomicExpressionTests {
     }
 
     @Test
-    fun testReparsing() {
+    fun testReparse() {
         for (i in whitespaceCombos) {
             val inString = "a$i"
             val text = "bc"
@@ -50,5 +49,34 @@ class AtomicExpressionTests {
             val change = Change(text, start, end)
             testReparse(inString, change) { parseExpression(it)!! }
         }
+    }
+
+    fun testNullParse(inString: String) {
+        val iterator = ParserIterator()
+        iterator.add(inString)
+        val expression = parseExpression(iterator)
+        assertNull(expression)
+    }
+
+    @Test
+    fun testBadToken() {
+        testNullParse("")
+        testNullParse("Abc")
+        testNullParse("let")
+        testNullParse("if")
+        testNullParse("function")
+        testNullParse("return")
+        testNullParse("   ")
+        testNullParse("\n")
+        testNullParse("+")
+        testNullParse("|")
+        testNullParse("*")
+        testNullParse(")")
+        testNullParse("{")
+        testNullParse("}")
+        testNullParse(",")
+        testNullParse(".")
+        testNullParse(":")
+        testNullParse("=")
     }
 }

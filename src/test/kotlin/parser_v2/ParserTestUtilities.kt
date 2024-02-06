@@ -51,7 +51,7 @@ fun generateGoldText(inString: String, change: Change): String {
     return preStart + startLine + change.text + endLine + postEnd
 }
 
-inline fun <reified T: Ast?>tryParse(inString: String, parse: (ParserIterator) -> T, asserts: (T) -> Unit) {
+inline fun <reified T: Ast?>testParse(inString: String, parse: (ParserIterator) -> T, asserts: (T) -> Unit) {
     val iterator = ParserIterator()
     iterator.add(inString)
     val node = parse(iterator)
@@ -82,9 +82,19 @@ fun <T: Ast>testReparse(inString: String, change: Change, parse: (ParserIterator
     val goldIterator = ParserIterator()
     goldIterator.add(goldText)
     val goldExpression = parse(goldIterator)
+    if(goldExpression != outExpression) {
+        println()
+    }
     assertEquals(goldExpression, outExpression)
+
 
     val builder = StringBuilder()
     outExpression.stringify(builder)
     assertEquals(goldText, builder.toString())
+}
+
+fun getSpan(text: String): Span {
+    val lines = text.lines()
+    val lastLine = lines.last()
+    return Span(lines.size - 1, lastLine.length)
 }

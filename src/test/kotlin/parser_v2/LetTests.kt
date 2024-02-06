@@ -10,7 +10,7 @@ class LetTests {
                 for(k in whitespaceCombos)
                     for(l in whitespaceCombos) {
                         val s = "let ${i}x${j}=${k}y${l}"
-                        tryParse(s, ::parseLet) {
+                        testParse(s, ::parseLet) {
                             assertEquals(NameToken("x"), it.name())
                             val expression = it.expression()
                             assertIs<AtomicExpression>(expression)

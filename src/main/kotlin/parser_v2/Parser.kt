@@ -73,10 +73,7 @@ fun parseReturn(iterator: ParserIterator): ReturnAst {
 }
 
 inline fun <reified T: BinaryExpression>parseBinaryExpressionGen(iterator: ParserIterator, acceptedTokens: Set<Char>, nextPrecedenceLevel: (ParserIterator) -> Expression?, ctor: (List<Ast>, CortecsErrors, Int, Int, Int) -> T): Expression? {
-    val expression = reuse<T>(iterator)
-    if(expression != null) return expression
-
-    var lhs: Expression? = nextPrecedenceLevel(iterator) ?: return null
+    var lhs: Expression? = reuse<T>(iterator)?: nextPrecedenceLevel(iterator) ?: return null
     while(true) {
         val token = iterator.peekToken()
         if(token !is OperatorToken) return lhs

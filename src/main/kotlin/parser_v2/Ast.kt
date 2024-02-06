@@ -41,6 +41,7 @@ sealed class AstImpl: Ast {
 
     override fun addAllButFirstToIterator(iter: ParserIterator) {
         for(node in nodes.drop(1).reversed()) iter.add(node)
+        nodes.firstOrNull()?.addAllButFirstToIterator(iter)
     }
 
     private var _span: Span? = null

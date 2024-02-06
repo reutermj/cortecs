@@ -15,6 +15,7 @@ class ParserIterator {
 
     fun add(text: String) {
         if(stringIndex != 0) throw Exception("Programmer Error")
+        if(text.isEmpty()) return
         val last = elements.lastOrNull()
         if(last is ParserIteratorString) {
             elements.removeLast()
