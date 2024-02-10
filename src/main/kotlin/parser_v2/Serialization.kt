@@ -31,6 +31,7 @@ val astJsonFormat: Json by lazy {
             subclass(DotToken::class)
             subclass(ColonToken::class)
             subclass(EqualSignToken::class)
+            subclass(BlockAst::class)
             subclass(LetAst::class)
             subclass(ReturnAst::class)
             subclass(AtomicExpression::class)

@@ -89,7 +89,17 @@ sealed class AstImpl: Ast {
 }
 
 @Serializable
-data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val expressionIndex: Int): AstImpl() {
+data class BlockAst(override val nodes: List<Ast>, override val height: Int): StarAst() {
+    companion object {
+        val empty = BlockAst(emptyList(), 0)
+    }
+    override fun ctor(nodes: List<Ast>, height: Int) = BlockAst(nodes, height)
+}
+
+sealed class BodyAst: AstImpl()
+
+@Serializable
+data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val expressionIndex: Int): BodyAst() {
     fun name(): NameToken =
         if(nameIndex == -1) throw Exception("Name not available")
         else nodes[nameIndex] as NameToken
@@ -100,7 +110,7 @@ data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErr
 }
 
 @Serializable
-data class ReturnAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): AstImpl() {
+data class ReturnAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): BodyAst() {
     fun expression(): Expression =
         if(expressionIndex == -1) throw Exception("Expression not available")
         else nodes[expressionIndex] as Expression

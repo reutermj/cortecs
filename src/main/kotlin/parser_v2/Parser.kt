@@ -25,6 +25,57 @@ fun consumeWhitespace(builder: AstBuilder) {
     consumeRemainingWhitespace(builder)
 }
 
+inline fun <T: StarAst>bulkLoad(nodes: List<Ast>, ctor: (List<Ast>, Int) -> T): T {
+    var front = nodes.toMutableList()
+    var back = mutableListOf<Ast>()
+    var height = 0
+    while(front.size > STAR_MAX_NODES) {
+        for(i in front.indices step STAR_MAX_NODES) back.add(ctor(front.drop(i).take(STAR_MAX_NODES), height))
+
+        front.clear()
+        val temp = back
+        back = front
+        front = temp
+        height++
+    }
+
+    return ctor(front, height)
+}
+
+inline fun <reified T: StarAst, S: Ast>parseStar(iterator: ParserIterator, empty: T, ctor: (List<Ast>, Int) -> T, parse: (ParserIterator) -> S?): T {
+    var star = empty
+    val nodes = mutableListOf<Ast>()
+    while(true) {
+        val node = reuse<T>(iterator)
+        if(node != null) {
+            if(nodes.any()) {
+                star += bulkLoad(nodes, ctor)
+                nodes.clear()
+            }
+            star += node
+            continue
+        }
+
+        nodes.add(parse(iterator) ?: break)
+    }
+
+    if(nodes.any()) star += bulkLoad(nodes, ctor)
+    return star
+}
+
+fun parseBlock(iterator: ParserIterator): BlockAst = parseStar(iterator, BlockAst.empty, ::BlockAst, ::parseBody)
+
+fun parseBody(iterator: ParserIterator): BodyAst? {
+    val body = reuse<BodyAst>(iterator)
+    if(body != null) return body
+
+    return when(iterator.peekToken()) {
+        is LetToken -> parseLet(iterator)
+        is ReturnToken -> parseReturn(iterator)
+        else -> null
+    }
+}
+
 fun parseLet(iterator: ParserIterator): LetAst {
     val letNode = reuse<LetAst>(iterator)
     if(letNode != null) return letNode
