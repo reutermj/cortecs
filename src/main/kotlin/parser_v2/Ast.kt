@@ -89,7 +89,7 @@ sealed class AstImpl: Ast {
 }
 
 @Serializable
-data class BlockAst(override val nodes: List<Ast>, override val height: Int): StarAst() {
+data class BlockAst(override val nodes: List<Ast>, override val height: Int): StarAst<BodyAst>() {
     companion object {
         val empty = BlockAst(emptyList(), 0)
     }
@@ -114,6 +114,17 @@ data class ReturnAst(override val nodes: List<Ast>, override val errors: Cortecs
     fun expression(): Expression =
         if(expressionIndex == -1) throw Exception("Expression not available")
         else nodes[expressionIndex] as Expression
+}
+
+@Serializable
+data class IfAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val conditionIndex: Int, val blockIndex: Int): BodyAst() {
+    fun condition(): Expression =
+        if(conditionIndex == -1) throw Exception("Expression not available")
+        else nodes[conditionIndex] as Expression
+
+    fun block(): BlockAst =
+        if(blockIndex == -1) throw Exception("Expression not available")
+        else nodes[blockIndex] as BlockAst
 }
 
 //P1  -> P2 P1'
@@ -155,6 +166,29 @@ data class UnaryExpression(override val nodes: List<Ast>, override val errors: C
     fun expression(): Expression =
         if(expressionIndex == -1) throw Exception("Name not available")
         else nodes[expressionIndex] as Expression
+}
+@Serializable
+data class ArgumentsAst(override val nodes: List<Ast>, override val height: Int): StarAst<ArgumentAst>() {
+    companion object {
+        val empty = ArgumentsAst(emptyList(), 0)
+    }
+    override fun ctor(nodes: List<Ast>, height: Int) = ArgumentsAst(nodes, height)
+}
+@Serializable
+data class ArgumentAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): AstImpl() {
+    fun expression(): Expression =
+        if(expressionIndex == -1) throw Exception("Name not available")
+        else nodes[expressionIndex] as Expression
+}
+@Serializable
+data class FunctionCallExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val functionIndex: Int, val argumentsIndex: Int): BaseExpression() {
+    fun function(): Expression =
+        if(functionIndex == -1) throw Exception("Name not available")
+        else nodes[functionIndex] as Expression
+
+    fun arguments(): ArgumentsAst =
+        if(argumentsIndex == -1) throw Exception("Name not available")
+        else nodes[argumentsIndex] as ArgumentsAst
 }
 @Serializable
 sealed class BinaryExpression: Expression() {

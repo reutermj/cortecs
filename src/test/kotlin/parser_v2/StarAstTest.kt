@@ -12,7 +12,7 @@ class StarAstTest {
         return parseBlock(iterator)
     }
 
-    fun validateStarRec(star: StarAst, height: Int, nextNumber: Int): Int {
+    fun <T: Ast>validateStarRec(star: StarAst<T>, height: Int, nextNumber: Int): Int {
         assertEquals(height, star.height)
         var nextNum = nextNumber
         if(height == 0) {
@@ -25,14 +25,14 @@ class StarAstTest {
             }
         } else {
             for(node in star.nodes) {
-                assertIs<StarAst>(node)
+                assertIs<StarAst<T>>(node)
                 nextNum = validateStarRec(node, height - 1, nextNum)
             }
         }
         return nextNum
     }
 
-    fun validateStar(star: StarAst, offset: Int, num: Int) {
+    fun <T: Ast>validateStar(star: StarAst<T>, offset: Int, num: Int) {
         assertEquals(offset + num, validateStarRec(star, star.height, offset))
     }
 

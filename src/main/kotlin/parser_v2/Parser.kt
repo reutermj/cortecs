@@ -25,7 +25,7 @@ fun consumeWhitespace(builder: AstBuilder) {
     consumeRemainingWhitespace(builder)
 }
 
-inline fun <T: StarAst>bulkLoad(nodes: List<Ast>, ctor: (List<Ast>, Int) -> T): T {
+inline fun <S: Ast, T: StarAst<S>>bulkLoad(nodes: List<Ast>, ctor: (List<Ast>, Int) -> T): T {
     var front = nodes.toMutableList()
     var back = mutableListOf<Ast>()
     var height = 0
@@ -42,7 +42,12 @@ inline fun <T: StarAst>bulkLoad(nodes: List<Ast>, ctor: (List<Ast>, Int) -> T): 
     return ctor(front, height)
 }
 
-inline fun <reified T: StarAst, S: Ast>parseStar(iterator: ParserIterator, empty: T, ctor: (List<Ast>, Int) -> T, parse: (ParserIterator) -> S?): T {
+sealed interface StarBuildingInstruction<out T: Ast>
+data class StarKeepBuilding<T: Ast>(val node: T): StarBuildingInstruction<T>
+data class StarLastNode<T: Ast>(val node: T): StarBuildingInstruction<T>
+data object StarStopBuilding: StarBuildingInstruction<Nothing>
+
+inline fun <S: Ast, reified T: StarAst<S>>parseStar(iterator: ParserIterator, empty: T, ctor: (List<Ast>, Int) -> T, parse: (ParserIterator) -> StarBuildingInstruction<S>): T {
     var star = empty
     val nodes = mutableListOf<Ast>()
     while(true) {
@@ -56,7 +61,14 @@ inline fun <reified T: StarAst, S: Ast>parseStar(iterator: ParserIterator, empty
             continue
         }
 
-        nodes.add(parse(iterator) ?: break)
+        when(val instruction = parse(iterator)) {
+            is StarKeepBuilding -> nodes.add(instruction.node)
+            is StarLastNode -> {
+                nodes.add(instruction.node)
+                break
+            }
+            is StarStopBuilding -> break
+        }
     }
 
     if(nodes.any()) star += bulkLoad(nodes, ctor)
@@ -65,21 +77,21 @@ inline fun <reified T: StarAst, S: Ast>parseStar(iterator: ParserIterator, empty
 
 fun parseBlock(iterator: ParserIterator): BlockAst = parseStar(iterator, BlockAst.empty, ::BlockAst, ::parseBody)
 
-fun parseBody(iterator: ParserIterator): BodyAst? {
-    val body = reuse<BodyAst>(iterator)
-    if(body != null) return body
+fun parseBody(iterator: ParserIterator): StarBuildingInstruction<BodyAst> {
+    val reused = reuse<BodyAst>(iterator)
+    if(reused != null) return StarKeepBuilding(reused)
 
-    return when(iterator.peekToken()) {
+    val body = when(iterator.peekToken()) {
         is LetToken -> parseLet(iterator)
         is ReturnToken -> parseReturn(iterator)
-        else -> null
+        is IfToken -> parseIf(iterator)
+        else -> return StarStopBuilding
     }
+
+    return StarKeepBuilding(body)
 }
 
 fun parseLet(iterator: ParserIterator): LetAst {
-    val letNode = reuse<LetAst>(iterator)
-    if(letNode != null) return letNode
-
     val builder = AstBuilder(iterator)
     builder.consume<LetToken>()
     consumeWhitespace(builder)
@@ -92,7 +104,8 @@ fun parseLet(iterator: ParserIterator): LetAst {
     consumeWhitespace(builder)
 
     if(builder.consume<EqualSignToken>() == -1) {
-        builder.emitError("Expected equal sign", Span.zero)
+        builder.emitError("Expected =", Span.zero)
+        consumeRemainingWhitespace(builder)
         return LetAst(builder.nodes(), builder.errors(), -1, -1)
     }
     consumeWhitespace(builder)
@@ -107,9 +120,6 @@ fun parseLet(iterator: ParserIterator): LetAst {
 }
 
 fun parseReturn(iterator: ParserIterator): ReturnAst {
-    val returnNode = reuse<ReturnAst>(iterator)
-    if(returnNode != null) return returnNode
-
     val builder = AstBuilder(iterator)
     builder.consume<ReturnToken>()
     consumeWhitespace(builder)
@@ -121,6 +131,50 @@ fun parseReturn(iterator: ParserIterator): ReturnAst {
     }
 
     return ReturnAst(builder.nodes(), builder.errors(), expressionIndex)
+}
+
+fun parseIf(iterator: ParserIterator): IfAst {
+    val builder = AstBuilder(iterator)
+    builder.consume<IfToken>()
+    consumeWhitespace(builder)
+
+    if(builder.consume<OpenParenToken>() == -1) {
+        builder.emitError("Expected (", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return IfAst(builder.nodes(), builder.errors(), -1, -1)
+    }
+    consumeWhitespace(builder)
+
+    val conditionIndex = builder.addSubnode(parseExpression(iterator))
+    if(conditionIndex == -1) {
+        builder.emitError("Expected expression", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return IfAst(builder.nodes(), builder.errors(), -1, -1)
+    }
+
+    if(builder.consume<CloseParenToken>() == -1) {
+        builder.emitError("Expected )", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return IfAst(builder.nodes(), builder.errors(), conditionIndex, -1)
+    }
+    consumeWhitespace(builder)
+
+    if(builder.consume<OpenCurlyToken>() == -1) {
+        builder.emitError("Expected {", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return IfAst(builder.nodes(), builder.errors(), conditionIndex, -1)
+    }
+    consumeWhitespace(builder)
+
+    val blockIndex = builder.addSubnode(parseBlock(iterator))
+
+    if(builder.consume<CloseCurlyToken>() == -1) {
+        builder.emitError("Expected }", Span.zero)
+        consumeRemainingWhitespace(builder)
+    }
+    consumeWhitespace(builder)
+
+    return IfAst(builder.nodes(), builder.errors(), conditionIndex, blockIndex)
 }
 
 inline fun <reified T: BinaryExpression>parseBinaryExpressionGen(iterator: ParserIterator, acceptedTokens: Set<Char>, nextPrecedenceLevel: (ParserIterator) -> Expression?, ctor: (List<Ast>, CortecsErrors, Int, Int, Int) -> T): Expression? {
@@ -155,12 +209,47 @@ fun parseBaseExpression(iterator: ParserIterator): Expression? {
     val expression = reuse<BaseExpression>(iterator)
     if(expression != null) return expression
 
-    return when(iterator.peekToken()) {
+    val baseExpression = when(iterator.peekToken()) {
         is OpenParenToken -> parseGroupingExpression(iterator)
         is AtomicExpressionToken -> parseAtomicExpression(iterator)
         is OperatorToken -> parseUnaryExpression(iterator)
         else -> null
+    } ?: return null
+
+    return if(iterator.peekToken() is OpenParenToken) parseFunctionCallExpression(iterator, baseExpression)
+    else baseExpression
+}
+
+fun parseArgument(iterator: ParserIterator): StarBuildingInstruction<ArgumentAst> {
+    val builder = AstBuilder(iterator)
+    val expressionIndex = builder.addSubnode(parseExpression(iterator))
+    if(expressionIndex == -1) {
+        builder.emitError("Expected expression", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return StarStopBuilding
     }
+
+    val commaIndex = builder.consume<CommaToken>()
+    consumeRemainingWhitespace(builder)
+
+    return if(commaIndex == -1) StarLastNode(ArgumentAst(builder.nodes(), builder.errors(), expressionIndex))
+    else StarKeepBuilding(ArgumentAst(builder.nodes(), builder.errors(), expressionIndex))
+}
+
+fun parseArguments(iterator: ParserIterator): ArgumentsAst = parseStar(iterator, ArgumentsAst.empty, ::ArgumentsAst, ::parseArgument)
+
+fun parseFunctionCallExpression(iterator: ParserIterator, baseExpression: Expression): Expression {
+    val builder = AstBuilder(iterator)
+    val functionIndex = builder.addSubnode(baseExpression)
+    builder.consume<OpenParenToken>()
+    consumeWhitespace(builder)
+
+    val argumentsIndex = builder.addSubnode(parseArguments(iterator))
+
+    if(builder.consume<CloseParenToken>() == -1) builder.emitError("Expected )", Span.zero)
+    consumeRemainingWhitespace(builder)
+
+    return FunctionCallExpression(builder.nodes(), builder.errors(), functionIndex, argumentsIndex)
 }
 
 fun parseUnaryExpression(iterator: ParserIterator): Expression {
