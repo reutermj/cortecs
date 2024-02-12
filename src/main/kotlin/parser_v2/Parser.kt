@@ -75,7 +75,98 @@ inline fun <S: Ast, reified T: StarAst<S>>parseStar(iterator: ParserIterator, em
     return star
 }
 
-fun parseBlock(iterator: ParserIterator): BlockAst = parseStar(iterator, BlockAst.empty, ::BlockAst, ::parseBody)
+fun parseProgram(iterator: ParserIterator) = parseStar(iterator, ProgramAst.empty, ::ProgramAst, ::parseTopLevel)
+
+fun parseTopLevel(iterator: ParserIterator): StarBuildingInstruction<TopLevelAst> {
+    val reused = reuse<TopLevelAst>(iterator)
+    if(reused != null) return StarKeepBuilding(reused)
+
+    val topLevel = when(iterator.peekToken()) {
+        is FunctionToken -> parseFunction(iterator)
+        else -> return StarStopBuilding
+    }
+
+    return StarKeepBuilding(topLevel)
+}
+
+fun parseFunction(iterator: ParserIterator): FunctionAst {
+    val builder = AstBuilder(iterator)
+    builder.consume<FunctionToken>()
+    consumeWhitespace(builder)
+
+    val nameIndex = builder.consume<NameToken>()
+    if(nameIndex == -1) {
+        builder.emitError("Expected name", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return FunctionAst(builder.nodes(), builder.errors(), -1, -1, -1)
+    }
+
+    if(builder.consume<OpenParenToken>() == -1) {
+        builder.emitError("Expected (", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return FunctionAst(builder.nodes(), builder.errors(), nameIndex, -1, -1)
+    }
+
+    consumeWhitespace(builder)
+    val parametersIndex = builder.addSubnode(parseParameters(iterator))
+
+    if(builder.consume<CloseParenToken>() == -1) {
+        builder.emitError("Expected )", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return FunctionAst(builder.nodes(), builder.errors(), nameIndex, parametersIndex, -1)
+    }
+    consumeWhitespace(builder)
+
+    if(builder.consume<OpenCurlyToken>() == -1) {
+        builder.emitError("Expected {", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return FunctionAst(builder.nodes(), builder.errors(), nameIndex, parametersIndex, -1)
+    }
+    consumeWhitespace(builder)
+
+    val blockIndex = builder.addSubnode(parseBlock(iterator))
+
+    if(builder.consume<CloseCurlyToken>() == -1) {
+        builder.emitError("Expected }", Span.zero)
+    }
+    consumeRemainingWhitespace(builder)
+
+    return FunctionAst(builder.nodes(), builder.errors(), nameIndex, parametersIndex, blockIndex)
+}
+
+fun parseParameter(iterator: ParserIterator): StarBuildingInstruction<ParameterAst> {
+    val builder = AstBuilder(iterator)
+    val nameIndex = builder.consume<NameToken>()
+    if(nameIndex == -1) {
+        builder.emitError("Expected name", Span.zero)
+        consumeRemainingWhitespace(builder)
+        return StarLastNode(ParameterAst(builder.nodes(), builder.errors(), -1, -1))
+    }
+
+    consumeWhitespace(builder)
+    val typeAnnotationTokenIndex =
+        if(builder.consume<ColonToken>() == -1) -1
+        else {
+            consumeWhitespace(builder)
+            val typeAnnotationTokenIndex = builder.consume<TypeAnnotationToken>()
+            if(typeAnnotationTokenIndex == -1) {
+                builder.emitError("Expected type annotation", Span.zero)
+                consumeRemainingWhitespace(builder)
+                return StarLastNode(ParameterAst(builder.nodes(), builder.errors(), nameIndex, -1))
+            }
+            typeAnnotationTokenIndex
+        }
+
+    val commaIndex = builder.consume<CommaToken>()
+    consumeRemainingWhitespace(builder)
+
+    return if(commaIndex == -1) StarLastNode(ParameterAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationTokenIndex))
+    else StarKeepBuilding(ParameterAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationTokenIndex))
+}
+
+fun parseParameters(iterator: ParserIterator) = parseStar(iterator, ParametersAst.empty, ::ParametersAst, ::parseParameter)
+
+fun parseBlock(iterator: ParserIterator) = parseStar(iterator, BlockAst.empty, ::BlockAst, ::parseBody)
 
 fun parseBody(iterator: ParserIterator): StarBuildingInstruction<BodyAst> {
     val reused = reuse<BodyAst>(iterator)
@@ -226,7 +317,7 @@ fun parseArgument(iterator: ParserIterator): StarBuildingInstruction<ArgumentAst
     if(expressionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
         consumeRemainingWhitespace(builder)
-        return StarStopBuilding
+        return StarLastNode(ArgumentAst(builder.nodes(), builder.errors(), -1))
     }
 
     val commaIndex = builder.consume<CommaToken>()

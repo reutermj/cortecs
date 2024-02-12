@@ -2,6 +2,7 @@ package parser_v2
 
 import errors.*
 import kotlinx.serialization.*
+import java.lang.reflect.Type
 
 sealed interface Ast {
     val span: Span
@@ -86,6 +87,49 @@ sealed class AstImpl: Ast {
     override fun stringify(builder: StringBuilder) {
         for(node in nodes) node.stringify(builder)
     }
+}
+
+@Serializable
+data class ProgramAst(override val nodes: List<Ast>, override val height: Int): StarAst<TopLevelAst>() {
+    companion object {
+        val empty = ProgramAst(emptyList(), 0)
+    }
+    override fun ctor(nodes: List<Ast>, height: Int) = ProgramAst(nodes, height)
+}
+
+sealed class TopLevelAst: AstImpl()
+
+@Serializable
+data class FunctionAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val parametersIndex: Int, val blockIndex: Int): TopLevelAst() {
+    fun name(): NameToken =
+        if(nameIndex == -1) throw Exception("Name not available")
+        else nodes[nameIndex] as NameToken
+
+    fun parameters(): ParametersAst =
+        if(parametersIndex == -1) throw Exception("Parameters not available")
+        else nodes[parametersIndex] as ParametersAst
+
+    fun block(): BlockAst =
+        if(blockIndex == -1) throw Exception("Block not available")
+        else nodes[blockIndex] as BlockAst
+}
+
+@Serializable
+data class ParametersAst(override val nodes: List<Ast>, override val height: Int): StarAst<ParameterAst>() {
+    companion object {
+        val empty = ParametersAst(emptyList(), 0)
+    }
+    override fun ctor(nodes: List<Ast>, height: Int) = ParametersAst(nodes, height)
+}
+@Serializable
+data class ParameterAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeIndex: Int): AstImpl() {
+    fun name(): NameToken =
+        if(nameIndex == -1) throw Exception("Name not available")
+        else nodes[nameIndex] as NameToken
+
+    fun type(): TypeAnnotationToken? =
+        if(typeIndex == -1) null
+        else nodes[typeIndex] as TypeAnnotationToken
 }
 
 @Serializable
