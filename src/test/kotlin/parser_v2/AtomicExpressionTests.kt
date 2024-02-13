@@ -24,7 +24,6 @@ class AtomicExpressionTests {
         tryParsing<StringToken>("\"hello world\"", whitespaceCombos)
         tryParsing<BadStringToken>("\"hello world", whitespaceCombosStartingWithNewLine)
         tryParsing<CharToken>("'a'", whitespaceCombos)
-        //todo maybe change the tokenizer to stop tokenizing chars on a space after the first char
         tryParsing<BadCharToken>("'a", whitespaceCombosStartingWithNewLine)
         tryParsing<IntToken>("1", whitespaceCombos)
         tryParsing<FloatToken>("1.1", whitespaceCombos)

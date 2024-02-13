@@ -22,6 +22,7 @@ class GroupingExpressionTests {
         tryParsing("+a")
         tryParsing("a + b")
         tryParsing("a + b * c")
+        tryParsing("f(x)")
     }
 
     @Test

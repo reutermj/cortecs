@@ -3,38 +3,50 @@ package parser_v2
 import kotlin.test.*
 
 class FunctionCallExpressionTests {
-    private fun tryParsing(function: String, arguments: List<String>) {
+    private fun tryParsing(function: String, arguments: List<String>, tailingComma: List<String> = listOf("", ",")) {
         for (w in whitespaceCombos) {
-            val builder = StringBuilder()
-            for(argument in arguments) {
-                builder.append(argument)
-                builder.append(w)
-                builder.append(",")
-                builder.append(w)
-            }
-            val s = "$function$w($w$builder)$w"
+            for(comma in tailingComma) {
+                val builder = StringBuilder()
 
-            val functionExpression =
-                run {
-                    val iterator = ParserIterator()
-                    iterator.add("$function$w")
-                    parseExpression(iterator)
+                if(arguments.any()) {
+                    builder.append(arguments.first())
+                    builder.append(w)
+                    for(argument in arguments.drop(1)) {
+                        builder.append(",")
+                        builder.append(w)
+                        builder.append(argument)
+                        builder.append(w)
+                    }
+                    builder.append(comma)
                 }
 
-            val argumentExpressions =
-                List(arguments.size) {
-                    val iterator = ParserIterator()
-                    iterator.add("${arguments[it]}$w")
-                    parseExpression(iterator)
-                }
+                val s = "$function$w($w$builder)$w"
 
-            testParse(s, ::parseExpression) {
-                assertIs<FunctionCallExpression>(it)
-                assertEquals(functionExpression, it.function())
-                val argumentsAst = it.arguments()
-                var i = 0
-                argumentsAst.inOrder { argument ->
-                    assertEquals(argumentExpressions[i], argument.expression())
+                val functionExpression =
+                    run {
+                        val iterator = ParserIterator()
+                        iterator.add("$function$w")
+                        parseExpression(iterator)
+                    }
+
+                val argumentExpressions =
+                    List(arguments.size) {
+                        val iterator = ParserIterator()
+                        iterator.add("${arguments[it]}$w")
+                        parseExpression(iterator)
+                    }
+
+                testParse(s, ::parseExpression) {
+                    assertIs<FunctionCallExpression>(it)
+                    assertEquals(functionExpression, it.function())
+                    val argumentsAst = it.arguments()
+                    var i = 0
+                    argumentsAst.inOrder { argument ->
+                        assertEquals(argumentExpressions[i], argument.expression())
+                        i++
+                    }
+
+                    assertEquals(arguments.size, i)
                 }
             }
         }
@@ -42,37 +54,24 @@ class FunctionCallExpressionTests {
 
     @Test
     fun testParse() {
+        tryParsing("a", listOf(), listOf(""))
         tryParsing("a", listOf("b"))
+        tryParsing("a", listOf("b", "c"))
+        tryParsing("a", listOf("b", "c", "d"))
+        tryParsing("a", listOf("b+c", "+d", "(e)", "f()"))
+        tryParsing("(a + b)", listOf("c", "d", "e"))
+        tryParsing("f(x)", listOf("c", "d", "e"))
     }
 
-//    @Test
-//    fun testReparse() {
-//        for (w in whitespaceCombos) {
-//            val whitespaceSpan = getSpan(w)
-//            val inString = "(${w}a$w)"
-//            val text = "bc"
-//            val start = Span(0, 1) + whitespaceSpan
-//            val end = start + Span(0, 1)
-//            val change = Change(text, start, end)
-//            testReparse(inString, change) { parseExpression(it)!! }
-//        }
-//
-//        for (w in whitespaceCombos) {
-//            val whitespaceSpan = getSpan(w)
-//            val inString = "(${w}a$w)"
-//            val text = "${w}+bc"
-//            val span = Span(0, 1) + whitespaceSpan + Span(0, 1)
-//            val change = Change(text, span, span)
-//            testReparse(inString, change) { parseExpression(it)!! }
-//        }
-//
-//        for (w in whitespaceCombos) {
-//            val whitespaceSpan = getSpan(w)
-//            val inString = "(${w}a$w)"
-//            val text = "bc+$w"
-//            val span = Span(0, 1) + whitespaceSpan
-//            val change = Change(text, span, span)
-//            testReparse(inString, change) { parseExpression(it)!! }
-//        }
-//    }
+    @Test
+    fun testReparse() {
+        for (w in whitespaceCombos) {
+            val whitespaceSpan = getSpan(w)
+            val inString = "f(a$w)"
+            val text = ", bc"
+            val span = Span(0, 3) + whitespaceSpan
+            val change = Change(text, span, span)
+            testReparse(inString, change) { parseExpression(it)!! }
+        }
+    }
 }

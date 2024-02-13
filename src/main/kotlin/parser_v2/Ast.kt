@@ -221,7 +221,8 @@ data class ArgumentsAst(override val nodes: List<Ast>, override val height: Int)
 @Serializable
 data class ArgumentAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): AstImpl() {
     fun expression(): Expression =
-        if(expressionIndex == -1) throw Exception("Name not available")
+        if(expressionIndex == -1)
+            throw Exception("Expression not available")
         else nodes[expressionIndex] as Expression
 }
 @Serializable
