@@ -67,9 +67,36 @@ class FunctionCallExpressionTests {
     fun testReparse() {
         for (w in whitespaceCombos) {
             val whitespaceSpan = getSpan(w)
+            val inString = "f"
+            val text = "$w(a)"
+            val span = Span(0, 1)
+            val change = Change(text, span, span)
+            testReparse(inString, change) { parseExpression(it)!! }
+        }
+
+        for (w in whitespaceCombos) {
+            val whitespaceSpan = getSpan(w)
+            val inString = "f(a)(b)"
+            val text = "$w(c)"
+            val span = Span(0, inString.length)
+            val change = Change(text, span, span)
+            testReparse(inString, change) { parseExpression(it)!! }
+        }
+
+        for (w in whitespaceCombos) {
+            val whitespaceSpan = getSpan(w)
             val inString = "f(a$w)"
             val text = ", bc"
             val span = Span(0, 3) + whitespaceSpan
+            val change = Change(text, span, span)
+            testReparse(inString, change) { parseExpression(it)!! }
+        }
+
+        for (w in whitespaceCombos) {
+            val whitespaceSpan = getSpan(w)
+            val inString = "(a$w)"
+            val text = "f"
+            val span = Span.zero
             val change = Change(text, span, span)
             testReparse(inString, change) { parseExpression(it)!! }
         }

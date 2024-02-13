@@ -143,11 +143,7 @@ fun parseFunction(iterator: ParserIterator): FunctionAst {
 fun parseParameter(iterator: ParserIterator): StarBuildingInstruction<ParameterAst> {
     val builder = AstBuilder(iterator)
     val nameIndex = builder.consume<NameToken>()
-    if (nameIndex == -1) {
-        builder.emitError("Expected name", Span.zero)
-        consumeRemainingWhitespace(builder)
-        return StarLastNode(ParameterAst(builder.nodes(), builder.errors(), -1, -1))
-    }
+    if (nameIndex == -1) return StarStopBuilding
 
     consumeWhitespace(builder)
     val typeAnnotationTokenIndex =

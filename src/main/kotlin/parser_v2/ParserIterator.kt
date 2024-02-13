@@ -56,7 +56,10 @@ class ParserIterator {
         when(val last = elements.lastOrNull()) {
             null -> throw Exception("Iterator is empty")
             is ParserIteratorString -> {
-                if(stringIndex == last.text.length) elements.removeLast()
+                if(stringIndex == last.text.length) {
+                    stringIndex = 0
+                    elements.removeLast()
+                }
                 tokenCache = null
             }
             is ParserIteratorAst -> {

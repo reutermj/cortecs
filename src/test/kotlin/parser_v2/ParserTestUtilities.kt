@@ -86,7 +86,14 @@ fun <T: Ast>testReparse(inString: String, change: Change, parse: (ParserIterator
 
     val outIterator = inExpression.createChangeIterator(change)
     val outExpression = parse(outIterator)
-    assertFails { outIterator.nextToken() }
+    assertFails {
+        try {
+            outIterator.nextToken()
+            println()
+        } catch (e: Exception) {
+            throw e
+        }
+    }
 
     val goldText = generateGoldText(inString, change)
     val goldIterator = ParserIterator()

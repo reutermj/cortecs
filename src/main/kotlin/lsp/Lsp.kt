@@ -4,7 +4,7 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.eclipse.lsp4j.services.*
-import parser.*
+import parser_v2.*
 import java.io.*
 import java.net.*
 import java.nio.file.*
@@ -89,7 +89,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
     }*/
 
     object TextDocumentServiceLsp : TextDocumentServiceImpl {
-        val documents = mutableMapOf<String, Pair<StarAst<TopLevelAst>, String>>()
+        val documents = mutableMapOf<String, Pair<ProgramAst, String>>()
 
         override fun signatureHelp(params: SignatureHelpParams): CompletableFuture<SignatureHelp> {
             println("enter signatureHelp")
@@ -100,19 +100,19 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             return CompletableFuture.completedFuture(SignatureHelp())
         }
 
-        fun reportErrors(uri: String, program: StarAst<TopLevelAst>) {
-            val diagnostics = mutableListOf<Diagnostic>()
-            for(error in program.errors) {
-
-                val diagnostic = Diagnostic()
-                diagnostic.severity = DiagnosticSeverity.Error
-                diagnostic.range = Range(Position(error.offset.line, error.offset.column), Position(error.offset.line + error.span.line, error.offset.column + error.span.column))
-                diagnostic.message = error.message
-                diagnostic.source = "ex"
-                diagnostics.add(diagnostic)
-
-            }
-            client.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
+        fun reportErrors(uri: String, program: ProgramAst) {
+//            val diagnostics = mutableListOf<Diagnostic>()
+//            for(error in program.errors) {
+//
+//                val diagnostic = Diagnostic()
+//                diagnostic.severity = DiagnosticSeverity.Error
+//                diagnostic.range = Range(Position(error.offset.line, error.offset.column), Position(error.offset.line + error.span.line, error.offset.column + error.span.column))
+//                diagnostic.message = error.message
+//                diagnostic.source = "ex"
+//                diagnostics.add(diagnostic)
+//
+//            }
+//            client.publishDiagnostics(PublishDiagnosticsParams(uri, diagnostics))
         }
 
         override fun didOpen(params: DidOpenTextDocumentParams?) {
@@ -198,10 +198,9 @@ object CortecsServer: LanguageServer, LanguageClientAware {
                     val change = Change(contentChange.text, start, end)
                     crashDump.put(change)
                     try {
-                        val iter = constructChangeIterator(doc, change)
+                        val iter = doc.createChangeIterator(change)
                         val outProgram = parseProgram(iter)
                         reportErrors(uri, outProgram)
-
 
                         val gold = generateGoldText(text, contentChange.text, start, end)
                         val goldIterator = ParserIterator()
@@ -237,7 +236,9 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         override fun didSave(params: DidSaveTextDocumentParams) {
             println("enter didSave")
             val uri = params.textDocument?.uri ?: return
-            println(documents[uri])
+            val builder = StringBuilder()
+            documents[uri]?.first?.stringify(builder)
+            println(builder)
             println("exit didSave")
         }
 
