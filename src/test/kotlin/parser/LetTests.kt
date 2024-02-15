@@ -1,8 +1,8 @@
-package parser_v2
+package parser
 
 import kotlin.test.*
 
-class ReturnTests {
+class LetTests {
     @Test
     fun testParse() {
         repeat(500) {
@@ -11,8 +11,9 @@ class ReturnTests {
                 val iterator = ParserIterator()
                 iterator.add(expressionString)
                 val goldExpression = parseExpression(iterator)!!
-                val s = "return ${w}$expressionString"
-                testParse(s, ::parseReturn) {
+                val s = "let ${w}x${w}= ${w}$expressionString"
+                testParse(s, ::parseLet) {
+                    assertEquals(NameToken("x"), it.name())
                     assertEquals(goldExpression, it.expression())
                 }
             }

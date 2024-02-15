@@ -1,4 +1,4 @@
-package parser_v2
+package parser
 
 import kotlin.test.*
 

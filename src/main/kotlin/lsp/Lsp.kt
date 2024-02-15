@@ -4,8 +4,7 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.eclipse.lsp4j.services.*
-import parser_v2.*
-import java.io.*
+import parser.*
 import java.net.*
 import java.nio.file.*
 import java.util.concurrent.*
@@ -191,6 +190,8 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             println("enter didChange")
             val uri = params.textDocument?.uri ?: return
             val (doc, text) = documents[uri] ?: return
+            var last = doc
+            var lastText = text
             for(contentChange in params.contentChanges) {
                 if(contentChange.range != null) {
                     val start = Span(contentChange.range.start.line, contentChange.range.start.character)
@@ -198,29 +199,33 @@ object CortecsServer: LanguageServer, LanguageClientAware {
                     val change = Change(contentChange.text, start, end)
                     crashDump.put(change)
                     try {
-                        val iter = doc.createChangeIterator(change)
+                        val iter = last.createChangeIterator(change)
                         val outProgram = parseProgram(iter)
+                        last = outProgram
                         reportErrors(uri, outProgram)
 
-                        val gold = generateGoldText(text, contentChange.text, start, end)
+                        val goldText = generateGoldText(lastText, contentChange.text, start, end)
+                        lastText = goldText
                         val goldIterator = ParserIterator()
-                        goldIterator.add(gold)
+                        goldIterator.add(goldText)
                         val goldProgram = parseProgram(goldIterator)
-
 
                         if(outProgram != goldProgram) {
                             crashDump.dump(crashDumpRoot)
                         }
                         crashDump.put(goldProgram)
 
-                        documents[uri] = Pair(outProgram, gold)
+                        documents[uri] = Pair(outProgram, goldText)
+
                     } catch (e: Exception) {
                         crashDump.dump(crashDumpRoot)
                     }
                 } else {//full document change
                     val iter = ParserIterator()
                     iter.add(contentChange.text)
-                    documents[uri] = Pair(parseProgram(iter), contentChange.text)
+                    val outProgram = parseProgram(iter)
+                    documents[uri] = Pair(outProgram, contentChange.text)
+                    last = outProgram
                 }
             }
 
