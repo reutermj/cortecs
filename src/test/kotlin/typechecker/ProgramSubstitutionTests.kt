@@ -6,10 +6,10 @@ package typechecker
 class ProgramSubstitutionTests {
     @Test
     fun test001() {
-        val s = """fn id(x) {
+        val s = """function id(x) {
                   |return x
                   |}
-                  |fn foo(x) {
+                  |function foo(x) {
                   |return id(x)
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -40,10 +40,10 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test002() {
-        val s = """fn foo(x) {
+        val s = """function foo(x) {
                   |return id(x)
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -74,10 +74,10 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test003() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |return id(1)
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -104,13 +104,13 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test004() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |return id(1)
                   |}
-                  |fn bar() {
+                  |function bar() {
                   |return id(1u)
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -142,16 +142,16 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test005() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |return id(1)
                   |}
-                  |fn bar() {
+                  |function bar() {
                   |return id(1u)
                   |}
-                  |fn baz() {
+                  |function baz() {
                   |return id('c')
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -188,13 +188,13 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test006() {
-        val s = """fn isEven(x) {
+        val s = """function isEven(x) {
                   |  if(x == 0) {
                   |    return 1
                   |  }
                   |  return isOdd(x - 1)
                   |}
-                  |fn isOdd(x) {
+                  |function isOdd(x) {
                   |  if(x == 0) {
                   |    return 0
                   |  }
@@ -218,7 +218,7 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test007() {
-        val s = """fn fib(x) {
+        val s = """function fib(x) {
                   |  if(x == 0) {
                   |    return 0
                   |  }
@@ -227,7 +227,7 @@ class ProgramSubstitutionTests {
                   |  }
                   |  return fibSub(x, 1) + fibSub(x, 2)
                   |}
-                  |fn fibSub(x, n) {
+                  |function fibSub(x, n) {
                   |  return fib(x - n)
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -252,10 +252,10 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test008() {
-        val s = """fn id(x) {
+        val s = """function id(x) {
                   |  return x
                   |}
-                  |fn foo(x) {
+                  |function foo(x) {
                   |  let a = id(x)
                   |  return a
                   |}""".trimMargin()
@@ -285,13 +285,13 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test009() {
-        val s = """fn foo(x) {
+        val s = """function foo(x) {
                   |  let a = id(x)
                   |  let b = id(1)
                   |  let c = id(1.1)
                   |  return a
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |  return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -314,10 +314,10 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test010() {
-        val s = """fn id(x) {
+        val s = """function id(x) {
                   |  return x
                   |}
-                  |fn foo(x) {
+                  |function foo(x) {
                   |  let a = id(x)
                   |  let b = id(1)
                   |  let c = id(1.1)
@@ -343,17 +343,17 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test011() {
-        val s = """fn b() {
+        val s = """function b() {
                   |  return id(1)
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |  let y = d(1)
                   |  return x
                   |}
-                  |fn c() {
+                  |function c() {
                   |  return id(1.1)
                   |}
-                  |fn d(x) {
+                  |function d(x) {
                   |  return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -386,12 +386,12 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test012() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |let x = id(1)
                   |let y = id(1.1)
                   |return x
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -407,12 +407,12 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test014() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |let x = id(1)
                   |let y = id(1.1)
                   |return y
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -428,12 +428,12 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test015() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |let x = id(1)
                   |let y = id(x)
                   |return y
                   |}
-                  |fn id(x) {
+                  |function id(x) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -449,17 +449,17 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test016() {
-        val s = """fn foo() {
+        val s = """function foo() {
                   |let x = id(1)
                   |let y = id(1.1)
                   |return x
                   |}
-                  |fn bar() {
+                  |function bar() {
                   |let x = id(1)
                   |let y = id(1.1)
                   |return y
                   |}
-                  |fn id(x: t) {
+                  |function id(x: t) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -480,10 +480,10 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test017() {
-        val s = """fn foo(x: s) {
+        val s = """function foo(x: s) {
                   |return id(x)
                   |}
-                  |fn id(x: t) {
+                  |function id(x: t) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()
@@ -507,10 +507,10 @@ class ProgramSubstitutionTests {
 
     @Test
     fun test018() {
-        val s = """fn foo(x): s {
+        val s = """function foo(x): s {
                   |return id(x)
                   |}
-                  |fn id(x: t) {
+                  |function id(x: t) {
                   |return x
                   |}""".trimMargin()
         val iterator = ParserIterator()

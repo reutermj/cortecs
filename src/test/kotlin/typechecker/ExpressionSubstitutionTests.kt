@@ -35,7 +35,7 @@ class ExpressionSubstitutionTests {
 //        val iterator = ParserIterator()
 //        iterator.add(s)
 //        val builder = SequenceBuilder(iterator)
-//        val expression = parseExpression(builder)!!
+//        val expression = parseExpression(iterator)!!
 //
 //        assertEquals("{\"type\":\"parser.BinaryExpression\",\"nodes\":[{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},{\"type\":\"parser.OperatorToken\",\"value\":\"+\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"},{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}],\"lhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},\"op\":{\"value\":\"+\"},\"rhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}}", format.encodeToString(expression))
 //    }
@@ -50,7 +50,7 @@ class ExpressionSubstitutionTests {
 //        val iterator = ParserIterator()
 //        iterator.add(s)
 //        val builder = SequenceBuilder(iterator)
-//        val expression: Ast = parseExpression(builder)!!
+//        val expression: Ast = parseExpression(iterator)!!
 //
 //        assertEquals("{\"type\":\"parser.BinaryExpression\",\"nodes\":[{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},{\"type\":\"parser.OperatorToken\",\"value\":\"+\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"},{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}],\"lhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"},{\"type\":\"parser.WhitespaceToken\",\"value\":\" \"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}},\"op\":{\"value\":\"+\"},\"rhs\":{\"type\":\"parser.AtomicExpression\",\"nodes\":[{\"type\":\"parser.NameToken\",\"value\":\"x\"}],\"atom\":{\"type\":\"parser.NameToken\",\"value\":\"x\"}}}", format.encodeToString(expression))
 //    }
@@ -60,8 +60,7 @@ class ExpressionSubstitutionTests {
         val s = "x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -77,8 +76,7 @@ class ExpressionSubstitutionTests {
         val s = "x + x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -106,8 +104,7 @@ class ExpressionSubstitutionTests {
         val s = "x + y"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -140,8 +137,7 @@ class ExpressionSubstitutionTests {
         val s = "+x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -166,8 +162,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -192,8 +187,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x, x)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -221,8 +215,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x, x, x)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -254,8 +247,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x, y)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -288,8 +280,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x, y, z)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -328,8 +319,7 @@ class ExpressionSubstitutionTests {
         val s = "f(+x)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -363,8 +353,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x + x)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -401,8 +390,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x + y)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -444,8 +432,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x + y, z)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -494,8 +481,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x + y, z + w)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -560,8 +546,7 @@ class ExpressionSubstitutionTests {
         val s = "f(x + x, x + x)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -602,8 +587,7 @@ class ExpressionSubstitutionTests {
         val s = "1b"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -617,8 +601,7 @@ class ExpressionSubstitutionTests {
         val s = "1s"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -632,8 +615,7 @@ class ExpressionSubstitutionTests {
         val s = "1"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -647,8 +629,7 @@ class ExpressionSubstitutionTests {
         val s = "1l"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -662,8 +643,7 @@ class ExpressionSubstitutionTests {
         val s = "1ub"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -677,8 +657,7 @@ class ExpressionSubstitutionTests {
         val s = "1us"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -692,8 +671,7 @@ class ExpressionSubstitutionTests {
         val s = "1u"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -707,8 +685,7 @@ class ExpressionSubstitutionTests {
         val s = "1ul"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -722,8 +699,7 @@ class ExpressionSubstitutionTests {
         val s = "1.0"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -737,8 +713,7 @@ class ExpressionSubstitutionTests {
         val s = "1.0d"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -752,8 +727,7 @@ class ExpressionSubstitutionTests {
         val s = "+1"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -773,8 +747,7 @@ class ExpressionSubstitutionTests {
         val s = "x + 1"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -802,8 +775,7 @@ class ExpressionSubstitutionTests {
         val s = "1 + x"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -831,8 +803,7 @@ class ExpressionSubstitutionTests {
         val s = "1 + 1"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -855,8 +826,7 @@ class ExpressionSubstitutionTests {
         val s = "1 + 1.0"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -879,8 +849,7 @@ class ExpressionSubstitutionTests {
         val s = "f(1)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -900,8 +869,7 @@ class ExpressionSubstitutionTests {
         val s = "f(1, 1)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -924,8 +892,7 @@ class ExpressionSubstitutionTests {
         val s = "f(1, 1.0)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -948,8 +915,7 @@ class ExpressionSubstitutionTests {
         val s = "f(1, 1, 1)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 
@@ -973,8 +939,7 @@ class ExpressionSubstitutionTests {
         val s = "f(1, 1.0, 1l)"
         val iterator = ParserIterator()
         iterator.add(s)
-        val builder = SequenceBuilder(iterator)
-        val expression = parseExpression(builder)!!
+        val expression = parseExpression(iterator)!!
         val environment = expression.environment
         val type = environment.substitution.apply(expression.expressionType)
 

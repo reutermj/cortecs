@@ -91,6 +91,7 @@ sealed class AstImpl: Ast {
 
 @Serializable
 data class ProgramAst(override val nodes: List<Ast>, override val height: Int): StarAst<TopLevelAst>() {
+    val environment: Environment by lazy { fold(EmptyEnvironment as Environment) { acc, ast -> acc + ast.environment } }
     companion object {
         val empty = ProgramAst(emptyList(), 0)
     }
@@ -105,10 +106,14 @@ data class GarbageAst(override val nodes: List<Ast>, override val height: Int): 
     override fun ctor(nodes: List<Ast>, height: Int) = GarbageAst(nodes, height)
 }
 
-sealed class TopLevelAst: AstImpl()
+sealed class TopLevelAst: AstImpl() {
+    abstract val environment: Environment
+}
 
 @Serializable
 data class FunctionAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val parametersIndex: Int, val returnTypeIndex: Int, val blockIndex: Int): TopLevelAst() {
+    override val environment: Environment by lazy { generateFunctionEnvironment(this) }
+
     fun name(): NameToken =
         if(nameIndex == -1) throw Exception("Name not available")
         else nodes[nameIndex] as NameToken
@@ -128,6 +133,8 @@ data class FunctionAst(override val nodes: List<Ast>, override val errors: Corte
 
 @Serializable
 data class GarbageTopLevelAst(val garbageAst: GarbageAst): TopLevelAst() {
+    override val environment: Environment
+        get() = EmptyEnvironment
     override val nodes: List<Ast>
         get() = garbageAst.nodes
 

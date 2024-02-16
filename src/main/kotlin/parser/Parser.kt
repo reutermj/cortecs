@@ -147,6 +147,7 @@ fun parseFunction(iterator: ParserIterator): FunctionAst {
             }
             returnTypeIndex
         }
+    consumeWhitespace(builder)
 
     if (builder.consume<OpenCurlyToken>() == -1) {
         builder.emitError("Expected {", Span.zero)
@@ -241,6 +242,7 @@ fun parseLet(iterator: ParserIterator): LetAst {
             }
             typeAnnotationIndex
         }
+    consumeWhitespace(builder)
 
     if (builder.consume<EqualSignToken>() == -1) {
         builder.emitError("Expected =", Span.zero)
