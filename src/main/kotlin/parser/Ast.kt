@@ -91,7 +91,6 @@ sealed class AstImpl: Ast {
 
 @Serializable
 data class ProgramAst(override val nodes: List<Ast>, override val height: Int): StarAst<TopLevelAst>() {
-    val environment: Environment by lazy { fold(EmptyEnvironment as Environment) { acc, ast -> acc + ast.environment } }
     companion object {
         val empty = ProgramAst(emptyList(), 0)
     }
@@ -107,13 +106,10 @@ data class GarbageAst(override val nodes: List<Ast>, override val height: Int): 
 }
 
 sealed class TopLevelAst: AstImpl() {
-    abstract val environment: Environment
 }
 
 @Serializable
 data class FunctionAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val parametersIndex: Int, val returnTypeIndex: Int, val blockIndex: Int): TopLevelAst() {
-    override val environment: Environment by lazy { generateFunctionEnvironment(this) }
-
     fun name(): NameToken =
         if(nameIndex == -1) throw Exception("Name not available")
         else nodes[nameIndex] as NameToken
@@ -133,8 +129,6 @@ data class FunctionAst(override val nodes: List<Ast>, override val errors: Corte
 
 @Serializable
 data class GarbageTopLevelAst(val garbageAst: GarbageAst): TopLevelAst() {
-    override val environment: Environment
-        get() = EmptyEnvironment
     override val nodes: List<Ast>
         get() = garbageAst.nodes
 
@@ -162,20 +156,23 @@ data class ParameterAst(override val nodes: List<Ast>, override val errors: Cort
 
 @Serializable
 data class BlockAst(override val nodes: List<Ast>, override val height: Int): StarAst<BodyAst>() {
-    val environment: Environment by lazy { fold(EmptyEnvironment as Environment) { emptyEnvironment, bodyAst -> emptyEnvironment + bodyAst.environment } }
     companion object {
         val empty = BlockAst(emptyList(), 0)
     }
+
+    val environment: BlockEnvironment by lazy { generateBlockEnvironment(this) }
+
     override fun ctor(nodes: List<Ast>, height: Int) = BlockAst(nodes, height)
 }
 
 sealed class BodyAst: AstImpl() {
-    abstract val environment: Environment
+    abstract val environment: BlockEnvironment
 }
+
 @Serializable
 data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
-    override val environment: Environment
-        get() = BlockEnvironment(Substitution.empty, emptyMap(), emptyMap(), emptySet())
+    override val environment: BlockEnvironment
+        get() = BlockEnvironment.empty
 
     override val nodes: List<Ast>
         get() = garbageAst.nodes
@@ -186,7 +183,7 @@ data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
 
 @Serializable
 data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val expressionIndex: Int): BodyAst() {
-    override val environment: Environment by lazy { generateLetEnvironment(this) }
+    override val environment: BlockEnvironment by lazy { generateLetEnvironment(this) }
 
     fun name(): NameToken =
         if(nameIndex == -1) throw Exception("Name not available")
@@ -203,7 +200,7 @@ data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErr
 
 @Serializable
 data class ReturnAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): BodyAst() {
-    override val environment: Environment by lazy { generateReturnEnvironment(this) }
+    override val environment: BlockEnvironment by lazy { generateReturnEnvironment(this) }
     fun expression(): Expression =
         if(expressionIndex == -1) throw Exception("Expression not available")
         else nodes[expressionIndex] as Expression
@@ -211,7 +208,7 @@ data class ReturnAst(override val nodes: List<Ast>, override val errors: Cortecs
 
 @Serializable
 data class IfAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val conditionIndex: Int, val blockIndex: Int): BodyAst() {
-    override val environment: Environment by lazy { generateIfEnvironment(this) }
+    override val environment: BlockEnvironment by lazy { generateIfEnvironment(this) }
     fun condition(): Expression =
         if(conditionIndex == -1) throw Exception("Expression not available")
         else nodes[conditionIndex] as Expression
@@ -238,19 +235,13 @@ data class IfAst(override val nodes: List<Ast>, override val errors: CortecsErro
 //E  -> (P1) | atom
 @Serializable
 sealed class Expression: AstImpl() {
-    abstract val environment: Environment
-    abstract val expressionType: Type
+    abstract val environment: ExpressionEnvironment
 }
 @Serializable
 sealed class BaseExpression: Expression()
 @Serializable
 data class AtomicExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val atomIndex: Int): BaseExpression() {
-    override lateinit var expressionType: Type
-    override val environment: Environment by lazy {
-        val (t, e) = generateAtomicExpressionEnvironment(this)
-        expressionType = t
-        e
-    }
+    override val environment: ExpressionEnvironment by lazy { generateAtomicExpressionEnvironment(this) }
 
     fun atom(): AtomicExpressionToken =
         if(atomIndex == -1) throw Exception("Name not available")
@@ -258,12 +249,7 @@ data class AtomicExpression(override val nodes: List<Ast>, override val errors: 
 }
 @Serializable
 data class GroupingExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): BaseExpression() {
-    override lateinit var expressionType: Type
-    override val environment: Environment by lazy {
-        val (t, e) = generateGroupingExpressionEnvironment(this)
-        expressionType = t
-        e
-    }
+    override val environment: ExpressionEnvironment by lazy { generateGroupingExpressionEnvironment(this) }
 
     fun expression(): Expression =
         if(expressionIndex == -1) throw Exception("Name not available")
@@ -271,12 +257,7 @@ data class GroupingExpression(override val nodes: List<Ast>, override val errors
 }
 @Serializable
 data class UnaryExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val opIndex: Int, val expressionIndex: Int): BaseExpression() {
-    override lateinit var expressionType: Type
-    override val environment: Environment by lazy {
-        val (t, e) = generateUnaryExpressionEnvironment(this)
-        expressionType = t
-        e
-    }
+    override val environment: ExpressionEnvironment by lazy { generateUnaryExpressionEnvironment(this) }
 
     fun op(): OperatorToken =
         if(opIndex == -1) throw Exception("op not available")
@@ -301,12 +282,7 @@ data class ArgumentAst(override val nodes: List<Ast>, override val errors: Corte
 }
 @Serializable
 data class FunctionCallExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val functionIndex: Int, val argumentsIndex: Int): BaseExpression() {
-    override lateinit var expressionType: Type
-    override val environment: Environment by lazy {
-        val (t, e) = generateFunctionCallExpressionEnvironment(this)
-        expressionType = t
-        e
-    }
+    override val environment: ExpressionEnvironment by lazy { generateFunctionCallExpressionEnvironment(this) }
 
     fun function(): Expression =
         if(functionIndex == -1) throw Exception("Name not available")
@@ -322,12 +298,7 @@ sealed class BinaryExpression: Expression() {
     abstract val rhsIndex: Int
     abstract val opIndex: Int
 
-    override lateinit var expressionType: Type
-    override val environment: Environment by lazy {
-        val (t, e) = generateBinaryExpressionEnvironment(this)
-        expressionType = t
-        e
-    }
+    override val environment: ExpressionEnvironment by lazy { generateBinaryExpressionEnvironment(this) }
 
     fun lhs(): Expression =
         if(lhsIndex == -1) throw Exception("lhs not available")

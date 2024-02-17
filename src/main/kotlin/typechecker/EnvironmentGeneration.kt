@@ -5,18 +5,6 @@ import parser.*
 var unificationVarNumber: Long = 0
 fun freshUnificationVariable() = UnificationTypeVariable("${unificationVarNumber++}")
 
-fun generalize(type: Type, substitution: Substitution): Pair<TypeScheme, Substitution> {
-    val applied = substitution.apply(type)
-    val typeVariables = applied.freeTypeVariables.toList().sortedBy { it.n }
-    val outSubstitution = typeVariables.fold(substitution) { acc, typeVar ->
-        when(typeVar) {
-            is UnificationTypeVariable -> acc.makeCompatibility(typeVar)
-            is UserDefinedTypeVariable -> acc
-        }
-    }
-    return Pair(TypeScheme(typeVariables, applied), outSubstitution)
-}
-
 fun typesToType(types: List<Type>) = //todo find better name for this
     when(types.size) {
         0 -> UnitType  //should probably be empty type
@@ -24,131 +12,124 @@ fun typesToType(types: List<Type>) = //todo find better name for this
         else -> ProductType(types)
     }
 
-fun processParameters(parameters: StarAst<ParameterAst>, substitution: Substitution, requirements: MutableMap<BindableToken, List<Type>>, freeUserDefinedTypeVariables: MutableSet<UserDefinedTypeVariable>): Pair<Type, Substitution> {
-    val parameterTypes = mutableListOf<Type>()
-    val outSubstitution = parameters.fold(substitution) { sub, parameter ->
-        val parameterType =
-            if(parameter.typeAnnotationIndex == -1) freshUnificationVariable()
-            else tokenToType(parameter.typeAnnotation())
-        if(parameterType is UserDefinedTypeVariable) freeUserDefinedTypeVariables.remove(parameterType)
-        parameterTypes.add(parameterType)
-        requirements.remove(parameter.name())?.fold(sub) { acc, type -> acc.unify(parameterType, type) } ?: sub
+fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
+
+    for(node in block.nodes) {
+        val environment =
+            when(node) {
+                is BodyAst -> node.environment
+                is BlockAst -> node.environment
+                else -> throw Exception()
+            }
     }
-    return Pair(typesToType(parameterTypes), outSubstitution)
+
+    TODO()
+    TODO()
 }
 
-fun processReturn(fn: FunctionAst, substitution: Substitution, requirements: MutableMap<BindableToken, List<Type>>, freeUserDefinedTypeVariables: MutableSet<UserDefinedTypeVariable>): Pair<Type, Substitution> {
-    val returnTypes = requirements.remove(ReturnTypeToken)
-    val returnType =
-        if(fn.returnTypeIndex == -1) {
-            if(returnTypes == null) UnitType
-            else freshUnificationVariable()
-        } else tokenToType(fn.returnType())
-    if(returnType is UserDefinedTypeVariable) freeUserDefinedTypeVariables.remove(returnType)
-    val outSubstitution = returnTypes?.fold(substitution) { acc, type -> acc.unify(returnType, type) } ?: substitution
-    return Pair(returnType, outSubstitution)
+fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
+    if(ifAst.conditionIndex == -1) return BlockEnvironment.empty
+    if(ifAst.blockIndex == -1) return BlockEnvironment.empty
+
+    val cEnvironment = ifAst.condition().environment
+    val bEnvironment = generateBlockEnvironment(ifAst.block())
+
+    val requirements = cEnvironment.requirements + bEnvironment.requirements
+    //todo handle unification error
+    val substitution = (cEnvironment.substitution + bEnvironment.substitution).unify(cEnvironment.type, BooleanType)
+
+    return BlockEnvironment(Bindings.empty, substitution, requirements, bEnvironment.freeUserDefinedTypeVariables, listOf(cEnvironment, bEnvironment))
 }
 
-fun processRecursion(name: NameToken, type: Type, substitution: Substitution, requirements: MutableMap<BindableToken, List<Type>>) =
-    requirements.remove(name)?.fold(substitution) { acc, requirement -> acc.unify(type, requirement) } ?: substitution
-
-fun generateFunctionEnvironment(fn: FunctionAst): Environment {
-    if(fn.nameIndex == -1) return EmptyEnvironment
-    if(fn.parametersIndex == -1) return EmptyEnvironment
-    if(fn.blockIndex == -1) return EmptyEnvironment
-    val blockEnvironment = fn.block().environment as BlockEnvironment
-    val requirements = blockEnvironment.requirements.toMutableMap()
-    val freeUserDefinedTypeVariables = blockEnvironment.freeUserDefinedTypeVariables.toMutableSet()
-    val (parameterType, parameterSubstitution) = processParameters(fn.parameters(), blockEnvironment.substitution, requirements, freeUserDefinedTypeVariables)
-    val (returnType, returnSubstitution) = processReturn(fn, parameterSubstitution, requirements, freeUserDefinedTypeVariables)
-    if(freeUserDefinedTypeVariables.any()) TODO()
-    val arrow = ArrowType(parameterType, returnType)
-    val substitution = processRecursion(fn.name(), arrow, returnSubstitution, requirements)
-    val (generalized, outSub) = generalize(arrow, substitution)
-    return TopLevelEnvironment(outSub, mapOf(fn.name() to generalized), requirements)
-}
-
-fun generateIfEnvironment(ifAst: IfAst): Environment {
-    if(ifAst.conditionIndex == -1) return EmptyEnvironment
-    if(ifAst.blockIndex == -1) return EmptyEnvironment
-    val environment = ifAst.condition().environment + ifAst.block().environment.copy(bindings = emptyMap())
-    return environment.copy(substitution = environment.substitution.unify(ifAst.condition().expressionType, BooleanType))
-}
-
-fun generateLetEnvironment(let: LetAst): Environment {
-    if(let.nameIndex == -1) return EmptyEnvironment
-    if(let.expressionIndex == -1) return EmptyEnvironment
+fun generateLetEnvironment(let: LetAst): BlockEnvironment {
+    if(let.nameIndex == -1) return BlockEnvironment.empty
+    if(let.expressionIndex == -1) return BlockEnvironment.empty
     val environment = let.expression().environment
     val freeUserDefinedTypeVariable = mutableSetOf<UserDefinedTypeVariable>()
     val (type, substitution) =
-        if(let.typeAnnotationIndex == -1) generalize(let.expression().expressionType, environment.substitution)
+        if(let.typeAnnotationIndex == -1) generalize(environment.type, environment.substitution)
         else {
             val annotation = tokenToType(let.typeAnnotation())
             if(annotation is UserDefinedTypeVariable) freeUserDefinedTypeVariable.add(annotation)
-            Pair(TypeScheme(emptyList(), annotation), environment.substitution.unify(annotation, let.expression().expressionType))
+            //todo handle unification error
+            Pair(TypeScheme(emptyList(), annotation), environment.substitution.unify(annotation, environment.type))
         }
 
-    return BlockEnvironment(substitution, mapOf(let.name() to type), environment.requirements, freeUserDefinedTypeVariable)
+    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), substitution, environment.requirements, freeUserDefinedTypeVariable, listOf(environment))
 }
 
-fun generateReturnEnvironment(returnAst: ReturnAst): Environment {
-    if(returnAst.expressionIndex == -1) return EmptyEnvironment
-    return returnAst.expression().environment.addRequirement(ReturnTypeToken, returnAst.expression().expressionType)
+fun generateReturnEnvironment(returnAst: ReturnAst): BlockEnvironment {
+    if(returnAst.expressionIndex == -1) return BlockEnvironment.empty
+    val environment = returnAst.expression().environment
+    val requirements = environment.requirements.addRequirement(ReturnTypeToken, environment.type)
+    return BlockEnvironment(Bindings.empty, environment.substitution, requirements, emptySet(), listOf(environment))
 }
 
-fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): Pair<Type, Environment> {
-    if(fnCall.argumentsIndex == -1) return Pair(Invalid, EmptyEnvironment)
+fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): ExpressionEnvironment {
+    if(fnCall.argumentsIndex == -1) return ExpressionEnvironment.empty
+    val fEnvironment = fnCall.function().environment
+
     val argTypes = mutableListOf<Type>()
-    val environment = fnCall.arguments().fold(fnCall.function().environment) { env, arg ->
-        val environment = env + arg.expression().environment //need to access environment before type
-        argTypes.add(arg.expression().expressionType)
-        environment
+    var substitution = fEnvironment.substitution
+    var requirements = fEnvironment.requirements
+    val subordinates = mutableListOf<ExpressionEnvironment>()
+
+    fnCall.arguments().inOrder {
+        val environment = it.expression().environment
+        substitution += environment.substitution
+        requirements += environment.requirements
+        argTypes.add(environment.type)
+        subordinates.add(environment)
     }
+
     val retType = freshUnificationVariable()
-    val substitution = environment.substitution.unify(fnCall.function().expressionType, ArrowType(typesToType(argTypes), retType))
-    return Pair(retType, BlockEnvironment(substitution, emptyMap(), environment.requirements, emptySet()))
+    //todo, start handling unification errors
+    substitution = substitution.unify(fEnvironment.type, ArrowType(typesToType(argTypes), retType))
+    //todo, the function name requirement needs to be updated with to the arrow type
+    return ExpressionEnvironment(retType, substitution, requirements, subordinates)
 }
 
-fun generateBinaryExpressionEnvironment(binaryExpression: BinaryExpression): Pair<Type, Environment> {
-    if(binaryExpression.rhsIndex == -1) return Pair(Invalid, EmptyEnvironment)
+fun generateBinaryExpressionEnvironment(binaryExpression: BinaryExpression): ExpressionEnvironment {
+    if(binaryExpression.rhsIndex == -1) return ExpressionEnvironment.empty
     val lEnvironment = binaryExpression.lhs().environment
-    val lType = binaryExpression.lhs().expressionType
-
     val rEnvironment = binaryExpression.rhs().environment
-    val rType = binaryExpression.rhs().expressionType
 
     val retType = freshUnificationVariable()
-    val opType = ArrowType(ProductType(listOf(lType, rType)), retType)
-    return Pair(retType, (lEnvironment + rEnvironment).addRequirement(binaryExpression.op(), opType))
+    val opType = ArrowType(ProductType(listOf(lEnvironment.type, rEnvironment.type)), retType)
+    val requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(binaryExpression.op(), opType)
+    val substitution = lEnvironment.substitution + rEnvironment.substitution
+    return ExpressionEnvironment(retType, substitution, requirements, listOf(lEnvironment, rEnvironment))
 }
 
-fun generateUnaryExpressionEnvironment(unaryExpression: UnaryExpression): Pair<Type, Environment> {
-    if(unaryExpression.expressionIndex == -1) return Pair(Invalid, EmptyEnvironment)
-    val uEnvironment = unaryExpression.expression().environment
-    val uType = unaryExpression.expression().expressionType
+fun generateUnaryExpressionEnvironment(unaryExpression: UnaryExpression): ExpressionEnvironment {
+    if(unaryExpression.expressionIndex == -1) return ExpressionEnvironment.empty
+    val environment = unaryExpression.expression().environment
 
     val retType = freshUnificationVariable()
-    return Pair(retType, uEnvironment.addRequirement(unaryExpression.op(), ArrowType(uType, retType)))
+    val requirements = environment.requirements.addRequirement(unaryExpression.op(), ArrowType(environment.type, retType))
+    return ExpressionEnvironment(retType, environment.substitution, requirements, listOf(environment))
 }
 
-fun generateGroupingExpressionEnvironment(groupingExpression: GroupingExpression): Pair<Type, Environment> {
-    if(groupingExpression.expressionIndex == -1) return Pair(Invalid, EmptyEnvironment)
-    val environment = groupingExpression.expression().environment //type is lateinit and accessing environment initializes type
-    return Pair(groupingExpression.expression().expressionType, environment)
-}
+fun generateGroupingExpressionEnvironment(groupingExpression: GroupingExpression) =
+    if(groupingExpression.expressionIndex == -1) ExpressionEnvironment.empty
+    else {
+        val environment = groupingExpression.expression().environment
+        environment.copy(subordinates = listOf(environment))
+    }
 
-fun generateAtomicExpressionEnvironment(a: AtomicExpression): Pair<Type, Environment> =
+fun generateAtomicExpressionEnvironment(a: AtomicExpression) =
     when(val atom = a.atom()) {
         is NameToken -> {
             val type = freshUnificationVariable()
-            Pair(type, EmptyEnvironment.addRequirement(atom, type))
+            val requirements = Requirements.empty.addRequirement(atom, type)
+            ExpressionEnvironment.empty.copy(type = type, requirements = requirements)
         }
-        is IntToken -> Pair(getIntType(atom), EmptyEnvironment)
-        is FloatToken -> Pair(getFloatType(atom), EmptyEnvironment)
-        is CharToken -> Pair(CharacterType, EmptyEnvironment)
-        is StringToken -> Pair(StringType, EmptyEnvironment)
-        is BadCharToken -> Pair(Invalid, EmptyEnvironment)
-        is BadStringToken -> Pair(Invalid, EmptyEnvironment)
+        is IntToken -> ExpressionEnvironment.empty.copy(type = getIntType(atom))
+        is FloatToken -> ExpressionEnvironment.empty.copy(type = getFloatType(atom))
+        is CharToken -> ExpressionEnvironment.empty.copy(type = CharacterType)
+        is StringToken -> ExpressionEnvironment.empty.copy(type = StringType)
+        is BadCharToken -> ExpressionEnvironment.empty
+        is BadStringToken -> ExpressionEnvironment.empty
     }
 
 fun getIntType(i: IntToken): Type {
@@ -188,3 +169,15 @@ fun tokenToType(t: TypeAnnotationToken): Type =
             }
         is NameToken -> UserDefinedTypeVariable(t.value)
     }
+
+fun generalize(type: Type, substitution: Substitution): Pair<TypeScheme, Substitution> {
+    val applied = substitution.apply(type)
+    val typeVariables = applied.freeTypeVariables.toList().sortedBy { it.n }
+    val outSubstitution = typeVariables.fold(substitution) { acc, typeVar ->
+        when(typeVar) {
+            is UnificationTypeVariable -> acc.makeCompatibility(typeVar)
+            is UserDefinedTypeVariable -> acc
+        }
+    }
+    return Pair(TypeScheme(typeVariables, applied), outSubstitution)
+}
