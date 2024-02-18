@@ -13,18 +13,38 @@ fun typesToType(types: List<Type>) = //todo find better name for this
     }
 
 fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
+    if(block.nodes.isEmpty()) return BlockEnvironment.empty
+    val first = when(val node = block.nodes.first()) {
+        is BodyAst -> node.environment
+        is BlockAst -> node.environment
+        else -> throw Exception()
+    }
 
-    for(node in block.nodes) {
+    var outBindings = first.bindings
+    var outRequirements = first.requirements
+    var outSubstitution = first.substitution
+    var outFreeUserDefinedTypeVariable = first.freeUserDefinedTypeVariables
+    val outSubordinates = mutableListOf(first)
+
+    for(node in block.nodes.drop(1)) {
         val environment =
             when(node) {
                 is BodyAst -> node.environment
                 is BlockAst -> node.environment
                 else -> throw Exception()
             }
+
+        outBindings += environment.bindings
+        outSubstitution += environment.substitution
+        outFreeUserDefinedTypeVariable += environment.freeUserDefinedTypeVariables
+        val or = mutableMapOf<BindableToken, List<Type>>()
+        outSubstitution = merge(outSubstitution, outRequirements, outBindings, environment.requirements, or)
+        for((token, typeVars) in outRequirements.requirements) if(!or.containsKey(token)) or[token] = typeVars
+        outRequirements = Requirements(or)
+        outSubordinates.add(environment)
     }
 
-    TODO()
-    TODO()
+    return BlockEnvironment(outBindings, outSubstitution, outRequirements, outFreeUserDefinedTypeVariable, outSubordinates)
 }
 
 fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
@@ -180,4 +200,51 @@ fun generalize(type: Type, substitution: Substitution): Pair<TypeScheme, Substit
         }
     }
     return Pair(TypeScheme(typeVariables, applied), outSubstitution)
+}
+
+fun merge(substitution: Substitution, requirements: Requirements, bindings: Bindings, otherRequirements: Requirements, outRequirements: MutableMap<BindableToken, List<Type>>): Substitution =
+    otherRequirements.fold(substitution) { acc, token, otherTypeVars ->
+        val typeScheme = bindings[token]
+        if(typeScheme != null)
+            otherTypeVars.fold(acc) { acc, typeVar ->
+                val (instantiated, instSubstitution) = instantiate(typeScheme, acc)
+                instSubstitution.unify(typeVar, instantiated)
+            }
+        else if(outRequirements.containsKey(token)) acc
+        else {
+            val typeVars = requirements[token]
+            if(typeVars == null) outRequirements[token] = otherTypeVars
+            else outRequirements[token] = typeVars + otherTypeVars
+            acc
+        }
+    }
+
+fun instantiate(typeScheme: TypeScheme, substitution: Substitution): Pair<Type, Substitution> {
+    val outSubstitution = substitution.mapping.toMutableMap()
+    val mapping =
+        typeScheme.boundVariables.associateWith {
+            when(it) {
+                is UserDefinedTypeVariable -> freshUnificationVariable()
+                is UnificationTypeVariable ->
+                    when(val lookup = substitution.find(it)) {
+                        is Representative -> throw Exception("error")
+                        is TypeMapping -> lookup.type//todo does this need to be recusive?
+                        is Compatibility -> {
+                            val fresh = freshUnificationVariable()
+                            outSubstitution[lookup.typeVar] = lookup.copy(typeVars = lookup.typeVars + fresh)
+                            fresh
+                        }
+                    }
+            }
+        }
+
+    fun inst(type: Type): Type =
+        when(type) {
+            is TypeVariable -> mapping[type] ?: throw Exception()
+            is ArrowType -> ArrowType(inst(type.lhs), inst(type.rhs))
+            is ProductType -> ProductType(type.types.map { inst(it) })
+            else -> type
+        }
+
+    return Pair(inst(typeScheme.type), Substitution(outSubstitution))
 }

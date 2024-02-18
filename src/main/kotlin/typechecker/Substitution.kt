@@ -32,7 +32,8 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                 if(lType.types.size != rType.types.size) TODO()
                 lType.types.zip(rType.types).fold(this) { acc, pair -> acc.unify(pair.first, pair.second) }
             }
-            else -> TODO()
+            else ->
+                TODO()
         }
 
     fun unifyCompatibilityToType(compatibility: Compatibility, type: Type): Substitution =
