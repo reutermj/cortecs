@@ -17,14 +17,12 @@ class ExpressionTests {
         val environment = getExpressionEnvironment(s)
         assertEquals(environment.type, environment.requirements[NameToken("a")]?.first())
         assertTrue { environment.subordinates.isEmpty() }
-        assertEquals(Substitution.empty, environment.substitution)
     }
 
     inline fun <reified T: Type>testConstant(s: String) {
         val environment = getExpressionEnvironment(s)
         assertIs<T>(environment.type)
         assertTrue { environment.subordinates.isEmpty() }
-        assertEquals(Substitution.empty, environment.substitution)
         assertEquals(Requirements.empty, environment.requirements)
     }
 
@@ -51,7 +49,6 @@ class ExpressionTests {
         assertEquals(1, environment.subordinates.size)
         val subordinate = environment.subordinates.first()
         assertEquals(environment.type, subordinate.type)
-        assertEquals(environment.substitution, subordinate.substitution)
         assertEquals(environment.requirements, subordinate.requirements)
     }
 
@@ -72,7 +69,6 @@ class ExpressionTests {
         val operator = environment.requirements[OperatorToken(op)]!!
         assertEquals(1, operator.size)
         assertEquals(ArrowType(subordinate.type, environment.type), operator.first())
-        assertEquals(subordinate.substitution, environment.substitution)
     }
 
     @Test
@@ -92,7 +88,6 @@ class ExpressionTests {
         val operator = environment.requirements[OperatorToken(op)]!!
         assertEquals(1, operator.size)
         assertEquals(ArrowType(ProductType(listOf(lSub.type, rSub.type)), environment.type), operator.first())
-        assertEquals(lSub.substitution + rSub.substitution, environment.substitution)
     }
 
     @Test
@@ -111,5 +106,10 @@ class ExpressionTests {
                 testBinary("($lAtom)", "+", "($rAtom)")
             }
         }
+    }
+
+    @Test
+    fun test() {
+        getExpressionEnvironment("f(x)(y)")
     }
 }

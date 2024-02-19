@@ -41,18 +41,34 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
         for((key, value) in requirements) acc = f(acc, key, value)
         return acc
     }
+
+    fun map(f: (Type) -> Type) = Requirements(requirements.mapValues { it.value.map(f) })
+}
+
+data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, List<Type>>) {
+    companion object {
+        val empty = Compatibilities(emptyMap())
+    }
+
+    operator fun get(typeVar: UnificationTypeVariable) = compatibilities[typeVar]
+
+    fun addCompatibilities(typeVars: List<UnificationTypeVariable>) = Compatibilities(compatibilities + typeVars.associateWith { emptyList() })
+    fun makeCompatible(typeVar: UnificationTypeVariable, type: Type): Compatibilities {
+        val types = (compatibilities[typeVar] ?: emptyList()) + type
+        return Compatibilities(compatibilities + (typeVar to types))
+    }
 }
 
 sealed interface BlockSubordinates
 
-data class BlockEnvironment(val bindings: Bindings, val substitution: Substitution, val requirements: Requirements, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val subordinates: List<BlockSubordinates>): BlockSubordinates {
+data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val subordinates: List<BlockSubordinates>): BlockSubordinates {
     companion object {
-        val empty = BlockEnvironment(Bindings.empty, Substitution.empty, Requirements.empty, emptySet(), emptyList())
+        val empty = BlockEnvironment(Bindings.empty, Requirements.empty, Compatibilities.empty, emptySet(), emptyList())
     }
 }
 
-data class ExpressionEnvironment(val type: Type, val substitution: Substitution, val requirements: Requirements, val subordinates: List<ExpressionEnvironment>): BlockSubordinates {
+data class ExpressionEnvironment(val type: Type, val requirements: Requirements, val subordinates: List<ExpressionEnvironment>): BlockSubordinates {
     companion object {
-        val empty = ExpressionEnvironment(Invalid, Substitution.empty, Requirements.empty, emptyList())
+        val empty = ExpressionEnvironment(Invalid, Requirements.empty, emptyList())
     }
 }

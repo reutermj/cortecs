@@ -24,6 +24,7 @@ class BodyTests {
         val yRequirements = environment.requirements[NameToken("y")]!!
         assertEquals(1, yRequirements.size)
         assertEquals(expressionType, yRequirements.first())
+        assertEquals(emptyList(), environment.compatibilities[expressionType])
     }
 
     @Test

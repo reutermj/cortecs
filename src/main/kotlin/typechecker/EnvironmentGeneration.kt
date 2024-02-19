@@ -22,7 +22,7 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
 
     var outBindings = first.bindings
     var outRequirements = first.requirements
-    var outSubstitution = first.substitution
+    var outSubstitution = Substitution.empty//first.substitution
     var outFreeUserDefinedTypeVariable = first.freeUserDefinedTypeVariables
     val outSubordinates = mutableListOf(first)
 
@@ -35,7 +35,7 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
             }
 
         outBindings += environment.bindings
-        outSubstitution += environment.substitution
+        //outSubstitution += environment.substitution
         outFreeUserDefinedTypeVariable += environment.freeUserDefinedTypeVariables
         val or = mutableMapOf<BindableToken, List<Type>>()
         outSubstitution = merge(outSubstitution, outRequirements, outBindings, environment.requirements, or)
@@ -44,7 +44,8 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
         outSubordinates.add(environment)
     }
 
-    return BlockEnvironment(outBindings, outSubstitution, outRequirements, outFreeUserDefinedTypeVariable, outSubordinates)
+    //TODO fix compatibilities
+    return BlockEnvironment(outBindings, outRequirements, Compatibilities.empty, outFreeUserDefinedTypeVariable, outSubordinates)
 }
 
 fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
@@ -56,9 +57,10 @@ fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
 
     val requirements = cEnvironment.requirements + bEnvironment.requirements
     //todo handle unification error
-    val substitution = (cEnvironment.substitution + bEnvironment.substitution).unify(cEnvironment.type, BooleanType)
+    TODO()
+//    val substitution = (cEnvironment.substitution + bEnvironment.substitution).unify(cEnvironment.type, BooleanType)
 
-    return BlockEnvironment(Bindings.empty, substitution, requirements, bEnvironment.freeUserDefinedTypeVariables, listOf(cEnvironment, bEnvironment))
+    //return BlockEnvironment(Bindings.empty, substitution, requirements, bEnvironment.freeUserDefinedTypeVariables, listOf(cEnvironment, bEnvironment))
 }
 
 fun generateLetEnvironment(let: LetAst): BlockEnvironment {
@@ -66,23 +68,23 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
     if(let.expressionIndex == -1) return BlockEnvironment.empty
     val environment = let.expression().environment
     val freeUserDefinedTypeVariable = mutableSetOf<UserDefinedTypeVariable>()
-    val (type, substitution) =
-        if(let.typeAnnotationIndex == -1) generalize(environment.type, environment.substitution)
+    val (type, compatibilities) =
+        if(let.typeAnnotationIndex == -1) generalize(environment.type)
         else {
             val annotation = tokenToType(let.typeAnnotation())
             if(annotation is UserDefinedTypeVariable) freeUserDefinedTypeVariable.add(annotation)
-            //todo handle unification error
-            Pair(TypeScheme(emptyList(), annotation), environment.substitution.unify(annotation, environment.type))
+            val substitution = Substitution.empty.unify(annotation, environment.type)
+            Pair(TypeScheme(emptyList(), annotation), Compatibilities.empty)
         }
 
-    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), substitution, environment.requirements, freeUserDefinedTypeVariable, listOf(environment))
+    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), environment.requirements, compatibilities, freeUserDefinedTypeVariable, listOf(environment))
 }
 
 fun generateReturnEnvironment(returnAst: ReturnAst): BlockEnvironment {
     if(returnAst.expressionIndex == -1) return BlockEnvironment.empty
     val environment = returnAst.expression().environment
     val requirements = environment.requirements.addRequirement(ReturnTypeToken, environment.type)
-    return BlockEnvironment(Bindings.empty, environment.substitution, requirements, emptySet(), listOf(environment))
+    return BlockEnvironment(Bindings.empty, requirements, Compatibilities.empty, emptySet(), listOf(environment))
 }
 
 fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): ExpressionEnvironment {
@@ -90,13 +92,11 @@ fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): E
     val fEnvironment = fnCall.function().environment
 
     val argTypes = mutableListOf<Type>()
-    var substitution = fEnvironment.substitution
-    var requirements = fEnvironment.requirements
+    var requirements = Requirements.empty
     val subordinates = mutableListOf<ExpressionEnvironment>()
 
     fnCall.arguments().inOrder {
         val environment = it.expression().environment
-        substitution += environment.substitution
         requirements += environment.requirements
         argTypes.add(environment.type)
         subordinates.add(environment)
@@ -104,9 +104,9 @@ fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): E
 
     val retType = freshUnificationVariable()
     //todo, start handling unification errors
-    substitution = substitution.unify(fEnvironment.type, ArrowType(typesToType(argTypes), retType))
-    //todo, the function name requirement needs to be updated with to the arrow type
-    return ExpressionEnvironment(retType, substitution, requirements, subordinates)
+    val substitution = Substitution.empty.unify(fEnvironment.type, ArrowType(typesToType(argTypes), retType))
+    requirements += fEnvironment.requirements.map { substitution.apply(it) }
+    return ExpressionEnvironment(retType, requirements, subordinates)
 }
 
 fun generateBinaryExpressionEnvironment(binaryExpression: BinaryExpression): ExpressionEnvironment {
@@ -117,8 +117,7 @@ fun generateBinaryExpressionEnvironment(binaryExpression: BinaryExpression): Exp
     val retType = freshUnificationVariable()
     val opType = ArrowType(ProductType(listOf(lEnvironment.type, rEnvironment.type)), retType)
     val requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(binaryExpression.op(), opType)
-    val substitution = lEnvironment.substitution + rEnvironment.substitution
-    return ExpressionEnvironment(retType, substitution, requirements, listOf(lEnvironment, rEnvironment))
+    return ExpressionEnvironment(retType, requirements, listOf(lEnvironment, rEnvironment))
 }
 
 fun generateUnaryExpressionEnvironment(unaryExpression: UnaryExpression): ExpressionEnvironment {
@@ -127,7 +126,7 @@ fun generateUnaryExpressionEnvironment(unaryExpression: UnaryExpression): Expres
 
     val retType = freshUnificationVariable()
     val requirements = environment.requirements.addRequirement(unaryExpression.op(), ArrowType(environment.type, retType))
-    return ExpressionEnvironment(retType, environment.substitution, requirements, listOf(environment))
+    return ExpressionEnvironment(retType, requirements, listOf(environment))
 }
 
 fun generateGroupingExpressionEnvironment(groupingExpression: GroupingExpression) =
@@ -190,16 +189,10 @@ fun tokenToType(t: TypeAnnotationToken): Type =
         is NameToken -> UserDefinedTypeVariable(t.value)
     }
 
-fun generalize(type: Type, substitution: Substitution): Pair<TypeScheme, Substitution> {
-    val applied = substitution.apply(type)
-    val typeVariables = applied.freeTypeVariables.toList().sortedBy { it.n }
-    val outSubstitution = typeVariables.fold(substitution) { acc, typeVar ->
-        when(typeVar) {
-            is UnificationTypeVariable -> acc.makeCompatibility(typeVar)
-            is UserDefinedTypeVariable -> acc
-        }
-    }
-    return Pair(TypeScheme(typeVariables, applied), outSubstitution)
+fun generalize(type: Type): Pair<TypeScheme, Compatibilities> {
+    val typeVariables = type.freeTypeVariables.toList().sortedBy { it.n }
+    val compatibilities = Compatibilities.empty.addCompatibilities(typeVariables.filterIsInstance<UnificationTypeVariable>())
+    return Pair(TypeScheme(typeVariables, type), compatibilities)
 }
 
 fun merge(substitution: Substitution, requirements: Requirements, bindings: Bindings, otherRequirements: Requirements, outRequirements: MutableMap<BindableToken, List<Type>>): Substitution =
