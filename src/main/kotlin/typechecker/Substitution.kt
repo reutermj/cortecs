@@ -13,8 +13,6 @@ data class TypeMapping(val type: Type): Lookup()
 @Serializable
 data class Intermediate(val dst: UnificationTypeVariable): LookupIntermediate()
 @Serializable
-data class Compatibility(val typeVar: TypeVariable, val typeVars: Set<UnificationTypeVariable>): Lookup()
-@Serializable
 data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
     companion object {
         val empty = Substitution(emptyMap())
@@ -36,8 +34,6 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                 TODO()
         }
 
-    fun unifyCompatibilityToType(compatibility: Compatibility, type: Type): Substitution =
-        compatibility.typeVars.fold(pointAt(compatibility.typeVar, type)) { acc, typeVar -> acc.unify(typeVar, type) }
 
     fun unifyUnificationTypeVariable(lType: UnificationTypeVariable, rType: Type): Substitution =
         when(val lLookup = find(lType)) {
@@ -48,19 +44,8 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                         when(val rLookup = find(rType)) {
                             is Representative -> pointAt(lLookup.typeVar, rLookup.typeVar)
                             is TypeMapping -> pointAt(lLookup.typeVar, rLookup.type)
-                            is Compatibility -> unifyCompatibilityToType(rLookup, lLookup.typeVar)
                         }
                     else -> pointAt(lLookup.typeVar, rType)
-                }
-            is Compatibility ->
-                when(rType) {
-                    is UnificationTypeVariable ->
-                        when(val rLookup = find(rType)) {
-                            is Representative -> unifyCompatibilityToType(lLookup, rLookup.typeVar)
-                            is TypeMapping -> unifyCompatibilityToType(lLookup, rLookup.type)
-                            is Compatibility -> Substitution(pointAt(lLookup.typeVar, rLookup.typeVar).mapping + (rLookup.typeVar to Compatibility(rLookup.typeVar, rLookup.typeVars + lLookup.typeVars)))
-                        }
-                    else -> unifyCompatibilityToType(lLookup, rType)
                 }
         }
 
@@ -74,7 +59,6 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                 when(val result = find(type)) {
                     is Representative -> result.typeVar
                     is TypeMapping -> apply(result.type)
-                    is Compatibility -> result.typeVar
                 }
             is TypeScheme -> {
                 //For co-contextual type inference, TypeSchemes abstract over all type variables from the function
@@ -101,13 +85,6 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
             }
         }
     }
-
-    fun makeCompatibility(inst: UnificationTypeVariable) =
-        when(find(inst)) {
-            is Representative -> Substitution(mapping + (inst to Compatibility(inst, emptySet())))
-            is Compatibility -> this
-            is TypeMapping -> throw Exception()
-        }
 
     fun pointAt(src: TypeVariable, dst: Type) =
         when(dst) {

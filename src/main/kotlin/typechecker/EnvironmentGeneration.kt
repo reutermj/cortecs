@@ -14,37 +14,40 @@ fun typesToType(types: List<Type>) = //todo find better name for this
 
 fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
     if(block.nodes.isEmpty()) return BlockEnvironment.empty
-    val first = when(val node = block.nodes.first()) {
-        is BodyAst -> node.environment
-        is BlockAst -> node.environment
-        else -> throw Exception()
-    }
 
-    var outBindings = first.bindings
-    var outRequirements = first.requirements
-    var outSubstitution = Substitution.empty//first.substitution
-    var outFreeUserDefinedTypeVariable = first.freeUserDefinedTypeVariables
-    val outSubordinates = mutableListOf(first)
+    val outSubordinates = mutableListOf<BlockSubordinates>()
+    var substitution = Substitution.empty
+    var outBindings = Bindings.empty
+    var outRequirements = Requirements.empty
+    var outCompatibilities = Compatibilities.empty
+    val outFreeUserDefinedTypeVariable = mutableSetOf<UserDefinedTypeVariable>()
 
-    for(node in block.nodes.drop(1)) {
+    for(node in block.nodes) {
         val environment =
             when(node) {
                 is BodyAst -> node.environment
                 is BlockAst -> node.environment
                 else -> throw Exception()
             }
-
-        outBindings += environment.bindings
-        //outSubstitution += environment.substitution
-        outFreeUserDefinedTypeVariable += environment.freeUserDefinedTypeVariables
-        val or = mutableMapOf<BindableToken, List<Type>>()
-        outSubstitution = merge(outSubstitution, outRequirements, outBindings, environment.requirements, or)
-        for((token, typeVars) in outRequirements.requirements) if(!or.containsKey(token)) or[token] = typeVars
-        outRequirements = Requirements(or)
         outSubordinates.add(environment)
+        substitution = environment.requirements.fold(substitution) { acc0, token, types ->
+            val typeScheme = outBindings[token]
+            if(typeScheme == null) {
+                outCompatibilities += environment.compatibilities
+                acc0
+            } else types.fold(acc0) { acc1, type ->
+                val (instantiated, compatibilities) = instantiate(typeScheme, environment.compatibilities)
+                outCompatibilities += compatibilities
+                acc1.unify(type, instantiated)
+            }
+        }
+        outBindings += environment.bindings
+        outRequirements += environment.requirements.filter { token, _ -> outBindings.contains(token) }
+        outFreeUserDefinedTypeVariable.addAll(environment.freeUserDefinedTypeVariables)
     }
 
-    //TODO fix compatibilities
+    outRequirements = outRequirements.map { substitution.apply(it) }
+
     return BlockEnvironment(outBindings, outRequirements, Compatibilities.empty, outFreeUserDefinedTypeVariable, outSubordinates)
 }
 
@@ -55,12 +58,10 @@ fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
     val cEnvironment = ifAst.condition().environment
     val bEnvironment = generateBlockEnvironment(ifAst.block())
 
-    val requirements = cEnvironment.requirements + bEnvironment.requirements
-    //todo handle unification error
-    TODO()
-//    val substitution = (cEnvironment.substitution + bEnvironment.substitution).unify(cEnvironment.type, BooleanType)
+    val substitution = Substitution.empty.unify(cEnvironment.type, BooleanType)
+    val requirements = cEnvironment.requirements.map { substitution.apply(it) } + bEnvironment.requirements
 
-    //return BlockEnvironment(Bindings.empty, substitution, requirements, bEnvironment.freeUserDefinedTypeVariables, listOf(cEnvironment, bEnvironment))
+    return BlockEnvironment(Bindings.empty, requirements, bEnvironment.compatibilities, bEnvironment.freeUserDefinedTypeVariables, listOf(cEnvironment, bEnvironment))
 }
 
 fun generateLetEnvironment(let: LetAst): BlockEnvironment {
@@ -68,16 +69,24 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
     if(let.expressionIndex == -1) return BlockEnvironment.empty
     val environment = let.expression().environment
     val freeUserDefinedTypeVariable = mutableSetOf<UserDefinedTypeVariable>()
-    val (type, compatibilities) =
-        if(let.typeAnnotationIndex == -1) generalize(environment.type)
-        else {
-            val annotation = tokenToType(let.typeAnnotation())
-            if(annotation is UserDefinedTypeVariable) freeUserDefinedTypeVariable.add(annotation)
-            val substitution = Substitution.empty.unify(annotation, environment.type)
-            Pair(TypeScheme(emptyList(), annotation), Compatibilities.empty)
-        }
+    val requirements: Requirements
+    val type: TypeScheme
+    val compatibilities: Compatibilities
+    if(let.typeAnnotationIndex == -1) {
+        requirements = environment.requirements
+        val (t, c) = generalize(environment.type)
+        type = t
+        compatibilities = c
+    } else {
+        val annotation = tokenToType(let.typeAnnotation())
+        if(annotation is UserDefinedTypeVariable) freeUserDefinedTypeVariable.add(annotation)
+        val substitution = Substitution.empty.unify(annotation, environment.type)
+        requirements = environment.requirements.map { substitution.apply(it) }
+        type = TypeScheme(emptyList(), annotation)
+        compatibilities = Compatibilities.empty
+    }
 
-    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), environment.requirements, compatibilities, freeUserDefinedTypeVariable, listOf(environment))
+    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), requirements, compatibilities, freeUserDefinedTypeVariable, listOf(environment))
 }
 
 fun generateReturnEnvironment(returnAst: ReturnAst): BlockEnvironment {
@@ -195,40 +204,14 @@ fun generalize(type: Type): Pair<TypeScheme, Compatibilities> {
     return Pair(TypeScheme(typeVariables, type), compatibilities)
 }
 
-fun merge(substitution: Substitution, requirements: Requirements, bindings: Bindings, otherRequirements: Requirements, outRequirements: MutableMap<BindableToken, List<Type>>): Substitution =
-    otherRequirements.fold(substitution) { acc, token, otherTypeVars ->
-        val typeScheme = bindings[token]
-        if(typeScheme != null)
-            otherTypeVars.fold(acc) { acc, typeVar ->
-                val (instantiated, instSubstitution) = instantiate(typeScheme, acc)
-                instSubstitution.unify(typeVar, instantiated)
-            }
-        else if(outRequirements.containsKey(token)) acc
-        else {
-            val typeVars = requirements[token]
-            if(typeVars == null) outRequirements[token] = otherTypeVars
-            else outRequirements[token] = typeVars + otherTypeVars
-            acc
-        }
-    }
-
-fun instantiate(typeScheme: TypeScheme, substitution: Substitution): Pair<Type, Substitution> {
-    val outSubstitution = substitution.mapping.toMutableMap()
+fun instantiate(typeScheme: TypeScheme, compatibilities: Compatibilities): Pair<Type, Compatibilities> {
+    //todo really test compatibilities
+    var outCompatibilities = compatibilities
     val mapping =
         typeScheme.boundVariables.associateWith {
-            when(it) {
-                is UserDefinedTypeVariable -> freshUnificationVariable()
-                is UnificationTypeVariable ->
-                    when(val lookup = substitution.find(it)) {
-                        is Representative -> throw Exception("error")
-                        is TypeMapping -> lookup.type//todo does this need to be recusive?
-                        is Compatibility -> {
-                            val fresh = freshUnificationVariable()
-                            outSubstitution[lookup.typeVar] = lookup.copy(typeVars = lookup.typeVars + fresh)
-                            fresh
-                        }
-                    }
-            }
+            val fresh = freshUnificationVariable()
+            if(it is UnificationTypeVariable) outCompatibilities = outCompatibilities.makeCompatible(it, fresh)
+            fresh
         }
 
     fun inst(type: Type): Type =
@@ -239,5 +222,5 @@ fun instantiate(typeScheme: TypeScheme, substitution: Substitution): Pair<Type, 
             else -> type
         }
 
-    return Pair(inst(typeScheme.type), Substitution(outSubstitution))
+    return Pair(inst(typeScheme.type), outCompatibilities)
 }

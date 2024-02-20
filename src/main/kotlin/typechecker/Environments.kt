@@ -12,6 +12,8 @@ data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
 
     operator fun get(token: BindableToken) = bindings[token]
 
+    fun contains(token: BindableToken) = bindings.containsKey(token)
+
     fun addBinding(token: BindableToken, typeScheme: TypeScheme) =
         Bindings(bindings + (token to typeScheme))
 }
@@ -42,6 +44,8 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
         return acc
     }
 
+    fun filter(f: (BindableToken, List<Type>) -> Boolean): Requirements = Requirements(requirements.filter { f(it.key, it.value) })
+
     fun map(f: (Type) -> Type) = Requirements(requirements.mapValues { it.value.map(f) })
 }
 
@@ -51,6 +55,13 @@ data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, Lis
     }
 
     operator fun get(typeVar: UnificationTypeVariable) = compatibilities[typeVar]
+
+    operator fun plus(other: Compatibilities): Compatibilities {
+        val outCompatibilities = compatibilities.toMutableMap()
+        for((typeVar, types) in other.compatibilities)
+            outCompatibilities[typeVar] = (outCompatibilities[typeVar] ?: emptyList()) + types
+        return Compatibilities(outCompatibilities)
+    }
 
     fun addCompatibilities(typeVars: List<UnificationTypeVariable>) = Compatibilities(compatibilities + typeVars.associateWith { emptyList() })
     fun makeCompatible(typeVar: UnificationTypeVariable, type: Type): Compatibilities {
