@@ -30,25 +30,30 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
                 else -> throw Exception()
             }
         outSubordinates.add(environment)
-        substitution = environment.requirements.fold(substitution) { acc0, token, types ->
+        for((token, types) in environment.requirements.requirements) {
             val typeScheme = outBindings[token]
             if(typeScheme == null) {
                 outCompatibilities += environment.compatibilities
-                acc0
-            } else types.fold(acc0) { acc1, type ->
+                continue
+            }
+
+            for(type in types) {
                 val (instantiated, compatibilities) = instantiate(typeScheme, environment.compatibilities)
                 outCompatibilities += compatibilities
-                acc1.unify(type, instantiated)
+                substitution = substitution.unify(type, instantiated)
             }
         }
+
         outBindings += environment.bindings
-        outRequirements += environment.requirements.filter { token, _ -> outBindings.contains(token) }
+        outRequirements += environment.requirements.filter { token, _ -> !outBindings.contains(token) }
         outFreeUserDefinedTypeVariable.addAll(environment.freeUserDefinedTypeVariables)
     }
 
-    outRequirements = outRequirements.map { substitution.apply(it) }
+    outRequirements = outRequirements.applySubstitution(substitution)
+    outBindings = outBindings.applySubstitution(substitution)
+    outCompatibilities = outCompatibilities.applySubstitution(substitution)
 
-    return BlockEnvironment(outBindings, outRequirements, Compatibilities.empty, outFreeUserDefinedTypeVariable, outSubordinates)
+    return BlockEnvironment(outBindings, outRequirements, outCompatibilities, outFreeUserDefinedTypeVariable, outSubordinates)
 }
 
 fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {

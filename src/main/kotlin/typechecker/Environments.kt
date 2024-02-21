@@ -16,6 +16,7 @@ data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
 
     fun addBinding(token: BindableToken, typeScheme: TypeScheme) =
         Bindings(bindings + (token to typeScheme))
+    fun applySubstitution(substitution: Substitution) = Bindings(bindings.mapValues { substitution.apply(it.value) as TypeScheme })
 }
 
 data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
@@ -47,6 +48,7 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
     fun filter(f: (BindableToken, List<Type>) -> Boolean): Requirements = Requirements(requirements.filter { f(it.key, it.value) })
 
     fun map(f: (Type) -> Type) = Requirements(requirements.mapValues { it.value.map(f) })
+    fun applySubstitution(substitution: Substitution) = Requirements(requirements.mapValues { it.value.map { type -> substitution.apply(type) } })
 }
 
 data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, List<Type>>) {
@@ -62,6 +64,8 @@ data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, Lis
             outCompatibilities[typeVar] = (outCompatibilities[typeVar] ?: emptyList()) + types
         return Compatibilities(outCompatibilities)
     }
+
+    fun applySubstitution(substitution: Substitution) = Compatibilities(compatibilities.mapValues { it.value.map { type -> substitution.apply(type) } })
 
     fun addCompatibilities(typeVars: List<UnificationTypeVariable>) = Compatibilities(compatibilities + typeVars.associateWith { emptyList() })
     fun makeCompatible(typeVar: UnificationTypeVariable, type: Type): Compatibilities {
