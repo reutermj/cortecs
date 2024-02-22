@@ -52,8 +52,9 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
     fun apply(type: Type): Type =
         when(type) {
             is ConcreteType -> type
-            is ArrowType -> ArrowType(apply(type.lhs), apply(type.rhs))
-            is ProductType -> ProductType(type.types.map { apply(it) })
+            //todo should I be copying the old id or creating a new one???
+            is ArrowType -> ArrowType(nextId(), apply(type.lhs), apply(type.rhs))
+            is ProductType -> ProductType(nextId(), type.types.map { apply(it) })
             is UserDefinedTypeVariable -> type
             is UnificationTypeVariable ->
                 when(val result = find(type)) {
@@ -69,8 +70,8 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                     if(applied is TypeVariable) acc + applied
                     else acc
                 }
-
-                if(typeVars.any()) TypeScheme(typeVars.toList().sortedBy { it.n }, apply(type.type))
+                //todo should I be copying the old id or creating a new one???
+                if(typeVars.any()) TypeScheme(nextId(), typeVars.toList().sortedBy { it.id }, apply(type.type))
                 else apply(type.type)
             }
             else -> TODO()

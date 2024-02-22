@@ -1,6 +1,7 @@
 package typechecker
 
 import parser.*
+import utilities.fold
 
 data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
     companion object {
@@ -83,7 +84,9 @@ data class BlockEnvironment(val bindings: Bindings, val requirements: Requiremen
 }
 
 data class ExpressionEnvironment(val type: Type, val requirements: Requirements, val subordinates: List<ExpressionEnvironment>): BlockSubordinates {
+    val ids = requirements.fold(type.getIds()) { acc, _, types -> types.fold(acc) { acc, type -> acc + type.getIds() } }
     companion object {
-        val empty = ExpressionEnvironment(Invalid, Requirements.empty, emptyList())
+        //TODO, probably not right????
+        val empty = ExpressionEnvironment(Invalid(nextId()), Requirements.empty, emptyList())
     }
 }

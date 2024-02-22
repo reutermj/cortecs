@@ -20,7 +20,9 @@ class BodyTests {
         assertIs<ExpressionEnvironment>(subordinate)
         val expressionType = subordinate.type
         assertIs<UnificationTypeVariable>(expressionType)
-        assertEquals(TypeScheme(listOf(expressionType), expressionType), environment.bindings[NameToken("x")])
+        val xScheme = environment.bindings[NameToken("x")]!!
+        assertEquals(listOf(expressionType), xScheme.boundVariables)
+        assertEquals(expressionType, xScheme.type)
         val yRequirements = environment.requirements[NameToken("y")]!!
         assertEquals(1, yRequirements.size)
         assertEquals(expressionType, yRequirements.first())
@@ -35,7 +37,9 @@ class BodyTests {
         assertIs<ExpressionEnvironment>(subordinate)
         val expressionType = subordinate.type
         assertIs<I32Type>(expressionType)
-        assertEquals(TypeScheme(emptyList(), expressionType), environment.bindings[NameToken("x")])
+        val xScheme = environment.bindings[NameToken("x")]!!
+        assertEquals(emptyList(), xScheme.boundVariables)
+        assertEquals(expressionType, xScheme.type)
         assertEquals(Requirements.empty, environment.requirements)
     }
 }

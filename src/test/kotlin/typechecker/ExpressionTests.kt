@@ -68,7 +68,10 @@ class ExpressionTests {
         val subordinate = environment.subordinates.first()
         val operator = environment.requirements[OperatorToken(op)]!!
         assertEquals(1, operator.size)
-        assertEquals(ArrowType(subordinate.type, environment.type), operator.first())
+        val opType = operator.first()
+        assertIs<ArrowType>(opType)
+        assertEquals(subordinate.type, opType.lhs)
+        assertEquals(environment.type, opType.rhs)
     }
 
     @Test
@@ -87,7 +90,12 @@ class ExpressionTests {
         val rSub = environment.subordinates[1]
         val operator = environment.requirements[OperatorToken(op)]!!
         assertEquals(1, operator.size)
-        assertEquals(ArrowType(ProductType(listOf(lSub.type, rSub.type)), environment.type), operator.first())
+        val opType = operator.first()
+        assertIs<ArrowType>(opType)
+        val typeLhs = opType.lhs
+        assertIs<ProductType>(typeLhs)
+        assertEquals(listOf(lSub.type, rSub.type), typeLhs.types)
+        assertEquals(environment.type, opType.rhs)
     }
 
     @Test
@@ -110,6 +118,11 @@ class ExpressionTests {
 
     @Test
     fun test() {
-        getExpressionEnvironment("f(x)(y)")
+        val environment = getExpressionEnvironment("f(x)")
+        val type = environment.type
+        val xReq = environment.requirements[NameToken("x")]?.first()!!
+        val fReq = environment.requirements[NameToken("f")]?.first()!!
+        val ids = setOf(type.id, xReq.id, fReq.id)
+        assertEquals(ids, environment.ids)
     }
 }

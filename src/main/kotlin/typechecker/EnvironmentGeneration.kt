@@ -3,33 +3,37 @@ package typechecker
 import parser.*
 
 var unificationVarNumber: Long = 0
-fun freshUnificationVariable() = UnificationTypeVariable("${unificationVarNumber++}")
+fun nextId() = "${unificationVarNumber++}"
+fun freshUnificationVariable() = UnificationTypeVariable(nextId())
 
 fun typesToType(types: List<Type>) = //todo find better name for this
     when(types.size) {
-        0 -> UnitType  //should probably be empty type
+        0 -> UnitType(nextId())  //should probably be empty type
         1 -> types.first()
-        else -> ProductType(types)
+        else -> ProductType(nextId(), types)
     }
 
 fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
     if(block.nodes.isEmpty()) return BlockEnvironment.empty
 
-    val outSubordinates = mutableListOf<BlockSubordinates>()
+    val outSubordinates = block.nodes.map {
+        when(it) {
+            is BodyAst -> it.environment
+            is BlockAst -> it.environment
+            else -> throw Exception()
+        }
+    }
+
+    val outFreeUserDefinedTypeVariable =
+        outSubordinates.fold(emptyList<UserDefinedTypeVariable>()) { acc, environment ->
+            acc + environment.freeUserDefinedTypeVariables
+        }.toSet()
+
     var substitution = Substitution.empty
     var outBindings = Bindings.empty
     var outRequirements = Requirements.empty
     var outCompatibilities = Compatibilities.empty
-    val outFreeUserDefinedTypeVariable = mutableSetOf<UserDefinedTypeVariable>()
-
-    for(node in block.nodes) {
-        val environment =
-            when(node) {
-                is BodyAst -> node.environment
-                is BlockAst -> node.environment
-                else -> throw Exception()
-            }
-        outSubordinates.add(environment)
+    for(environment in outSubordinates) {
         for((token, types) in environment.requirements.requirements) {
             val typeScheme = outBindings[token]
             if(typeScheme == null) {
@@ -46,7 +50,6 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
 
         outBindings += environment.bindings
         outRequirements += environment.requirements.filter { token, _ -> !outBindings.contains(token) }
-        outFreeUserDefinedTypeVariable.addAll(environment.freeUserDefinedTypeVariables)
     }
 
     outRequirements = outRequirements.applySubstitution(substitution)
@@ -63,7 +66,7 @@ fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
     val cEnvironment = ifAst.condition().environment
     val bEnvironment = generateBlockEnvironment(ifAst.block())
 
-    val substitution = Substitution.empty.unify(cEnvironment.type, BooleanType)
+    val substitution = Substitution.empty.unify(cEnvironment.type, BooleanType(nextId()))
     val requirements = cEnvironment.requirements.map { substitution.apply(it) } + bEnvironment.requirements
 
     return BlockEnvironment(Bindings.empty, requirements, bEnvironment.compatibilities, bEnvironment.freeUserDefinedTypeVariables, listOf(cEnvironment, bEnvironment))
@@ -87,7 +90,7 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
         if(annotation is UserDefinedTypeVariable) freeUserDefinedTypeVariable.add(annotation)
         val substitution = Substitution.empty.unify(annotation, environment.type)
         requirements = environment.requirements.map { substitution.apply(it) }
-        type = TypeScheme(emptyList(), annotation)
+        type = TypeScheme(nextId(), emptyList(), annotation)
         compatibilities = Compatibilities.empty
     }
 
@@ -118,7 +121,7 @@ fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): E
 
     val retType = freshUnificationVariable()
     //todo, start handling unification errors
-    val substitution = Substitution.empty.unify(fEnvironment.type, ArrowType(typesToType(argTypes), retType))
+    val substitution = Substitution.empty.unify(fEnvironment.type, ArrowType(nextId(), typesToType(argTypes), retType))
     requirements += fEnvironment.requirements.map { substitution.apply(it) }
     return ExpressionEnvironment(retType, requirements, subordinates)
 }
@@ -129,7 +132,7 @@ fun generateBinaryExpressionEnvironment(binaryExpression: BinaryExpression): Exp
     val rEnvironment = binaryExpression.rhs().environment
 
     val retType = freshUnificationVariable()
-    val opType = ArrowType(ProductType(listOf(lEnvironment.type, rEnvironment.type)), retType)
+    val opType = ArrowType(nextId(), ProductType(nextId(), listOf(lEnvironment.type, rEnvironment.type)), retType)
     val requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(binaryExpression.op(), opType)
     return ExpressionEnvironment(retType, requirements, listOf(lEnvironment, rEnvironment))
 }
@@ -139,7 +142,7 @@ fun generateUnaryExpressionEnvironment(unaryExpression: UnaryExpression): Expres
     val environment = unaryExpression.expression().environment
 
     val retType = freshUnificationVariable()
-    val requirements = environment.requirements.addRequirement(unaryExpression.op(), ArrowType(environment.type, retType))
+    val requirements = environment.requirements.addRequirement(unaryExpression.op(), ArrowType(nextId(), environment.type, retType))
     return ExpressionEnvironment(retType, requirements, listOf(environment))
 }
 
@@ -159,8 +162,8 @@ fun generateAtomicExpressionEnvironment(a: AtomicExpression) =
         }
         is IntToken -> ExpressionEnvironment.empty.copy(type = getIntType(atom))
         is FloatToken -> ExpressionEnvironment.empty.copy(type = getFloatType(atom))
-        is CharToken -> ExpressionEnvironment.empty.copy(type = CharacterType)
-        is StringToken -> ExpressionEnvironment.empty.copy(type = StringType)
+        is CharToken -> ExpressionEnvironment.empty.copy(type = CharacterType(nextId()))
+        is StringToken -> ExpressionEnvironment.empty.copy(type = StringType(nextId()))
         is BadCharToken -> ExpressionEnvironment.empty
         is BadStringToken -> ExpressionEnvironment.empty
     }
@@ -168,45 +171,45 @@ fun generateAtomicExpressionEnvironment(a: AtomicExpression) =
 fun getIntType(i: IntToken): Type {
     val isUnsigned = i.value.contains("u", true)
     return when(i.value.last()) {
-        'b', 'B' -> if(isUnsigned) U8Type else I8Type
-        's', 'S' -> if(isUnsigned) U16Type else I16Type
-        'l', 'L' -> if(isUnsigned) U64Type else I64Type
-        else -> if(isUnsigned) U32Type else I32Type
+        'b', 'B' -> if(isUnsigned) U8Type(nextId()) else I8Type(nextId())
+        's', 'S' -> if(isUnsigned) U16Type(nextId()) else I16Type(nextId())
+        'l', 'L' -> if(isUnsigned) U64Type(nextId()) else I64Type(nextId())
+        else -> if(isUnsigned) U32Type(nextId()) else I32Type(nextId())
     }
 }
 
 fun getFloatType(i: FloatToken) =
     when(i.value.last()) {
-        'd', 'D' -> F64Type
-        else -> F32Type
+        'd', 'D' -> F64Type(nextId())
+        else -> F32Type(nextId())
     }
 
 fun tokenToType(t: TypeAnnotationToken): Type =
     when(t) {
         is TypeToken ->
             when(t.value) {
-                "U8" -> U8Type
-                "U16" -> U16Type
-                "U32" -> U32Type
-                "U64" -> U64Type
-                "I8" -> I8Type
-                "I16" -> I16Type
-                "I32" -> I32Type
-                "I64" -> I64Type
-                "F32" -> F32Type
-                "F64" -> F64Type
-                "String" -> StringType
-                "Character" -> CharacterType
-                "Boolean" -> BooleanType
+                "U8" -> U8Type(nextId())
+                "U16" -> U16Type(nextId())
+                "U32" -> U32Type(nextId())
+                "U64" -> U64Type(nextId())
+                "I8" -> I8Type(nextId())
+                "I16" -> I16Type(nextId())
+                "I32" -> I32Type(nextId())
+                "I64" -> I64Type(nextId())
+                "F32" -> F32Type(nextId())
+                "F64" -> F64Type(nextId())
+                "String" -> StringType(nextId())
+                "Character" -> CharacterType(nextId())
+                "Boolean" -> BooleanType(nextId())
                 else -> TODO("User defined type")
             }
         is NameToken -> UserDefinedTypeVariable(t.value)
     }
 
 fun generalize(type: Type): Pair<TypeScheme, Compatibilities> {
-    val typeVariables = type.freeTypeVariables.toList().sortedBy { it.n }
+    val typeVariables = type.freeTypeVariables.toList().sortedBy { it.id }
     val compatibilities = Compatibilities.empty.addCompatibilities(typeVariables.filterIsInstance<UnificationTypeVariable>())
-    return Pair(TypeScheme(typeVariables, type), compatibilities)
+    return Pair(TypeScheme(nextId(), typeVariables, type), compatibilities)
 }
 
 fun instantiate(typeScheme: TypeScheme, compatibilities: Compatibilities): Pair<Type, Compatibilities> {
@@ -222,8 +225,8 @@ fun instantiate(typeScheme: TypeScheme, compatibilities: Compatibilities): Pair<
     fun inst(type: Type): Type =
         when(type) {
             is TypeVariable -> mapping[type] ?: throw Exception()
-            is ArrowType -> ArrowType(inst(type.lhs), inst(type.rhs))
-            is ProductType -> ProductType(type.types.map { inst(it) })
+            is ArrowType -> ArrowType(nextId(), inst(type.lhs), inst(type.rhs))
+            is ProductType -> ProductType(nextId(), type.types.map { inst(it) })
             else -> type
         }
 
