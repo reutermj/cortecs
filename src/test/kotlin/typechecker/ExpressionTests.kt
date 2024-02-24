@@ -47,7 +47,7 @@ class ExpressionTests {
     fun testGrouping(s: String) {
         val environment = getExpressionEnvironment("($s)")
         assertEquals(1, environment.subordinates.size)
-        val subordinate = environment.subordinates.first()
+        val subordinate = environment.subordinates.first().environment
         assertEquals(environment.type, subordinate.type)
         assertEquals(environment.requirements, subordinate.requirements)
     }
@@ -65,7 +65,7 @@ class ExpressionTests {
     fun testUnary(op: String, s: String) {
         val environment = getExpressionEnvironment("$op $s")
         assertEquals(1, environment.subordinates.size)
-        val subordinate = environment.subordinates.first()
+        val subordinate = environment.subordinates.first().environment
         val operator = environment.requirements[OperatorToken(op)]!!
         assertEquals(1, operator.size)
         val opType = operator.first()
@@ -86,8 +86,8 @@ class ExpressionTests {
     fun testBinary(lhs: String, op: String, rhs: String) {
         val environment = getExpressionEnvironment("$lhs $op $rhs")
         assertEquals(2, environment.subordinates.size)
-        val lSub = environment.subordinates[0]
-        val rSub = environment.subordinates[1]
+        val lSub = environment.subordinates[0].environment
+        val rSub = environment.subordinates[1].environment
         val operator = environment.requirements[OperatorToken(op)]!!
         assertEquals(1, operator.size)
         val opType = operator.first()
@@ -118,11 +118,18 @@ class ExpressionTests {
 
     @Test
     fun test() {
-        val environment = getExpressionEnvironment("f(x)")
+        val environment = getExpressionEnvironment("f(x, y, z)")
         val type = environment.type
         val xReq = environment.requirements[NameToken("x")]?.first()!!
+        val yReq = environment.requirements[NameToken("y")]?.first()!!
+        val zReq = environment.requirements[NameToken("z")]?.first()!!
         val fReq = environment.requirements[NameToken("f")]?.first()!!
-        val ids = setOf(type.id, xReq.id, fReq.id)
+        assertIs<ArrowType>(fReq)
+        val ids = setOf(type.id, xReq.id, yReq.id, zReq.id, fReq.id, fReq.lhs.id)
         assertEquals(ids, environment.ids)
+
+        val fEnvironment = environment.subordinates.first { it.environment.requirements.requirements.containsKey(NameToken("f")) }
+        val fReq2 = fEnvironment.environment.requirements[NameToken("f")]?.first()!!
+        assertEquals(fReq2, environment.mappings[fReq.id])
     }
 }

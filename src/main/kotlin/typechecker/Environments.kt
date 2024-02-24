@@ -1,7 +1,10 @@
 package typechecker
 
 import parser.*
-import utilities.fold
+
+data class Subordinate<out T: Environment>(val offset: Span, val environment: T)
+
+interface Environment
 
 data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
     companion object {
@@ -17,7 +20,15 @@ data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
 
     fun addBinding(token: BindableToken, typeScheme: TypeScheme) =
         Bindings(bindings + (token to typeScheme))
-    fun applySubstitution(substitution: Substitution) = Bindings(bindings.mapValues { substitution.apply(it.value) as TypeScheme })
+
+    fun <T>fold(init: T, f: (T, BindableToken, TypeScheme) -> T): T {
+        var acc = init
+        for((key, value) in bindings) acc = f(acc, key, value)
+        return acc
+    }
+
+    //todo figure out if these are right. do we need to map passed in?
+    fun applySubstitution(substitution: Substitution) = Bindings(bindings.mapValues { substitution.apply(it.value, mutableMapOf()) as TypeScheme })
 }
 
 data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
@@ -49,7 +60,8 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
     fun filter(f: (BindableToken, List<Type>) -> Boolean): Requirements = Requirements(requirements.filter { f(it.key, it.value) })
 
     fun map(f: (Type) -> Type) = Requirements(requirements.mapValues { it.value.map(f) })
-    fun applySubstitution(substitution: Substitution) = Requirements(requirements.mapValues { it.value.map { type -> substitution.apply(type) } })
+    //todo figure out if these are right. do we need to map passed in?
+    fun applySubstitution(substitution: Substitution) = Requirements(requirements.mapValues { it.value.map { type -> substitution.apply(type, mutableMapOf()) } })
 }
 
 data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, List<Type>>) {
@@ -66,7 +78,14 @@ data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, Lis
         return Compatibilities(outCompatibilities)
     }
 
-    fun applySubstitution(substitution: Substitution) = Compatibilities(compatibilities.mapValues { it.value.map { type -> substitution.apply(type) } })
+    fun <T>fold(init: T, f: (T, UnificationTypeVariable, List<Type>) -> T): T {
+        var acc = init
+        for((key, value) in compatibilities) acc = f(acc, key, value)
+        return acc
+    }
+
+    //todo figure out if these are right. do we need to map passed in?
+    fun applySubstitution(substitution: Substitution) = Compatibilities(compatibilities.mapValues { it.value.map { type -> substitution.apply(type, mutableMapOf()) } })
 
     fun addCompatibilities(typeVars: List<UnificationTypeVariable>) = Compatibilities(compatibilities + typeVars.associateWith { emptyList() })
     fun makeCompatible(typeVar: UnificationTypeVariable, type: Type): Compatibilities {
@@ -75,18 +94,24 @@ data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, Lis
     }
 }
 
-sealed interface BlockSubordinates
+sealed interface BlockSubordinates: Environment
 
-data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val subordinates: List<BlockSubordinates>): BlockSubordinates {
+data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val subordinates: List<Subordinate<BlockSubordinates>>): BlockSubordinates {
+    val ids = run {
+        val bindingIds = bindings.fold(emptySet<String>()) { acc, _, typeScheme -> acc + typeScheme.getIds()}
+        val requirementIds = requirements.fold(bindingIds) { acc, _, types -> types.fold(acc) { acc, type -> acc + type.getIds() } }
+        compatibilities.fold(requirementIds) { acc, _, types -> types.fold(acc) { acc, type -> acc + type.getIds() } }
+    }
+
     companion object {
         val empty = BlockEnvironment(Bindings.empty, Requirements.empty, Compatibilities.empty, emptySet(), emptyList())
     }
 }
 
-data class ExpressionEnvironment(val type: Type, val requirements: Requirements, val subordinates: List<ExpressionEnvironment>): BlockSubordinates {
+data class ExpressionEnvironment(val type: Type, val requirements: Requirements, val mappings: Map<String, Type>, val subordinates: List<Subordinate<ExpressionEnvironment>>): BlockSubordinates {
     val ids = requirements.fold(type.getIds()) { acc, _, types -> types.fold(acc) { acc, type -> acc + type.getIds() } }
     companion object {
         //TODO, probably not right????
-        val empty = ExpressionEnvironment(Invalid(nextId()), Requirements.empty, emptyList())
+        val empty = ExpressionEnvironment(Invalid(nextId()), Requirements.empty, emptyMap(), emptyList())
     }
 }

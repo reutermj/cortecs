@@ -227,7 +227,7 @@ fun parseLet(iterator: ParserIterator): LetAst {
     val nameIndex = builder.consume<NameToken>()
     if (nameIndex == -1) {
         builder.emitError("Expected name", Span.zero)
-        return LetAst(builder.nodes(), builder.errors(), -1, -1, -1)
+        return LetAst(builder.nodes(), builder.errors(), -1, -1, -1, Span.zero)
     }
     consumeWhitespace(builder)
 
@@ -238,7 +238,7 @@ fun parseLet(iterator: ParserIterator): LetAst {
             val typeAnnotationIndex = builder.consume<TypeAnnotationToken>()
             if(typeAnnotationIndex == -1) {
                 builder.emitError("Expected type annotation", Span.zero)
-                return LetAst(builder.nodes(), builder.errors(), nameIndex, -1, -1)
+                return LetAst(builder.nodes(), builder.errors(), nameIndex, -1, -1, Span.zero)
             }
             typeAnnotationIndex
         }
@@ -247,18 +247,18 @@ fun parseLet(iterator: ParserIterator): LetAst {
     if (builder.consume<EqualSignToken>() == -1) {
         builder.emitError("Expected =", Span.zero)
         consumeRemainingWhitespace(builder)
-        return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, -1)
+        return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, -1, Span.zero)
     }
     consumeWhitespace(builder)
 
-
+    val expressionSpan = builder.currentLocation()
     val expressionIndex = builder.addSubnode(parseExpression(iterator))
     if (expressionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
         consumeRemainingWhitespace(builder)
     }
 
-    return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, expressionIndex)
+    return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, expressionIndex, expressionSpan)
 }
 
 fun parseReturn(iterator: ParserIterator): ReturnAst {
@@ -266,13 +266,14 @@ fun parseReturn(iterator: ParserIterator): ReturnAst {
     builder.consume<ReturnToken>()
     consumeWhitespace(builder)
 
+    val expressionSpan = builder.currentLocation()
     val expressionIndex = builder.addSubnode(parseExpression(iterator))
     if (expressionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
         consumeRemainingWhitespace(builder)
     }
 
-    return ReturnAst(builder.nodes(), builder.errors(), expressionIndex)
+    return ReturnAst(builder.nodes(), builder.errors(), expressionIndex, expressionSpan)
 }
 
 fun parseIf(iterator: ParserIterator): IfAst {
@@ -283,31 +284,33 @@ fun parseIf(iterator: ParserIterator): IfAst {
     if (builder.consume<OpenParenToken>() == -1) {
         builder.emitError("Expected (", Span.zero)
         consumeRemainingWhitespace(builder)
-        return IfAst(builder.nodes(), builder.errors(), -1, -1)
+        return IfAst(builder.nodes(), builder.errors(), -1, Span.zero, -1, Span.zero)
     }
     consumeWhitespace(builder)
 
+    val conditionSpan = builder.currentLocation()
     val conditionIndex = builder.addSubnode(parseExpression(iterator))
     if (conditionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
         consumeRemainingWhitespace(builder)
-        return IfAst(builder.nodes(), builder.errors(), -1, -1)
+        return IfAst(builder.nodes(), builder.errors(), -1, conditionSpan, -1, Span.zero)
     }
 
     if (builder.consume<CloseParenToken>() == -1) {
         builder.emitError("Expected )", Span.zero)
         consumeRemainingWhitespace(builder)
-        return IfAst(builder.nodes(), builder.errors(), conditionIndex, -1)
+        return IfAst(builder.nodes(), builder.errors(), conditionIndex, conditionSpan, -1, Span.zero)
     }
     consumeWhitespace(builder)
 
     if (builder.consume<OpenCurlyToken>() == -1) {
         builder.emitError("Expected {", Span.zero)
         consumeRemainingWhitespace(builder)
-        return IfAst(builder.nodes(), builder.errors(), conditionIndex, -1)
+        return IfAst(builder.nodes(), builder.errors(), conditionIndex, conditionSpan, -1, Span.zero)
     }
     consumeWhitespace(builder)
 
+    val blockSpan = builder.currentLocation()
     val blockIndex = builder.addSubnode(parseBlock(iterator))
 
     if (builder.consume<CloseCurlyToken>() == -1) {
@@ -316,7 +319,7 @@ fun parseIf(iterator: ParserIterator): IfAst {
     }
     consumeWhitespace(builder)
 
-    return IfAst(builder.nodes(), builder.errors(), conditionIndex, blockIndex)
+    return IfAst(builder.nodes(), builder.errors(), conditionIndex, conditionSpan, blockIndex, blockSpan)
 }
 
 fun parseGarbageBody(iterator: ParserIterator): StarBuildingInstruction<Ast> =
@@ -335,7 +338,7 @@ inline fun <reified T : BinaryExpression> parseBinaryExpressionGen(
     iterator: ParserIterator,
     acceptedTokens: Set<Char>,
     nextPrecedenceLevel: (ParserIterator) -> Expression?,
-    ctor: (List<Ast>, CortecsErrors, Int, Int, Int) -> T
+    ctor: (List<Ast>, CortecsErrors, Int, Int, Int, Span) -> T
 ): Expression? {
     var lhs: Expression? = reuse<T>(iterator) ?: nextPrecedenceLevel(iterator) ?: return null
     while (true) {
@@ -346,12 +349,13 @@ inline fun <reified T : BinaryExpression> parseBinaryExpressionGen(
             val lhsIndex = builder.addSubnode(lhs)
             val opIndex = builder.consume<OperatorToken>()
             consumeWhitespace(builder)
+            val rhsSpan = builder.currentLocation()
             val rhsIndex = builder.addSubnode(nextPrecedenceLevel(iterator))
             if (rhsIndex == -1) {
                 builder.emitError("Expected expression", Span.zero)
-                return ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, rhsIndex)
+                return ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, rhsIndex, rhsSpan)
             }
-            lhs = ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, rhsIndex)
+            lhs = ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, rhsIndex, rhsSpan)
         } else return lhs
     }
 }
@@ -419,25 +423,27 @@ fun parseFunctionCallExpression(iterator: ParserIterator, baseExpression: Expres
     builder.consume<OpenParenToken>()
     consumeWhitespace(builder)
 
+    val argumentsSpan = builder.currentLocation()
     val argumentsIndex = builder.addSubnode(parseArguments(iterator))
 
     if (builder.consume<CloseParenToken>() == -1) builder.emitError("Expected )", Span.zero)
     consumeRemainingWhitespace(builder)
 
-    return FunctionCallExpression(builder.nodes(), builder.errors(), functionIndex, argumentsIndex)
+    return FunctionCallExpression(builder.nodes(), builder.errors(), functionIndex, argumentsIndex, argumentsSpan)
 }
 
 fun parseUnaryExpression(iterator: ParserIterator): Expression {
     val builder = AstBuilder(iterator)
     val opIndex = builder.consume<OperatorToken>()
     consumeWhitespace(builder)
+    val expressionSpan = builder.currentLocation()
     val expressionIndex = builder.addSubnode(parseBaseExpression(iterator))
     if (expressionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
-        return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex)
+        return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex, expressionSpan)
     }
     consumeWhitespace(builder)
-    return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex)
+    return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex, expressionSpan)
 }
 
 fun parseAtomicExpression(iterator: ParserIterator): Expression {
@@ -452,13 +458,14 @@ fun parseGroupingExpression(iterator: ParserIterator): Expression {
     builder.consume<OpenParenToken>()
     consumeWhitespace(builder)
 
+    val expressionSpan = builder.currentLocation()
     val expressionIndex = builder.addSubnode(parseExpression(iterator))
     if (expressionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
-        return GroupingExpression(builder.nodes(), builder.errors(), expressionIndex)
+        return GroupingExpression(builder.nodes(), builder.errors(), expressionIndex, expressionSpan)
     }
     if (builder.consume<CloseParenToken>() == -1) builder.emitError("Expected )", Span.zero)
     consumeRemainingWhitespace(builder)
 
-    return GroupingExpression(builder.nodes(), builder.errors(), expressionIndex)
+    return GroupingExpression(builder.nodes(), builder.errors(), expressionIndex, expressionSpan)
 }

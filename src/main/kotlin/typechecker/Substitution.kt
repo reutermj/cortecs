@@ -49,30 +49,37 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                 }
         }
 
-    fun apply(type: Type): Type =
+    fun apply(type: Type, mapping: MutableMap<String, Type>): Type =
         when(type) {
             is ConcreteType -> type
             //todo should I be copying the old id or creating a new one???
-            is ArrowType -> ArrowType(nextId(), apply(type.lhs), apply(type.rhs))
-            is ProductType -> ProductType(nextId(), type.types.map { apply(it) })
+            is ArrowType -> ArrowType(type.id, apply(type.lhs, mapping), apply(type.rhs, mapping))
+            is ProductType -> ProductType(type.id, type.types.map { apply(it, mapping) })
             is UserDefinedTypeVariable -> type
             is UnificationTypeVariable ->
                 when(val result = find(type)) {
-                    is Representative -> result.typeVar
-                    is TypeMapping -> apply(result.type)
+                    is Representative -> {
+                        if(type != result.typeVar) mapping[result.typeVar.id] = type
+                        result.typeVar
+                    }
+                    is TypeMapping -> {
+                        val outType = apply(result.type, mapping)
+                        mapping[outType.id] = type
+                        outType
+                    }
                 }
             is TypeScheme -> {
                 //For co-contextual type inference, TypeSchemes abstract over all type variables from the function
                 //Many of the variables only exist due to unresolved references to other functions
                 //Once these references are resolved, the type variables can be discharged from the TypeScheme
                 val typeVars = type.boundVariables.fold(emptySet<TypeVariable>()) { acc, typeVar ->
-                    val applied = apply(typeVar)
+                    val applied = apply(typeVar, mapping)
                     if(applied is TypeVariable) acc + applied
                     else acc
                 }
                 //todo should I be copying the old id or creating a new one???
-                if(typeVars.any()) TypeScheme(nextId(), typeVars.toList().sortedBy { it.id }, apply(type.type))
-                else apply(type.type)
+                if(typeVars.any()) TypeScheme(type.id, typeVars.toList().sortedBy { it.id }, apply(type.type, mapping))
+                else apply(type.type, mapping)
             }
             else -> TODO()
         }
