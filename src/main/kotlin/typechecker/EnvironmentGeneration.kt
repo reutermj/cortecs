@@ -55,8 +55,8 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
                         val lSpans = mutableListOf<Span>()
                         val rSpans = mutableListOf<Span>()
                         for(sub in outSubordinates) {
-                            lSpans.addAll(sub.environment.getSpansForType(result.lType))
-                            rSpans.addAll(sub.environment.getSpansForType(result.rType))
+                            lSpans.addAll(sub.environment.getSpansForType(result.lType).map { sub.offset + it })
+                            rSpans.addAll(sub.environment.getSpansForType(result.rType).map { sub.offset + it })
                         }
 
                         println()
@@ -69,11 +69,12 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
         outRequirements += environment.requirements.filter { token, _ -> !outBindings.contains(token) }
     }
 
-    outRequirements = outRequirements.applySubstitution(substitution)
-    outBindings = outBindings.applySubstitution(substitution)
-    outCompatibilities = outCompatibilities.applySubstitution(substitution)
+    val mappings = mutableMapOf<String, Type>()
+    outRequirements = outRequirements.applySubstitution(substitution, mappings)
+    outBindings = outBindings.applySubstitution(substitution, mappings)
+    outCompatibilities = outCompatibilities.applySubstitution(substitution, mappings)
 
-    return BlockEnvironment(outBindings, outRequirements, outCompatibilities, outFreeUserDefinedTypeVariable, outSubordinates)
+    return BlockEnvironment(outBindings, outRequirements, outCompatibilities, outFreeUserDefinedTypeVariable, mappings, outSubordinates)
 }
 
 fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
@@ -91,7 +92,7 @@ fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
     val mapping = mutableMapOf<String, Type>()
     val requirements = cEnvironment.requirements.map { substitution.apply(it, mapping) } + bEnvironment.requirements
 
-    return BlockEnvironment(Bindings.empty, requirements, bEnvironment.compatibilities, bEnvironment.freeUserDefinedTypeVariables, listOf(Subordinate(ifAst.conditionSpan, cEnvironment), Subordinate(ifAst.blockSpan, bEnvironment)))
+    return BlockEnvironment(Bindings.empty, requirements, bEnvironment.compatibilities, bEnvironment.freeUserDefinedTypeVariables, mapping, listOf(Subordinate(ifAst.conditionSpan, cEnvironment), Subordinate(ifAst.blockSpan, bEnvironment)))
 }
 
 fun generateLetEnvironment(let: LetAst): BlockEnvironment {
@@ -124,14 +125,14 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
         subordinates.add(Subordinate(let.annotationSpan, AnnotationEnvironment(annotation)))
     }
 
-    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), requirements, compatibilities, freeUserDefinedTypeVariable, subordinates)
+    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), requirements, compatibilities, freeUserDefinedTypeVariable, mapping, subordinates)
 }
 
 fun generateReturnEnvironment(returnAst: ReturnAst): BlockEnvironment {
     if(returnAst.expressionIndex == -1) return BlockEnvironment.empty
     val environment = returnAst.expression().environment
     val requirements = environment.requirements.addRequirement(ReturnTypeToken, environment.type)
-    return BlockEnvironment(Bindings.empty, requirements, Compatibilities.empty, emptySet(), listOf(Subordinate(returnAst.expressionSpan, environment)))
+    return BlockEnvironment(Bindings.empty, requirements, Compatibilities.empty, emptySet(), emptyMap(), listOf(Subordinate(returnAst.expressionSpan, environment)))
 }
 
 fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): ExpressionEnvironment {

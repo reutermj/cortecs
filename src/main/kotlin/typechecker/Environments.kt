@@ -28,7 +28,7 @@ data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
     }
 
     //todo figure out if these are right. do we need to map passed in?
-    fun applySubstitution(substitution: Substitution) = Bindings(bindings.mapValues { substitution.apply(it.value, mutableMapOf()) as TypeScheme })
+    fun applySubstitution(substitution: Substitution, mappings: MutableMap<String, Type>) = Bindings(bindings.mapValues { substitution.apply(it.value, mappings) as TypeScheme })
 }
 
 data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
@@ -61,7 +61,7 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
 
     fun map(f: (Type) -> Type) = Requirements(requirements.mapValues { it.value.map(f) })
     //todo figure out if these are right. do we need to map passed in?
-    fun applySubstitution(substitution: Substitution) = Requirements(requirements.mapValues { it.value.map { type -> substitution.apply(type, mutableMapOf()) } })
+    fun applySubstitution(substitution: Substitution, mapping: MutableMap<String, Type>) = Requirements(requirements.mapValues { it.value.map { type -> substitution.apply(type, mapping) } })
 }
 
 data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, List<Type>>) {
@@ -85,7 +85,7 @@ data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, Lis
     }
 
     //todo figure out if these are right. do we need to map passed in?
-    fun applySubstitution(substitution: Substitution) = Compatibilities(compatibilities.mapValues { it.value.map { type -> substitution.apply(type, mutableMapOf()) } })
+    fun applySubstitution(substitution: Substitution, mappings: MutableMap<String, Type>) = Compatibilities(compatibilities.mapValues { it.value.map { type -> substitution.apply(type, mappings) } })
 
     fun addCompatibilities(typeVars: List<UnificationTypeVariable>) = Compatibilities(compatibilities + typeVars.associateWith { emptyList() })
     fun makeCompatible(typeVar: UnificationTypeVariable, type: Type): Compatibilities {
@@ -98,7 +98,7 @@ sealed interface BlockSubordinates: Environment {
     fun getSpansForType(type: Type): List<Span>
 }
 
-data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val subordinates: List<Subordinate<BlockSubordinates>>): BlockSubordinates {
+data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val mappings: Map<String, Type>, val subordinates: List<Subordinate<BlockSubordinates>>): BlockSubordinates {
     val ids = run {
         val bindingIds = bindings.fold(emptySet<String>()) { acc, _, typeScheme -> acc + typeScheme.getIds()}
         val requirementIds = requirements.fold(bindingIds) { acc, _, types -> types.fold(acc) { acc, type -> acc + type.getIds() } }
@@ -106,15 +106,15 @@ data class BlockEnvironment(val bindings: Bindings, val requirements: Requiremen
     }
 
     companion object {
-        val empty = BlockEnvironment(Bindings.empty, Requirements.empty, Compatibilities.empty, emptySet(), emptyList())
+        val empty = BlockEnvironment(Bindings.empty, Requirements.empty, Compatibilities.empty, emptySet(), emptyMap(), emptyList())
     }
 
     override fun getSpansForType(type: Type): List<Span> {
         if(!ids.contains(type.id)) return emptyList()
         val spans = mutableListOf<Span>()
-        //todo need type mappings
+        val type1 = mappings[type.id] ?: type
         for(subordinate in subordinates)
-            spans.addAll(subordinate.environment.getSpansForType(type).map { subordinate.offset + it })
+            spans.addAll(subordinate.environment.getSpansForType(type1).map { subordinate.offset + it })
         return spans
     }
 }
