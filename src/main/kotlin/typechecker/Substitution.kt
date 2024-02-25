@@ -12,6 +12,16 @@ data class Representative(val typeVar: TypeVariable): Lookup()
 data class TypeMapping(val type: Type): Lookup()
 @Serializable
 data class Intermediate(val dst: UnificationTypeVariable): LookupIntermediate()
+
+sealed interface UnificationResult {
+    fun map(f: (Substitution) -> UnificationResult): UnificationResult
+}
+data class UnificationSuccess(val substitution: Substitution): UnificationResult {
+    override fun map(f: (Substitution) -> UnificationResult) = f(substitution)
+}
+data class UnificationError(val lType: Type, val rType: Type): UnificationResult {
+    override fun map(f: (Substitution) -> UnificationResult) = this
+}
 @Serializable
 data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
     companion object {
@@ -20,32 +30,31 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
 
     operator fun plus(other: Substitution) = Substitution(mapping + other.mapping)
 
-    fun unify(lType: Type, rType: Type): Substitution =
+    fun unify(lType: Type, rType: Type): UnificationResult =
         when {
-            lType == rType -> this
+            lType is ConcreteType && rType is ConcreteType && lType::class == rType::class -> UnificationSuccess(this)
             lType is UnificationTypeVariable -> unifyUnificationTypeVariable(lType, rType)
             rType is UnificationTypeVariable -> unifyUnificationTypeVariable(rType, lType)
-            lType is ArrowType && rType is ArrowType -> unify(lType.lhs, rType.lhs).unify(lType.rhs, rType.rhs)
+            lType is ArrowType && rType is ArrowType -> unify(lType.lhs, rType.lhs).map { it.unify(lType.rhs, rType.rhs) }
             lType is ProductType && rType is ProductType -> {
                 if(lType.types.size != rType.types.size) TODO()
-                lType.types.zip(rType.types).fold(this) { acc, pair -> acc.unify(pair.first, pair.second) }
+                lType.types.zip(rType.types).fold(UnificationSuccess(this) as UnificationResult) { acc, pair -> acc.map { it.unify(pair.first, pair.second) } }
             }
-            else ->
-                TODO()
+            else -> UnificationError(lType, rType)
         }
 
 
-    fun unifyUnificationTypeVariable(lType: UnificationTypeVariable, rType: Type): Substitution =
+    fun unifyUnificationTypeVariable(lType: UnificationTypeVariable, rType: Type): UnificationResult =
         when(val lLookup = find(lType)) {
             is TypeMapping -> unify(rType, lLookup.type)
             is Representative ->
                 when(rType) {
                     is UnificationTypeVariable ->
                         when(val rLookup = find(rType)) {
-                            is Representative -> pointAt(lLookup.typeVar, rLookup.typeVar)
-                            is TypeMapping -> pointAt(lLookup.typeVar, rLookup.type)
+                            is Representative -> UnificationSuccess(pointAt(lLookup.typeVar, rLookup.typeVar))
+                            is TypeMapping -> UnificationSuccess(pointAt(lLookup.typeVar, rLookup.type))
                         }
-                    else -> pointAt(lLookup.typeVar, rType)
+                    else -> UnificationSuccess(pointAt(lLookup.typeVar, rType))
                 }
         }
 

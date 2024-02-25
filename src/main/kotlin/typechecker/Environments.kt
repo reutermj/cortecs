@@ -94,7 +94,9 @@ data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, Lis
     }
 }
 
-sealed interface BlockSubordinates: Environment
+sealed interface BlockSubordinates: Environment {
+    fun getSpansForType(type: Type): List<Span>
+}
 
 data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val subordinates: List<Subordinate<BlockSubordinates>>): BlockSubordinates {
     val ids = run {
@@ -106,6 +108,21 @@ data class BlockEnvironment(val bindings: Bindings, val requirements: Requiremen
     companion object {
         val empty = BlockEnvironment(Bindings.empty, Requirements.empty, Compatibilities.empty, emptySet(), emptyList())
     }
+
+    override fun getSpansForType(type: Type): List<Span> {
+        if(!ids.contains(type.id)) return emptyList()
+        val spans = mutableListOf<Span>()
+        //todo need type mappings
+        for(subordinate in subordinates)
+            spans.addAll(subordinate.environment.getSpansForType(type).map { subordinate.offset + it })
+        return spans
+    }
+}
+
+data class AnnotationEnvironment(val type: Type): BlockSubordinates {
+    override fun getSpansForType(type: Type) =
+        if(type.id == this.type.id) listOf(Span.zero)
+        else emptyList()
 }
 
 data class ExpressionEnvironment(val type: Type, val requirements: Requirements, val mappings: Map<String, Type>, val subordinates: List<Subordinate<ExpressionEnvironment>>): BlockSubordinates {
@@ -113,5 +130,15 @@ data class ExpressionEnvironment(val type: Type, val requirements: Requirements,
     companion object {
         //TODO, probably not right????
         val empty = ExpressionEnvironment(Invalid(nextId()), Requirements.empty, emptyMap(), emptyList())
+    }
+
+    override fun getSpansForType(type: Type): List<Span> {
+        if(!ids.contains(type.id)) return emptyList()
+        if(subordinates.isEmpty()) return listOf(Span.zero)
+        val spans = mutableListOf<Span>()
+        val type1 = mappings[type.id] ?: type
+        for(subordinate in subordinates)
+            spans.addAll(subordinate.environment.getSpansForType(type1).map { subordinate.offset + it })
+        return spans
     }
 }

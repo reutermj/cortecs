@@ -182,7 +182,7 @@ data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
 }
 
 @Serializable
-data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val expressionIndex: Int, val expressionSpan: Span): BodyAst() {
+data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val annotationSpan: Span, val expressionIndex: Int, val expressionSpan: Span): BodyAst() {
     override val environment: BlockEnvironment by lazy { generateLetEnvironment(this) }
 
     fun name(): NameToken =

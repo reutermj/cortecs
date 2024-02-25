@@ -49,7 +49,19 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
             for(type in types) {
                 val (instantiated, compatibilities) = instantiate(typeScheme, environment.compatibilities)
                 outCompatibilities += compatibilities
-                substitution = substitution.unify(type, instantiated)
+                when(val result = substitution.unify(type, instantiated)) {
+                    is UnificationSuccess -> substitution = result.substitution
+                    is UnificationError -> {
+                        val lSpans = mutableListOf<Span>()
+                        val rSpans = mutableListOf<Span>()
+                        for(sub in outSubordinates) {
+                            lSpans.addAll(sub.environment.getSpansForType(result.lType))
+                            rSpans.addAll(sub.environment.getSpansForType(result.rType))
+                        }
+
+                        println()
+                    }
+                }
             }
         }
 
@@ -71,7 +83,11 @@ fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
     val cEnvironment = ifAst.condition().environment
     val bEnvironment = generateBlockEnvironment(ifAst.block())
 
-    val substitution = Substitution.empty.unify(cEnvironment.type, BooleanType(nextId()))
+    val substitution =
+        when(val result = Substitution.empty.unify(cEnvironment.type, BooleanType(nextId()))) {
+            is UnificationSuccess -> result.substitution
+            is UnificationError -> TODO()
+        }
     val mapping = mutableMapOf<String, Type>()
     val requirements = cEnvironment.requirements.map { substitution.apply(it, mapping) } + bEnvironment.requirements
 
@@ -87,6 +103,7 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
     val type: TypeScheme
     val compatibilities: Compatibilities
     val mapping = mutableMapOf<String, Type>()
+    val subordinates = mutableListOf(Subordinate<BlockSubordinates>(let.expressionSpan, environment))
 
     if(let.typeAnnotationIndex == -1) {
         requirements = environment.requirements
@@ -96,13 +113,18 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
     } else {
         val annotation = tokenToType(let.typeAnnotation())
         if(annotation is UserDefinedTypeVariable) freeUserDefinedTypeVariable.add(annotation)
-        val substitution = Substitution.empty.unify(annotation, environment.type)
+        val substitution =
+            when(val result = Substitution.empty.unify(annotation, environment.type)) {
+                is UnificationSuccess -> result.substitution
+                is UnificationError -> TODO()
+            }
         requirements = environment.requirements.map { substitution.apply(it, mapping) }
         type = TypeScheme(nextId(), emptyList(), annotation)
         compatibilities = Compatibilities.empty
+        subordinates.add(Subordinate(let.annotationSpan, AnnotationEnvironment(annotation)))
     }
 
-    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), requirements, compatibilities, freeUserDefinedTypeVariable, listOf(Subordinate(let.expressionSpan, environment)))
+    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), requirements, compatibilities, freeUserDefinedTypeVariable, subordinates)
 }
 
 fun generateReturnEnvironment(returnAst: ReturnAst): BlockEnvironment {
@@ -131,7 +153,11 @@ fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): E
 
     val retType = freshUnificationVariable()
     //todo, start handling unification errors
-    val substitution = Substitution.empty.unify(fEnvironment.type, ArrowType(nextId(), typesToType(argTypes), retType))
+    val substitution =
+        when(val result = Substitution.empty.unify(fEnvironment.type, ArrowType(nextId(), typesToType(argTypes), retType))) {
+            is UnificationSuccess -> result.substitution
+            is UnificationError -> TODO()
+        }
     val mappings = mutableMapOf<String, Type>()
     requirements += fEnvironment.requirements.map { substitution.apply(it, mappings) }
 

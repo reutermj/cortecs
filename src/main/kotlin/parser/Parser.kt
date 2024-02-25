@@ -227,10 +227,11 @@ fun parseLet(iterator: ParserIterator): LetAst {
     val nameIndex = builder.consume<NameToken>()
     if (nameIndex == -1) {
         builder.emitError("Expected name", Span.zero)
-        return LetAst(builder.nodes(), builder.errors(), -1, -1, -1, Span.zero)
+        return LetAst(builder.nodes(), builder.errors(), -1, -1, Span.zero, -1, Span.zero)
     }
     consumeWhitespace(builder)
 
+    val annotationSpan = builder.currentLocation()
     val typeAnnotationIndex =
         if (builder.consume<ColonToken>() == -1) -1
         else {
@@ -238,7 +239,7 @@ fun parseLet(iterator: ParserIterator): LetAst {
             val typeAnnotationIndex = builder.consume<TypeAnnotationToken>()
             if(typeAnnotationIndex == -1) {
                 builder.emitError("Expected type annotation", Span.zero)
-                return LetAst(builder.nodes(), builder.errors(), nameIndex, -1, -1, Span.zero)
+                return LetAst(builder.nodes(), builder.errors(), nameIndex, -1, annotationSpan, -1, Span.zero)
             }
             typeAnnotationIndex
         }
@@ -247,7 +248,7 @@ fun parseLet(iterator: ParserIterator): LetAst {
     if (builder.consume<EqualSignToken>() == -1) {
         builder.emitError("Expected =", Span.zero)
         consumeRemainingWhitespace(builder)
-        return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, -1, Span.zero)
+        return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, annotationSpan, -1, Span.zero)
     }
     consumeWhitespace(builder)
 
@@ -258,7 +259,7 @@ fun parseLet(iterator: ParserIterator): LetAst {
         consumeRemainingWhitespace(builder)
     }
 
-    return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, expressionIndex, expressionSpan)
+    return LetAst(builder.nodes(), builder.errors(), nameIndex, typeAnnotationIndex, annotationSpan, expressionIndex, expressionSpan)
 }
 
 fun parseReturn(iterator: ParserIterator): ReturnAst {
