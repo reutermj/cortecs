@@ -87,8 +87,7 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                     else acc
                 }
                 //todo should I be copying the old id or creating a new one???
-                if(typeVars.any()) TypeScheme(type.id, typeVars.toList().sortedBy { it.id }, apply(type.type, mapping))
-                else apply(type.type, mapping)
+                TypeScheme(type.id, typeVars.toList().sortedBy { it.id }, apply(type.type, mapping))
             }
             else -> TODO()
         }

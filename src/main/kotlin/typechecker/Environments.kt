@@ -1,10 +1,13 @@
 package typechecker
 
+import errors.CortecsErrors
 import parser.*
 
 data class Subordinate<out T: Environment>(val offset: Span, val environment: T)
 
-interface Environment
+interface Environment {
+    fun getSpansForType(type: Type): List<Span>
+}
 
 data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
     companion object {
@@ -28,7 +31,12 @@ data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
     }
 
     //todo figure out if these are right. do we need to map passed in?
-    fun applySubstitution(substitution: Substitution, mappings: MutableMap<String, Type>) = Bindings(bindings.mapValues { substitution.apply(it.value, mappings) as TypeScheme })
+    fun applySubstitution(substitution: Substitution, mappings: MutableMap<String, Type>) = Bindings(bindings.mapValues {
+        val outType = substitution.apply(it.value, mappings)
+        if(outType is TypeScheme) outType
+        else
+            TODO()
+    })
 }
 
 data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
@@ -94,11 +102,9 @@ data class Compatibilities(val compatibilities: Map<UnificationTypeVariable, Lis
     }
 }
 
-sealed interface BlockSubordinates: Environment {
-    fun getSpansForType(type: Type): List<Span>
-}
+sealed interface BlockSubordinates: Environment
 
-data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val mappings: Map<String, Type>, val subordinates: List<Subordinate<BlockSubordinates>>): BlockSubordinates {
+data class BlockEnvironment(val bindings: Bindings, val requirements: Requirements, val compatibilities: Compatibilities, val freeUserDefinedTypeVariables: Set<UserDefinedTypeVariable>, val mappings: Map<String, Type>, val subordinates: List<Subordinate<BlockSubordinates>>, val errors: CortecsErrors): BlockSubordinates {
     val ids = run {
         val bindingIds = bindings.fold(emptySet<String>()) { acc, _, typeScheme -> acc + typeScheme.getIds()}
         val requirementIds = requirements.fold(bindingIds) { acc, _, types -> types.fold(acc) { acc, type -> acc + type.getIds() } }
@@ -106,7 +112,7 @@ data class BlockEnvironment(val bindings: Bindings, val requirements: Requiremen
     }
 
     companion object {
-        val empty = BlockEnvironment(Bindings.empty, Requirements.empty, Compatibilities.empty, emptySet(), emptyMap(), emptyList())
+        val empty = BlockEnvironment(Bindings.empty, Requirements.empty, Compatibilities.empty, emptySet(), emptyMap(), emptyList(), CortecsErrors.empty)
     }
 
     override fun getSpansForType(type: Type): List<Span> {

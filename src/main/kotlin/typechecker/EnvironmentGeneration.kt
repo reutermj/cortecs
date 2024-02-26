@@ -1,5 +1,7 @@
 package typechecker
 
+import errors.CortecsError
+import errors.CortecsErrors
 import parser.*
 
 var unificationVarNumber: Long = 0
@@ -12,6 +14,16 @@ fun typesToType(types: List<Type>) = //todo find better name for this
         1 -> types.first()
         else -> ProductType(nextId(), types)
     }
+
+fun <T: Environment>generateUnificationErrors(error: UnificationError, subordinates: List<Subordinate<T>>, errors: MutableList<CortecsError>) {
+    for(sub in subordinates) {
+        val lSpans = sub.environment.getSpansForType(error.lType).map { sub.offset + it }
+        for(span in lSpans) errors.add(CortecsError("Unification error", span, Span.zero))
+
+        val rSpans = sub.environment.getSpansForType(error.rType).map { sub.offset + it }
+        for(span in rSpans) errors.add(CortecsError("Unification error", span, Span.zero))
+    }
+}
 
 fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
     if(block.nodes.isEmpty()) return BlockEnvironment.empty
@@ -33,6 +45,7 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
             acc + subordinate.environment.freeUserDefinedTypeVariables
         }.toSet()
 
+    val errors = mutableListOf<CortecsError>()
     var substitution = Substitution.empty
     var outBindings = Bindings.empty
     var outRequirements = Requirements.empty
@@ -51,16 +64,7 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
                 outCompatibilities += compatibilities
                 when(val result = substitution.unify(type, instantiated)) {
                     is UnificationSuccess -> substitution = result.substitution
-                    is UnificationError -> {
-                        val lSpans = mutableListOf<Span>()
-                        val rSpans = mutableListOf<Span>()
-                        for(sub in outSubordinates) {
-                            lSpans.addAll(sub.environment.getSpansForType(result.lType).map { sub.offset + it })
-                            rSpans.addAll(sub.environment.getSpansForType(result.rType).map { sub.offset + it })
-                        }
-
-                        println()
-                    }
+                    is UnificationError -> generateUnificationErrors(result, outSubordinates, errors)
                 }
             }
         }
@@ -73,8 +77,8 @@ fun generateBlockEnvironment(block: BlockAst): BlockEnvironment {
     outRequirements = outRequirements.applySubstitution(substitution, mappings)
     outBindings = outBindings.applySubstitution(substitution, mappings)
     outCompatibilities = outCompatibilities.applySubstitution(substitution, mappings)
-
-    return BlockEnvironment(outBindings, outRequirements, outCompatibilities, outFreeUserDefinedTypeVariable, mappings, outSubordinates)
+    //todo error span
+    return BlockEnvironment(outBindings, outRequirements, outCompatibilities, outFreeUserDefinedTypeVariable, mappings, outSubordinates, CortecsErrors(null, errors))
 }
 
 fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
@@ -83,16 +87,20 @@ fun generateIfEnvironment(ifAst: IfAst): BlockEnvironment {
 
     val cEnvironment = ifAst.condition().environment
     val bEnvironment = generateBlockEnvironment(ifAst.block())
-
+    val subordinates = listOf(Subordinate(ifAst.conditionSpan, cEnvironment), Subordinate(ifAst.blockSpan, bEnvironment))
+    val errors = mutableListOf<CortecsError>()
     val substitution =
         when(val result = Substitution.empty.unify(cEnvironment.type, BooleanType(nextId()))) {
             is UnificationSuccess -> result.substitution
-            is UnificationError -> TODO()
+            is UnificationError -> {
+                generateUnificationErrors(result, subordinates, errors)
+                Substitution.empty
+            }
         }
     val mapping = mutableMapOf<String, Type>()
     val requirements = cEnvironment.requirements.map { substitution.apply(it, mapping) } + bEnvironment.requirements
-
-    return BlockEnvironment(Bindings.empty, requirements, bEnvironment.compatibilities, bEnvironment.freeUserDefinedTypeVariables, mapping, listOf(Subordinate(ifAst.conditionSpan, cEnvironment), Subordinate(ifAst.blockSpan, bEnvironment)))
+    //todo error span
+    return BlockEnvironment(Bindings.empty, requirements, bEnvironment.compatibilities, bEnvironment.freeUserDefinedTypeVariables, mapping, subordinates, CortecsErrors(null, errors))
 }
 
 fun generateLetEnvironment(let: LetAst): BlockEnvironment {
@@ -105,7 +113,7 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
     val compatibilities: Compatibilities
     val mapping = mutableMapOf<String, Type>()
     val subordinates = mutableListOf(Subordinate<BlockSubordinates>(let.expressionSpan, environment))
-
+    val errors = mutableListOf<CortecsError>()
     if(let.typeAnnotationIndex == -1) {
         requirements = environment.requirements
         val (t, c) = generalize(environment.type)
@@ -117,7 +125,10 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
         val substitution =
             when(val result = Substitution.empty.unify(annotation, environment.type)) {
                 is UnificationSuccess -> result.substitution
-                is UnificationError -> TODO()
+                is UnificationError -> {
+                    generateUnificationErrors(result, subordinates, errors)
+                    Substitution.empty
+                }
             }
         requirements = environment.requirements.map { substitution.apply(it, mapping) }
         type = TypeScheme(nextId(), emptyList(), annotation)
@@ -125,14 +136,15 @@ fun generateLetEnvironment(let: LetAst): BlockEnvironment {
         subordinates.add(Subordinate(let.annotationSpan, AnnotationEnvironment(annotation)))
     }
 
-    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), requirements, compatibilities, freeUserDefinedTypeVariable, mapping, subordinates)
+    //todo error span
+    return BlockEnvironment(Bindings.empty.addBinding(let.name(), type), requirements, compatibilities, freeUserDefinedTypeVariable, mapping, subordinates, CortecsErrors(null, errors))
 }
 
 fun generateReturnEnvironment(returnAst: ReturnAst): BlockEnvironment {
     if(returnAst.expressionIndex == -1) return BlockEnvironment.empty
     val environment = returnAst.expression().environment
     val requirements = environment.requirements.addRequirement(ReturnTypeToken, environment.type)
-    return BlockEnvironment(Bindings.empty, requirements, Compatibilities.empty, emptySet(), emptyMap(), listOf(Subordinate(returnAst.expressionSpan, environment)))
+    return BlockEnvironment(Bindings.empty, requirements, Compatibilities.empty, emptySet(), emptyMap(), listOf(Subordinate(returnAst.expressionSpan, environment)), CortecsErrors.empty)
 }
 
 fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): ExpressionEnvironment {
@@ -157,7 +169,7 @@ fun generateFunctionCallExpressionEnvironment(fnCall: FunctionCallExpression): E
     val substitution =
         when(val result = Substitution.empty.unify(fEnvironment.type, ArrowType(nextId(), typesToType(argTypes), retType))) {
             is UnificationSuccess -> result.substitution
-            is UnificationError -> TODO()
+            is UnificationError -> TODO() //can this branch ever actually happen?
         }
     val mappings = mutableMapOf<String, Type>()
     requirements += fEnvironment.requirements.map { substitution.apply(it, mappings) }
