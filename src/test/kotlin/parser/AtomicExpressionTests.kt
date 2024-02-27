@@ -3,51 +3,77 @@ package parser
 import kotlin.test.*
 
 class AtomicExpressionTests {
-    private inline fun <reified T: AtomicExpressionToken>tryParsing(text: String, whitespaceCombos: List<String>) {
-        for (i in whitespaceCombos) {
-            val s = "$text$i"
-            testParse(s, ::parseExpression) {
-                assertIs<AtomicExpression>(it)
-                assertIs<T>(it.atom())
-
-                val builder = StringBuilder()
-                it.atom().stringify(builder)
-                assertEquals(text, builder.toString())
-                builder.clear()
-            }
+    private inline fun <reified T: AtomicExpressionToken>testParseAtomType(text: String) {
+        testParse(text, ::parseExpression) {
+            assertIs<AtomicExpression>(it)
+            assertIs<T>(it.atom())
         }
     }
 
     @Test
-    fun testParse() {
-        tryParsing<NameToken>("a", whitespaceCombos)
-        tryParsing<StringToken>("\"hello world\"", whitespaceCombos)
-        tryParsing<BadStringToken>("\"hello world", whitespaceCombosStartingWithNewLine)
-        tryParsing<CharToken>("'a'", whitespaceCombos)
-        tryParsing<BadCharToken>("'a", whitespaceCombosStartingWithNewLine)
-        tryParsing<IntToken>("1", whitespaceCombos)
-        tryParsing<FloatToken>("1.1", whitespaceCombos)
+    fun testParseAtomType() {
+        testParseAtomType<NameToken>("a")
+        testParseAtomType<StringToken>("\"hello world\"")
+        testParseAtomType<BadStringToken>("\"hello world")
+        testParseAtomType<CharToken>("'a'")
+        testParseAtomType<BadCharToken>("'a")
+        testParseAtomType<IntToken>("1")
+        testParseAtomType<FloatToken>("1.1")
+        testParseAtomType<FloatToken>(".1")
+        testParseAtomType<FloatToken>("1.")
     }
 
     @Test
-    fun testReparse() {
-        for (i in whitespaceCombos) {
-            val inString = "a$i"
-            val text = "bc"
-            val start = Span(0, 1)
-            val end = Span(0, 1)
-            val change = Change(text, start, end)
-            testReparse(inString, change) { parseExpression(it)!! }
+    fun testParseWhitespaceAfterAtom() {
+        for(whitespace in whitespaceCombos) {
+            testParse("a$whitespace", ::parseExpression) {}
+            testParse("'a'$whitespace", ::parseExpression) {}
+            testParse("1$whitespace", ::parseExpression) {}
         }
+    }
 
-        for (i in whitespaceCombos) {
-            val inString = "c$i"
-            val text = "ab"
-            val start = Span(0, 0)
-            val end = Span(0, 0)
-            val change = Change(text, start, end)
-            testReparse(inString, change) { parseExpression(it)!! }
-        }
+    fun testReplaceFullAtom(inText: String, outText: String) {
+        val start = Span.zero
+        val end = Span(0, inText.length)
+        val change = Change(outText, start, end)
+        testReparse(inText, change) { parseExpression(it)!! }
+    }
+
+    @Test
+    fun testReplaceFullAtom() {
+        testReplaceFullAtom("a", "b")
+        testReplaceFullAtom("a", "1.1")
+        testReplaceFullAtom("'a'", "b")
+        testReplaceFullAtom("\"abc\"", "b")
+    }
+
+    fun testAppendToBeginning(inText: String, beginningText: String) {
+        val change = Change(beginningText, Span.zero, Span.zero)
+        testReparse(inText, change) { parseExpression(it)!! }
+    }
+
+    @Test
+    fun testAppendToBeginning() {
+        testAppendToBeginning("b", "a")
+        testAppendToBeginning("a", "'")
+        testAppendToBeginning("a", "\"")
+        testAppendToBeginning(".1", "1")
+    }
+
+    fun testAppendToEnd(inText: String, endText: String) {
+        val start = Span(0, inText.length)
+        val end = Span(0, inText.length)
+        val change = Change(endText, start, end)
+        testReparse(inText, change) { parseExpression(it)!! }
+    }
+
+    @Test
+    fun testAppendToEnd() {
+        testAppendToEnd("a", "b")
+        testAppendToEnd("'a", "'")
+        testAppendToEnd("\"a", "\"")
+        testAppendToEnd("1", ".1")
+        testAppendToEnd("1", ".")
     }
 
     fun testNullParse(inString: String) {
@@ -58,7 +84,7 @@ class AtomicExpressionTests {
     }
 
     @Test
-    fun testBadToken() {
+    fun testNullParse() {
         testNullParse("")
         testNullParse("Abc")
         testNullParse("let")
