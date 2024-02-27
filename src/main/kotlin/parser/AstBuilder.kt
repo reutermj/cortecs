@@ -7,7 +7,7 @@ class AstBuilder(val iterator: ParserIterator) {
     private var _currentLocation = Span.zero
 
     private var _nodes = mutableListOf<Ast>()
-    private var _errors = mutableListOf<CortecsErrorV2>()
+    private var _errors = mutableListOf<CortecsError>()
 
     inline fun <reified T: Token>consume(): Int {
         val token = iterator.peekToken()
@@ -30,7 +30,7 @@ class AstBuilder(val iterator: ParserIterator) {
     }
 
     fun emitError(text: String, span: Span) {
-        _errors.add(CortecsErrorV2(text, _errorLocation ?: Span.zero, span))
+        _errors.add(CortecsError(text, _errorLocation ?: Span.zero, span))
     }
 
     fun markErrorLocation() {
