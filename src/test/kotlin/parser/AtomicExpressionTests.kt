@@ -47,24 +47,12 @@ class AtomicExpressionTests {
         testReplaceFullAtom("\"abc\"", "b")
     }
 
-    fun testAppendToBeginning(inText: String, beginningText: String) {
-        val change = Change(beginningText, Span.zero, Span.zero)
-        testReparse(inText, change) { parseExpression(it)!! }
-    }
-
     @Test
     fun testAppendToBeginning() {
         testAppendToBeginning("b", "a")
         testAppendToBeginning("a", "'")
         testAppendToBeginning("a", "\"")
         testAppendToBeginning(".1", "1")
-    }
-
-    fun testAppendToEnd(inText: String, endText: String) {
-        val start = Span(0, inText.length)
-        val end = Span(0, inText.length)
-        val change = Change(endText, start, end)
-        testReparse(inText, change) { parseExpression(it)!! }
     }
 
     @Test

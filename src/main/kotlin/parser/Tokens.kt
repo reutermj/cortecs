@@ -3,13 +3,14 @@ package parser
 import errors.*
 import kotlinx.serialization.*
 
-sealed interface Token: Ast
+sealed interface Token: Ast {
+    val value: String
+}
 
 @Serializable
 sealed class TokenImpl: Ast, Token {
     override val errors: CortecsErrors
         get() = CortecsErrors(null, emptyList())
-    abstract val value: String
     override val span get() = Span(0, value.length)
     override fun firstTokenOrNull(): Token? = this
     override fun forceReparse(iter: ParserIterator) {

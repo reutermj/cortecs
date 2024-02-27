@@ -107,6 +107,25 @@ fun <T: Ast>testReparse(inString: String, change: Change, parse: (ParserIterator
     assertEquals(goldText, builder.toString())
 }
 
+fun testAppendToBeginning(inText: String, beginningText: String) {
+    val change = Change(beginningText, Span.zero, Span.zero)
+    testReparse(inText, change) { parseExpression(it)!! }
+}
+
+fun testAppendToEnd(inText: String, endText: String) {
+    val span = getSpan(inText)
+    val change = Change(endText, span, span)
+    testReparse(inText, change) { parseExpression(it)!! }
+}
+
+fun testReplaceMiddle(left: String, middle: String, right: String, replace: String) {
+    val inText = "$left$middle$right"
+    val start = getSpan(left)
+    val end = start + getSpan(middle)
+    val change = Change(replace, start, end)
+    testReparse(inText, change) { parseExpression(it)!! }
+}
+
 fun getSpan(text: String): Span {
     val lines = text.lines()
     val lastLine = lines.last()
