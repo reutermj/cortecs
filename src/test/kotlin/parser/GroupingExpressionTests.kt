@@ -62,6 +62,7 @@ class GroupingExpressionTests {
     fun testAppendToEnd() {
         testAppendToEnd("(", "a")
         testAppendToEnd("(a", ")")
+        testAppendToEnd("(", "a)")
     }
 
     @Test
