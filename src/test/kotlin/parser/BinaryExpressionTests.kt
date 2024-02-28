@@ -30,6 +30,35 @@ class BinaryExpressionTests {
         testParse("'a'", "^%=", "\"b\"")
     }
 
+    fun testWhitespace(lhsText: String, opText: String, rhsText: String, whitespace: String) {
+        val text = "$lhsText $whitespace$opText $whitespace$rhsText"
+        testParse(text, ::parseExpression) {
+            assertIs<BinaryExpression>(it)
+            val lhs = it.lhs()
+            assertIs<AtomicExpression>(lhs)
+            assertEquals(lhsText, lhs.atom().value)
+
+            val op = it.op()
+            assertEquals(opText, op.value)
+
+            val rhs = it.rhs()
+            assertIs<AtomicExpression>(rhs)
+            assertEquals(rhsText, rhs.atom().value)
+        }
+    }
+
+    @Test
+    fun testWhitespace() {
+        for(whitespace in whitespaceCombos) {
+            testWhitespace("a", "*", "b", whitespace)
+            testWhitespace("1", "+", "b", whitespace)
+            testWhitespace("a", "/", "1", whitespace)
+            testWhitespace("'a'", "%", "b", whitespace)
+            testWhitespace("a", "==", "\"b\"", whitespace)
+            testWhitespace("'a'", "^%=", "\"b\"", whitespace)
+        }
+    }
+
     fun testParseNoRhs(lhsText: String, opText: String) {
         val text = "$lhsText $opText"
         testParse(text, ::parseExpression) {
