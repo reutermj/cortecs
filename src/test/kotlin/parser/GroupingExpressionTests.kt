@@ -22,6 +22,27 @@ class GroupingExpressionTests {
         testParse("'a'")
     }
 
+    fun testParseWhitespace(expressionText: String, whitespace: String) {
+        val text = "($whitespace$expressionText$whitespace)$whitespace"
+        testParse(text, ::parseExpression) {
+            assertIs<GroupingExpression>(it)
+            val expression = it.expression()
+            assertIs<AtomicExpression>(expression)
+            assertEquals(expressionText, expression.atom().value)
+        }
+    }
+
+    @Test
+    fun testParseWhitespace() {
+        for(whitespace in whitespaceCombos) {
+            testParseWhitespace("a", whitespace)
+            testParseWhitespace("1", whitespace)
+            testParseWhitespace("1.1", whitespace)
+            testParseWhitespace("\"hello world\"", whitespace)
+            testParseWhitespace("'a'", whitespace)
+        }
+    }
+
     @Test
     fun testParseMissingExpression() {
         testParse("(", ::parseExpression) {

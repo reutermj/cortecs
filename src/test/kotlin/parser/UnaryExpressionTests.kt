@@ -3,14 +3,18 @@ package parser
 import kotlin.test.*
 
 class UnaryExpressionTests {
-    fun testParse(opText: String, atomText: String) {
-        val text = "$opText$atomText"
+    fun validate(text: String, atomText: String) {
         testParse(text, ::parseExpression) {
             assertIs<UnaryExpression>(it)
             val atom = it.expression()
             assertIs<AtomicExpression>(atom)
             assertEquals(atomText, atom.atom().value)
         }
+    }
+
+    fun testParse(opText: String, atomText: String) {
+        val text = "$opText$atomText"
+        validate(text, atomText)
     }
     @Test
     fun testParse() {
@@ -19,6 +23,21 @@ class UnaryExpressionTests {
         testParse("|", "1.1")
         testParse(">", "'h'")
         testParse("^", "\"hello world\"")
+    }
+
+    fun testParseWhitespace(opText: String, atomText: String, whitespace: String) {
+        val text = "$opText$whitespace$atomText$whitespace"
+        validate(text, atomText)
+    }
+    @Test
+    fun testParseWhitespace() {
+        for(whitespace in whitespaceCombos) {
+            testParseWhitespace("+", "a", whitespace)
+            testParseWhitespace("*", "1", whitespace)
+            testParseWhitespace("|", "1.1", whitespace)
+            testParseWhitespace(">", "'h'", whitespace)
+            testParseWhitespace("^", "\"hello world\"", whitespace)
+        }
     }
 
     fun testParseMissingExpression(opText: String) {
