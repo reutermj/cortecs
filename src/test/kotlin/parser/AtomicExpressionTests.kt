@@ -57,11 +57,11 @@ class AtomicExpressionTests {
 
     @Test
     fun testAppendToEnd() {
-        testAppendToEnd("a", "b")
-        testAppendToEnd("'a", "'")
-        testAppendToEnd("\"a", "\"")
-        testAppendToEnd("1", ".1")
-        testAppendToEnd("1", ".")
+        testAppendToEnd("a", "b") { parseExpression(it)!! }
+        testAppendToEnd("'a", "'") { parseExpression(it)!! }
+        testAppendToEnd("\"a", "\"") { parseExpression(it)!! }
+        testAppendToEnd("1", ".1") { parseExpression(it)!! }
+        testAppendToEnd("1", ".") { parseExpression(it)!! }
     }
 
     fun testNullParse(inString: String) {

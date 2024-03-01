@@ -56,11 +56,11 @@ class UnaryExpressionTests {
 
     @Test
     fun testReplaceExpression() {
-        testReplaceMiddle("+", "a", "", "b")
-        testReplaceMiddle("*", "a", "", "1.1")
-        testReplaceMiddle("==", "1.1", "", "a")
-        testReplaceMiddle("^", "\"hello world\"", "", "a")
-        testReplaceMiddle("+a", "", "", "b")
+        testReplaceMiddle("+", "a", "", "b") { parseExpression(it)!! }
+        testReplaceMiddle("*", "a", "", "1.1") { parseExpression(it)!! }
+        testReplaceMiddle("==", "1.1", "", "a") { parseExpression(it)!! }
+        testReplaceMiddle("^", "\"hello world\"", "", "a") { parseExpression(it)!! }
+        testReplaceMiddle("+a", "", "", "b") { parseExpression(it)!! }
     }
 
     @Test

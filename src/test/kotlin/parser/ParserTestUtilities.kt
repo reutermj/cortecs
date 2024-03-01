@@ -112,18 +112,18 @@ fun testAppendToBeginning(inText: String, beginningText: String) {
     testReparse(inText, change) { parseExpression(it)!! }
 }
 
-fun testAppendToEnd(inText: String, endText: String) {
+fun <T: Ast>testAppendToEnd(inText: String, endText: String, parse: (ParserIterator) -> T) {
     val span = getSpan(inText)
     val change = Change(endText, span, span)
-    testReparse(inText, change) { parseExpression(it)!! }
+    testReparse(inText, change, parse)
 }
 
-fun testReplaceMiddle(left: String, middle: String, right: String, replace: String) {
+fun <T: Ast>testReplaceMiddle(left: String, middle: String, right: String, replace: String, parse: (ParserIterator) -> T) {
     val inText = "$left$middle$right"
     val start = getSpan(left)
     val end = start + getSpan(middle)
     val change = Change(replace, start, end)
-    testReparse(inText, change) { parseExpression(it)!! }
+    testReparse(inText, change, parse)
 }
 
 fun getSpan(text: String): Span {

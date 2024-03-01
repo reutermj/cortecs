@@ -79,12 +79,12 @@ class FunctionCallExpressionTests {
 
     @Test
     fun testReplaceExpression() {
-        testReplaceMiddle("f(", "a", ")", "b")
-        testReplaceMiddle("f(", "a", ")", "b,")
-        testReplaceMiddle("f(a", "", ")", ", b")
-        testReplaceMiddle("f(a", "", ")", ", b,")
-        testReplaceMiddle("f(a", "", ")", ", b, c")
-        testReplaceMiddle("f(a", ", b, c", ")", "")
+        testReplaceMiddle("f(", "a", ")", "b") { parseExpression(it)!! }
+        testReplaceMiddle("f(", "a", ")", "b,") { parseExpression(it)!! }
+        testReplaceMiddle("f(a", "", ")", ", b") { parseExpression(it)!! }
+        testReplaceMiddle("f(a", "", ")", ", b,") { parseExpression(it)!! }
+        testReplaceMiddle("f(a", "", ")", ", b, c") { parseExpression(it)!! }
+        testReplaceMiddle("f(a", ", b, c", ")", "") { parseExpression(it)!! }
     }
 
     @Test
@@ -96,13 +96,13 @@ class FunctionCallExpressionTests {
 
     @Test
     fun testAppendToEnd() {
-        testAppendToEnd("f", "(a)")
-        testAppendToEnd("f(a", ")")
-        testAppendToEnd("f(a", ", b")
-        testAppendToEnd("f(a", ", b)")
-        testAppendToEnd("f(a, b", ", c")
-        testAppendToEnd("f(a, b", ", c)")
-        testAppendToEnd("f(a", ", b, c")
-        testAppendToEnd("f(a", ", b, c)")
+        testAppendToEnd("f", "(a)") { parseExpression(it)!! }
+        testAppendToEnd("f(a", ")") { parseExpression(it)!! }
+        testAppendToEnd("f(a", ", b") { parseExpression(it)!! }
+        testAppendToEnd("f(a", ", b)") { parseExpression(it)!! }
+        testAppendToEnd("f(a, b", ", c") { parseExpression(it)!! }
+        testAppendToEnd("f(a, b", ", c)") { parseExpression(it)!! }
+        testAppendToEnd("f(a", ", b, c") { parseExpression(it)!! }
+        testAppendToEnd("f(a", ", b, c)") { parseExpression(it)!! }
     }
 }
