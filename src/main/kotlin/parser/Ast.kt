@@ -2,7 +2,9 @@ package parser
 
 import errors.*
 import kotlinx.serialization.*
+import typechecker.ExpressionEnvironment
 import typechecker.generateAtomicExpressionEnvironment
+import typechecker.generateGroupingExpressionEnvironment
 
 sealed interface Ast {
     val span: Span
@@ -220,24 +222,31 @@ data class IfAst(override val nodes: List<Ast>, override val errors: CortecsErro
 //P7' -> * E P7' | / E P7' | % E P7' | epsilon
 //E  -> (P1) | atom
 @Serializable
-sealed class Expression: AstImpl()
+sealed class Expression: AstImpl() {
+    abstract val environment: ExpressionEnvironment
+}
 @Serializable
 sealed class BaseExpression: Expression()
 @Serializable
 data class AtomicExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val atomIndex: Int): BaseExpression() {
-    val environment = generateAtomicExpressionEnvironment(atom())
+    override val environment = generateAtomicExpressionEnvironment(atom())
     fun atom(): AtomicExpressionToken =
         if(atomIndex == -1) throw Exception("INTERNAL ERROR: Parser should not emit an AtomicExpression without an atom token")
         else nodes[atomIndex] as AtomicExpressionToken
 }
 @Serializable
-data class GroupingExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): BaseExpression() {
+data class GroupingExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int, val expressionSpan: Span): BaseExpression() {
+    override val environment =
+        if(expressionIndex == -1) ExpressionEnvironment.empty
+        else generateGroupingExpressionEnvironment(expression(), expressionSpan)
+
     fun expression(): Expression =
         if(expressionIndex == -1) throw Exception("Name not available")
         else nodes[expressionIndex] as Expression
 }
 @Serializable
 data class UnaryExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val opIndex: Int, val expressionIndex: Int): BaseExpression() {
+    override val environment = ExpressionEnvironment.empty
     fun op(): OperatorToken =
         if(opIndex == -1) throw Exception("op not available")
         else nodes[opIndex] as OperatorToken
@@ -261,6 +270,7 @@ data class ArgumentAst(override val nodes: List<Ast>, override val errors: Corte
 }
 @Serializable
 data class FunctionCallExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val functionIndex: Int, val argumentsIndex: Int): BaseExpression() {
+    override val environment = ExpressionEnvironment.empty
     fun function(): Expression =
         if(functionIndex == -1) throw Exception("Name not available")
         else nodes[functionIndex] as Expression
@@ -274,6 +284,7 @@ sealed class BinaryExpression: Expression() {
     abstract val lhsIndex: Int
     abstract val rhsIndex: Int
     abstract val opIndex: Int
+    override val environment = ExpressionEnvironment.empty
 
     fun lhs(): Expression =
         if(lhsIndex == -1) throw Exception("lhs not available")

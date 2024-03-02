@@ -3,6 +3,11 @@ package typechecker
 import kotlinx.serialization.*
 import parser.*
 
+sealed class Environment
+
+@Serializable
+data class Subordinate<out T: Environment>(val offset: Span, val environment: T)
+
 @Serializable
 data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
     companion object {
@@ -26,9 +31,20 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
 }
 
 @Serializable
-data class ExpressionEnvironment(val type: Type, val requirements: Requirements) {
+data class ExpressionEnvironment(val type: Type, val requirements: Requirements, val subordinates: List<Subordinate<ExpressionEnvironment>>): Environment() {
+    companion object {
+        val empty = ExpressionEnvironment(Invalid(getNextId()), Requirements.empty, emptyList())
+    }
     fun getSpansForId(id: Long): List<Span> {
-        return if(id == type.id) listOf(Span.zero)
-        else emptyList()
+        if(subordinates.isEmpty()) {
+            return if(id == type.id) listOf(Span.zero)
+            else emptyList()
+        }
+
+        return subordinates.flatMap { subordinate ->
+            val spans = subordinate.environment.getSpansForId(id)
+            val offsetted = spans.map { span -> subordinate.offset + span }
+            offsetted
+        }
     }
 }

@@ -40,5 +40,6 @@ class AstBuilder(val iterator: ParserIterator) {
     fun iterator() = iterator
     fun nodes(): List<Ast> = _nodes
     fun errors(): CortecsErrors = CortecsErrors(_errorLocation, _errors)
+    fun getCurrentLocation() = _currentLocation
 }
 

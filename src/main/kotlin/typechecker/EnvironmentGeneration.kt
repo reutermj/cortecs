@@ -2,19 +2,25 @@ package typechecker
 
 import parser.*
 
+fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
+    val environment = expression.environment
+    val subordinates = listOf(Subordinate(expressionSpan, environment))
+    return ExpressionEnvironment(environment.type, environment.requirements, subordinates)
+}
+
 fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =
     when(atom) {
         is NameToken -> {
             val type = freshUnificationVariable()
             val requirements = Requirements.empty.addRequirement(atom, type)
-            ExpressionEnvironment(type, requirements)
+            ExpressionEnvironment(type, requirements, emptyList())
         }
-        is IntToken -> ExpressionEnvironment(getIntType(atom), Requirements.empty)
-        is FloatToken -> ExpressionEnvironment(getFloatType(atom), Requirements.empty)
-        is CharToken -> ExpressionEnvironment(CharacterType(getNextId()), Requirements.empty)
-        is StringToken -> ExpressionEnvironment(StringType(getNextId()), Requirements.empty)
-        is BadCharToken -> ExpressionEnvironment(CharacterType(getNextId()), Requirements.empty) //todo should I??
-        is BadStringToken -> ExpressionEnvironment(StringType(getNextId()), Requirements.empty) //todo should I??
+        is IntToken -> ExpressionEnvironment(getIntType(atom), Requirements.empty, emptyList())
+        is FloatToken -> ExpressionEnvironment(getFloatType(atom), Requirements.empty, emptyList())
+        is CharToken -> ExpressionEnvironment(CharacterType(getNextId()), Requirements.empty, emptyList())
+        is StringToken -> ExpressionEnvironment(StringType(getNextId()), Requirements.empty, emptyList())
+        is BadCharToken -> ExpressionEnvironment(CharacterType(getNextId()), Requirements.empty, emptyList()) //todo should I??
+        is BadStringToken -> ExpressionEnvironment(StringType(getNextId()), Requirements.empty, emptyList()) //todo should I??
     }
 
 var typeId: Long = 0
