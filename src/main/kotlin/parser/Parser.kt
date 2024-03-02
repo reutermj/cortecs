@@ -335,7 +335,7 @@ inline fun <reified T : BinaryExpression> parseBinaryExpressionGen(
     iterator: ParserIterator,
     acceptedTokens: Set<Char>,
     nextPrecedenceLevel: (ParserIterator) -> Expression?,
-    ctor: (List<Ast>, CortecsErrors, Int, Int, Int) -> T
+    ctor: (List<Ast>, CortecsErrors, Int, Int, Span, Int, Span) -> T
 ): Expression? {
     var lhs: Expression? = reuse<T>(iterator) ?: nextPrecedenceLevel(iterator) ?: return null
     while (true) {
@@ -344,14 +344,16 @@ inline fun <reified T : BinaryExpression> parseBinaryExpressionGen(
         if (token.value[0] in acceptedTokens) {
             val builder = AstBuilder(iterator)
             val lhsIndex = builder.addSubnode(lhs)
+            val opSpan = builder.getCurrentLocation()
             val opIndex = builder.consume<OperatorToken>()
             consumeWhitespace(builder)
+            val rhsSpan = builder.getCurrentLocation()
             val rhsIndex = builder.addSubnode(nextPrecedenceLevel(iterator))
             if (rhsIndex == -1) {
                 builder.emitError("Expected expression", Span.zero)
-                return ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, rhsIndex)
+                return ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, opSpan, rhsIndex, rhsSpan)
             }
-            lhs = ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, rhsIndex)
+            lhs = ctor(builder.nodes(), builder.errors(), lhsIndex, opIndex, opSpan, rhsIndex, rhsSpan)
         } else return lhs
     }
 }

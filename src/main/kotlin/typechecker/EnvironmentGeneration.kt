@@ -5,16 +5,28 @@ import parser.*
 fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
     val environment = expression.environment
     val subordinate = Subordinate(expressionSpan, environment)
-    return GroupingExpressionEnvironment(environment.type, environment.requirements, subordinate)
+    return GroupingExpressionEnvironment(environment.expressionType, environment.requirements, subordinate)
 }
 
 fun generateUnaryExpressionEnvironment(op: OperatorToken, expression: Expression, expressionSpan: Span): ExpressionEnvironment {
     val environment = expression.environment
     val retType = freshUnificationVariable()
-    val opType = ArrowType(getNextId(), environment.type, retType)
+    val opType = ArrowType(getNextId(), environment.expressionType, retType)
     val requirements = environment.requirements.addRequirement(op, opType)
     val subordinate = Subordinate(expressionSpan, environment)
     return UnaryExpressionEnvironment(retType, opType, requirements, subordinate)
+}
+
+fun generateBinaryExpressionEnvironment(lhs: Expression, op: OperatorToken, opSpan: Span, rhs: Expression, rhsSpan: Span): ExpressionEnvironment {
+    val lEnvironment = lhs.environment
+    val rEnvironment = rhs.environment
+    val retType = freshUnificationVariable()
+    val productType = ProductType(getNextId(), listOf(lEnvironment.expressionType, rEnvironment.expressionType))
+    val opType = ArrowType(getNextId(), productType, retType)
+    val requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(op, opType)
+    val lSubordinate = Subordinate(Span.zero, lEnvironment)
+    val rSubordinate = Subordinate(rhsSpan, rEnvironment)
+    return BinaryExpressionEnvironment(retType, opType, productType, opSpan, requirements, lSubordinate, rSubordinate)
 }
 
 fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =

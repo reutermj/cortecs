@@ -11,17 +11,17 @@ class AtomicExpressionTests {
         assertIs<AtomicExpression>(expression)
 
         val environment = expression.environment
-        assertIs<T>(environment.type)
+        assertIs<T>(environment.expressionType)
         if(shouldHaveRequirements) {
             val requirements = environment.requirements[NameToken(text)]!!
             assertEquals(1, requirements.size)
             val requirement = requirements.first()
-            assertEquals(environment.type, requirement)
+            assertEquals(environment.expressionType, requirement)
         } else {
             assertEquals(Requirements.empty, environment.requirements)
         }
 
-        val spans = environment.getSpansForId(environment.type.id)
+        val spans = environment.getSpansForId(environment.expressionType.id)
         assertEquals(1, spans.size)
         assertEquals(Span.zero, spans.first())
     }

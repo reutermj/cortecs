@@ -18,19 +18,19 @@ class UnaryExpressionTests {
         val subordinate = environment.subordinate
         assertEquals(prefixSpan, subordinate.offset)
 
-        val retType = environment.type
+        val retType = environment.expressionType
         assertIs<UnificationTypeVariable>(retType)
 
         val opRequirements = environment.requirements[OperatorToken(op)]!!
         assertEquals(1, opRequirements.size)
         val opReq = opRequirements.first()
         assertIs<ArrowType>(opReq)
-        assertEquals(opReq.lhs, subordinate.environment.type)
-        assertEquals(opReq.rhs, environment.type)
+        assertEquals(opReq.lhs, subordinate.environment.expressionType)
+        assertEquals(opReq.rhs, environment.expressionType)
 
-        assertEquals(listOf(prefixSpan), environment.getSpansForId(subordinate.environment.type.id))
+        assertEquals(listOf(prefixSpan), environment.getSpansForId(subordinate.environment.expressionType.id))
         assertEquals(listOf(Span.zero), environment.getSpansForId(opReq.id))
-        assertEquals(listOf(Span.zero), environment.getSpansForId(environment.type.id))
+        assertEquals(listOf(Span.zero), environment.getSpansForId(environment.expressionType.id))
     }
 
     @Test
