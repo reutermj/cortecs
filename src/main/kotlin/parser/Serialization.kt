@@ -56,6 +56,11 @@ val astJsonFormat: Json by lazy {
             subclass(BinaryExpressionP6::class)
             subclass(BinaryExpressionP7::class)
         }
+        polymorphic(BindableToken::class) {
+            subclass(NameToken::class)
+            subclass(OperatorToken::class)
+            subclass(ReturnTypeToken::class)
+        }
     }
     Json { allowStructuredMapKeys = true; serializersModule = module }
 }

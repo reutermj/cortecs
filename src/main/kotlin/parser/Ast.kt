@@ -2,6 +2,7 @@ package parser
 
 import errors.*
 import kotlinx.serialization.*
+import typechecker.generateAtomicExpressionEnvironment
 
 sealed interface Ast {
     val span: Span
@@ -224,8 +225,9 @@ sealed class Expression: AstImpl()
 sealed class BaseExpression: Expression()
 @Serializable
 data class AtomicExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val atomIndex: Int): BaseExpression() {
+    val environment = generateAtomicExpressionEnvironment(atom())
     fun atom(): AtomicExpressionToken =
-        if(atomIndex == -1) throw Exception("Name not available")
+        if(atomIndex == -1) throw Exception("INTERNAL ERROR: Parser should not emit an AtomicExpression without an atom token")
         else nodes[atomIndex] as AtomicExpressionToken
 }
 @Serializable
