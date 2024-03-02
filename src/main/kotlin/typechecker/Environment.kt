@@ -27,5 +27,8 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
 
 @Serializable
 data class ExpressionEnvironment(val type: Type, val requirements: Requirements) {
-
+    fun getSpansForId(id: Long): List<Span> {
+        return if(id == type.id) listOf(Span.zero)
+        else emptyList()
+    }
 }

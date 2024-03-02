@@ -20,6 +20,10 @@ class AtomicExpressionTests {
         } else {
             assertEquals(Requirements.empty, environment.requirements)
         }
+
+        val spans = environment.getSpansForId(environment.type.id)
+        assertEquals(1, spans.size)
+        assertEquals(Span.zero, spans.first())
     }
 
     @Test
