@@ -13,8 +13,8 @@ class GroupingExpressionTests {
         val expression = parseExpression(iterator)
         assertIs<GroupingExpression>(expression)
         val environment = expression.environment
-        assertEquals(1, environment.subordinates.size)
-        val subordinate = environment.subordinates.first()
+        assertIs<GroupingExpressionEnvironment>(environment)
+        val subordinate = environment.subordinate
         assertEquals(span, subordinate.offset)
         assertEquals(subordinate.environment.type, environment.type)
         assertEquals(subordinate.environment.requirements, environment.requirements)

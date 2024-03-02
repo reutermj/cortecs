@@ -4,8 +4,17 @@ import parser.*
 
 fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
     val environment = expression.environment
-    val subordinates = listOf(Subordinate(expressionSpan, environment))
-    return ExpressionEnvironment(environment.type, environment.requirements, subordinates)
+    val subordinate = Subordinate(expressionSpan, environment)
+    return GroupingExpressionEnvironment(environment.type, environment.requirements, subordinate)
+}
+
+fun generateUnaryExpressionEnvironment(op: OperatorToken, expression: Expression, expressionSpan: Span): ExpressionEnvironment {
+    val environment = expression.environment
+    val retType = freshUnificationVariable()
+    val opType = ArrowType(getNextId(), environment.type, retType)
+    val requirements = environment.requirements.addRequirement(op, opType)
+    val subordinate = Subordinate(expressionSpan, environment)
+    return UnaryExpressionEnvironment(retType, opType, requirements, subordinate)
 }
 
 fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =
@@ -13,14 +22,14 @@ fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =
         is NameToken -> {
             val type = freshUnificationVariable()
             val requirements = Requirements.empty.addRequirement(atom, type)
-            ExpressionEnvironment(type, requirements, emptyList())
+            AtomicExpressionEnvironment(type, requirements)
         }
-        is IntToken -> ExpressionEnvironment(getIntType(atom), Requirements.empty, emptyList())
-        is FloatToken -> ExpressionEnvironment(getFloatType(atom), Requirements.empty, emptyList())
-        is CharToken -> ExpressionEnvironment(CharacterType(getNextId()), Requirements.empty, emptyList())
-        is StringToken -> ExpressionEnvironment(StringType(getNextId()), Requirements.empty, emptyList())
-        is BadCharToken -> ExpressionEnvironment(CharacterType(getNextId()), Requirements.empty, emptyList()) //todo should I??
-        is BadStringToken -> ExpressionEnvironment(StringType(getNextId()), Requirements.empty, emptyList()) //todo should I??
+        is IntToken -> AtomicExpressionEnvironment(getIntType(atom), Requirements.empty)
+        is FloatToken -> AtomicExpressionEnvironment(getFloatType(atom), Requirements.empty)
+        is CharToken -> AtomicExpressionEnvironment(CharacterType(getNextId()), Requirements.empty)
+        is StringToken -> AtomicExpressionEnvironment(StringType(getNextId()), Requirements.empty)
+        is BadCharToken -> AtomicExpressionEnvironment(CharacterType(getNextId()), Requirements.empty) //todo should I??
+        is BadStringToken -> AtomicExpressionEnvironment(StringType(getNextId()), Requirements.empty) //todo should I??
     }
 
 var typeId: Long = 0

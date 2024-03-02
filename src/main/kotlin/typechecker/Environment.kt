@@ -3,7 +3,10 @@ package typechecker
 import kotlinx.serialization.*
 import parser.*
 
-sealed class Environment
+@Serializable
+sealed class Environment {
+    abstract fun getSpansForId(id: Long): List<Span>
+}
 
 @Serializable
 data class Subordinate<out T: Environment>(val offset: Span, val environment: T)
@@ -31,20 +34,35 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
 }
 
 @Serializable
-data class ExpressionEnvironment(val type: Type, val requirements: Requirements, val subordinates: List<Subordinate<ExpressionEnvironment>>): Environment() {
-    companion object {
-        val empty = ExpressionEnvironment(Invalid(getNextId()), Requirements.empty, emptyList())
-    }
-    fun getSpansForId(id: Long): List<Span> {
-        if(subordinates.isEmpty()) {
-            return if(id == type.id) listOf(Span.zero)
-            else emptyList()
-        }
+sealed class ExpressionEnvironment: Environment() {
+    abstract val type: Type
+    abstract val requirements: Requirements
+}
 
-        return subordinates.flatMap { subordinate ->
-            val spans = subordinate.environment.getSpansForId(id)
-            val offsetted = spans.map { span -> subordinate.offset + span }
-            offsetted
+@Serializable
+data class UnaryExpressionEnvironment(override val type: Type, val opType: Type, override val requirements: Requirements, val subordinate: Subordinate<ExpressionEnvironment>): ExpressionEnvironment() {
+    override fun getSpansForId(id: Long) =
+        when(id) {
+            type.id, opType.id -> listOf(Span.zero)
+            else -> subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
         }
-    }
+}
+
+@Serializable
+data class GroupingExpressionEnvironment(override val type: Type, override val requirements: Requirements, val subordinate: Subordinate<ExpressionEnvironment>): ExpressionEnvironment() {
+    override fun getSpansForId(id: Long) = subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
+}
+
+@Serializable
+data class AtomicExpressionEnvironment(override val type: Type, override val requirements: Requirements): ExpressionEnvironment() {
+    override fun getSpansForId(id: Long) =
+        if(id == type.id) listOf(Span.zero)
+        else emptyList()
+}
+
+@Serializable
+data object EmptyExpressionEnvironment: ExpressionEnvironment() {
+    override val type = Invalid(getNextId())
+    override val requirements = Requirements.empty
+    override fun getSpansForId(id: Long) = emptyList<Span>()
 }

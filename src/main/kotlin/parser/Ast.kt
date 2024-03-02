@@ -2,9 +2,7 @@ package parser
 
 import errors.*
 import kotlinx.serialization.*
-import typechecker.ExpressionEnvironment
-import typechecker.generateAtomicExpressionEnvironment
-import typechecker.generateGroupingExpressionEnvironment
+import typechecker.*
 
 sealed interface Ast {
     val span: Span
@@ -237,7 +235,7 @@ data class AtomicExpression(override val nodes: List<Ast>, override val errors: 
 @Serializable
 data class GroupingExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int, val expressionSpan: Span): BaseExpression() {
     override val environment =
-        if(expressionIndex == -1) ExpressionEnvironment.empty
+        if(expressionIndex == -1) EmptyExpressionEnvironment
         else generateGroupingExpressionEnvironment(expression(), expressionSpan)
 
     fun expression(): Expression =
@@ -245,8 +243,11 @@ data class GroupingExpression(override val nodes: List<Ast>, override val errors
         else nodes[expressionIndex] as Expression
 }
 @Serializable
-data class UnaryExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val opIndex: Int, val expressionIndex: Int): BaseExpression() {
-    override val environment = ExpressionEnvironment.empty
+data class UnaryExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val opIndex: Int, val expressionIndex: Int, val expressionSpan: Span): BaseExpression() {
+    override val environment =
+        if(expressionIndex == -1) EmptyExpressionEnvironment
+        else generateUnaryExpressionEnvironment(op(), expression(), expressionSpan)
+
     fun op(): OperatorToken =
         if(opIndex == -1) throw Exception("op not available")
         else nodes[opIndex] as OperatorToken
@@ -270,7 +271,7 @@ data class ArgumentAst(override val nodes: List<Ast>, override val errors: Corte
 }
 @Serializable
 data class FunctionCallExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val functionIndex: Int, val argumentsIndex: Int): BaseExpression() {
-    override val environment = ExpressionEnvironment.empty
+    override val environment = EmptyExpressionEnvironment
     fun function(): Expression =
         if(functionIndex == -1) throw Exception("Name not available")
         else nodes[functionIndex] as Expression
@@ -284,7 +285,7 @@ sealed class BinaryExpression: Expression() {
     abstract val lhsIndex: Int
     abstract val rhsIndex: Int
     abstract val opIndex: Int
-    override val environment = ExpressionEnvironment.empty
+    override val environment = EmptyExpressionEnvironment
 
     fun lhs(): Expression =
         if(lhsIndex == -1) throw Exception("lhs not available")

@@ -431,13 +431,14 @@ fun parseUnaryExpression(iterator: ParserIterator): Expression {
     val builder = AstBuilder(iterator)
     val opIndex = builder.consume<OperatorToken>()
     consumeWhitespace(builder)
+    val expressionSpan = builder.getCurrentLocation()
     val expressionIndex = builder.addSubnode(parseBaseExpression(iterator))
     if (expressionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
-        return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex)
+        return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex, expressionSpan)
     }
     consumeWhitespace(builder)
-    return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex)
+    return UnaryExpression(builder.nodes(), builder.errors(), opIndex, expressionIndex, expressionSpan)
 }
 
 fun parseAtomicExpression(iterator: ParserIterator): Expression {

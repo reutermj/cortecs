@@ -24,8 +24,6 @@ class AtomicExpressionTests {
         val spans = environment.getSpansForId(environment.type.id)
         assertEquals(1, spans.size)
         assertEquals(Span.zero, spans.first())
-
-        assertEquals(emptyList(), environment.subordinates)
     }
 
     @Test
