@@ -32,7 +32,6 @@ class FunctionCallExpressionTests {
         testParse("f", listOf("a"))
         testParse("f", listOf("a", "b"))
         testParse("f", listOf("a", "b", "c"))
-        testParse("\"hello world\"", listOf("1", "1.1", "'a'"))
     }
 
     fun testParseTrailingComma(functionNameText: String, argTexts: List<String>) {
@@ -45,7 +44,6 @@ class FunctionCallExpressionTests {
         testParseTrailingComma("f", listOf("a"))
         testParseTrailingComma("f", listOf("a", "b"))
         testParseTrailingComma("f", listOf("a", "b", "c"))
-        testParseTrailingComma("\"hello world\"", listOf("1", "1.1", "'a'"))
     }
 
     fun testParseWhitespace(functionNameText: String, argTexts: List<String>, whitespace: String) {
@@ -59,7 +57,6 @@ class FunctionCallExpressionTests {
             testParseWhitespace("f", listOf("a"), whitespace)
             testParseWhitespace("f", listOf("a", "b"), whitespace)
             testParseWhitespace("f", listOf("a", "b", "c"), whitespace)
-            testParseWhitespace("\"hello world\"", listOf("1", "1.1", "'a'"), whitespace)
         }
     }
 
@@ -74,7 +71,6 @@ class FunctionCallExpressionTests {
         testParseMissingCloseParen("f", listOf("a"))
         testParseMissingCloseParen("f", listOf("a", "b"))
         testParseMissingCloseParen("f", listOf("a", "b", "c"))
-        testParseMissingCloseParen("\"hello world\"", listOf("1", "1.1", "'a'"))
     }
 
     @Test

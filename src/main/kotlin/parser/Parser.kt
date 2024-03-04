@@ -421,12 +421,13 @@ fun parseFunctionCallExpression(iterator: ParserIterator, baseExpression: Expres
     builder.consume<OpenParenToken>()
     consumeWhitespace(builder)
 
+    val argumentsSpan = builder.getCurrentLocation()
     val argumentsIndex = builder.addSubnode(parseArguments(iterator))
 
     if (builder.consume<CloseParenToken>() == -1) builder.emitError("Expected )", Span.zero)
     consumeRemainingWhitespace(builder)
 
-    return FunctionCallExpression(builder.nodes(), builder.errors(), functionIndex, argumentsIndex)
+    return FunctionCallExpression(builder.nodes(), builder.errors(), functionIndex, argumentsIndex, argumentsSpan)
 }
 
 fun parseUnaryExpression(iterator: ParserIterator): Expression {

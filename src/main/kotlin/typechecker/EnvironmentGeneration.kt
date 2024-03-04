@@ -2,6 +2,35 @@ package typechecker
 
 import parser.*
 
+fun generateFunctionCallExpressionEnvironment(function: Expression, arguments: ArgumentsAst, argumentsSpan: Span): ExpressionEnvironment {
+    val argumentTypes = mutableListOf<Type>()
+    val argumentSubordinates = mutableListOf<Subordinate<ExpressionEnvironment>>()
+    var argumentSpan = argumentsSpan
+    var requirements = Requirements.empty
+    arguments.inOrder {
+        val environment = it.expression().environment
+        argumentTypes.add(environment.expressionType)
+        argumentSubordinates.add(Subordinate(argumentSpan, environment))
+        argumentSpan += it.span
+        requirements += environment.requirements
+    }
+
+    val returnType = freshUnificationVariable()
+    val rhsType = typesToType(argumentTypes)
+    val arrowType = ArrowType(rhsType.id, rhsType, returnType)
+    val substitution =
+        when(val result = Substitution.empty.unify(function.environment.expressionType, arrowType)) {
+            is UnificationSuccess -> result.substitution
+            is UnificationError -> TODO()
+        }
+
+    val mappings = mutableMapOf<Long, Type>()
+    requirements += function.environment.requirements.applySubstitution(substitution, mappings)
+
+    val functionSubordinate = Subordinate(Span.zero, function.environment)
+    return FunctionCallExpressionEnvironment(returnType, arrowType, requirements, functionSubordinate, argumentSubordinates)
+}
+
 fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
     val environment = expression.environment
     val subordinate = Subordinate(expressionSpan, environment)
@@ -21,12 +50,13 @@ fun generateBinaryExpressionEnvironment(lhs: Expression, op: OperatorToken, opSp
     val lEnvironment = lhs.environment
     val rEnvironment = rhs.environment
     val retType = freshUnificationVariable()
-    val productType = ProductType(getNextId(), listOf(lEnvironment.expressionType, rEnvironment.expressionType))
-    val opType = ArrowType(getNextId(), productType, retType)
+    val typeId = getNextId()
+    val productType = ProductType(typeId, listOf(lEnvironment.expressionType, rEnvironment.expressionType))
+    val opType = ArrowType(typeId, productType, retType)
     val requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(op, opType)
     val lSubordinate = Subordinate(Span.zero, lEnvironment)
     val rSubordinate = Subordinate(rhsSpan, rEnvironment)
-    return BinaryExpressionEnvironment(retType, opType, productType, opSpan, requirements, lSubordinate, rSubordinate)
+    return BinaryExpressionEnvironment(retType, opType, opSpan, requirements, lSubordinate, rSubordinate)
 }
 
 fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =
@@ -47,6 +77,13 @@ fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =
 var typeId: Long = 0
 fun getNextId() = typeId++
 fun freshUnificationVariable() = UnificationTypeVariable(getNextId())
+
+fun typesToType(types: List<Type>) = //todo find better name for this
+    when(types.size) {
+        0 -> UnitType(getNextId())  //should probably be empty type
+        1 -> types.first()
+        else -> ProductType(getNextId(), types)
+    }
 
 fun getIntType(i: IntToken): Type {
     val isUnsigned = i.value.contains("u", true)
