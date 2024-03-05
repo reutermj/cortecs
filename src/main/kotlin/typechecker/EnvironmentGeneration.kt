@@ -1,5 +1,7 @@
 package typechecker
 
+import errors.CortecsError
+import errors.CortecsErrors
 import parser.*
 
 fun generateFunctionCallExpressionEnvironment(function: Expression, arguments: ArgumentsAst, argumentsSpan: Span): ExpressionEnvironment {
@@ -15,20 +17,28 @@ fun generateFunctionCallExpressionEnvironment(function: Expression, arguments: A
         requirements += environment.requirements
     }
 
+    val errors = mutableListOf<CortecsError>()
+
     val returnType = freshUnificationVariable()
     val rhsType = typesToType(argumentTypes)
     val arrowType = ArrowType(rhsType.id, rhsType, returnType)
     val substitution =
         when(val result = Substitution.empty.unify(function.environment.expressionType, arrowType)) {
             is UnificationSuccess -> result.substitution
-            is UnificationError -> TODO()
+            is UnificationError -> {
+                val spans = function.environment.getSpansForId(function.environment.expressionType.id)
+                for(span in spans) {
+                    errors.add(CortecsError("Unification error", span, Span.zero))
+                }
+                Substitution.empty
+            }
         }
 
     val mappings = mutableMapOf<Long, Type>()
     requirements += function.environment.requirements.applySubstitution(substitution, mappings)
 
     val functionSubordinate = Subordinate(Span.zero, function.environment)
-    return FunctionCallExpressionEnvironment(returnType, arrowType, requirements, functionSubordinate, argumentSubordinates)
+    return FunctionCallExpressionEnvironment(returnType, arrowType, requirements, substitution, functionSubordinate, argumentSubordinates, CortecsErrors(null, errors))
 }
 
 fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
