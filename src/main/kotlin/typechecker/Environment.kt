@@ -55,7 +55,7 @@ data class FunctionCallExpressionEnvironment(
 ) : ExpressionEnvironment() {
     override fun getSpansForId(id: Long) =
         when (id) {
-            functionType.id -> {
+            expressionType.id, functionType.id -> {
                 val environment = functionSubordinate.environment
                 environment.getSpansForId(environment.expressionType.id).map { functionSubordinate.offset + it }
             }

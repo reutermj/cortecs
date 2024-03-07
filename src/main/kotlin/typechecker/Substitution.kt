@@ -9,7 +9,7 @@ sealed class LookupIntermediate
 @Serializable
 data class Representative(val typeVar: TypeVariable): Lookup()
 @Serializable
-data class TypeMapping(val type: Type): Lookup()
+data class TypeMapping(val outType: Type): Lookup()
 @Serializable
 data class Intermediate(val dst: UnificationTypeVariable): LookupIntermediate()
 
@@ -46,13 +46,13 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
 
     fun unifyUnificationTypeVariable(lType: UnificationTypeVariable, rType: Type): UnificationResult =
         when(val lLookup = find(lType)) {
-            is TypeMapping -> unify(rType, lLookup.type)
+            is TypeMapping -> unify(rType, lLookup.outType)
             is Representative ->
                 when(rType) {
                     is UnificationTypeVariable ->
                         when(val rLookup = find(rType)) {
                             is Representative -> UnificationSuccess(pointAt(lLookup.typeVar, rLookup.typeVar))
-                            is TypeMapping -> UnificationSuccess(pointAt(lLookup.typeVar, rLookup.type))
+                            is TypeMapping -> UnificationSuccess(pointAt(lLookup.typeVar, rLookup.outType))
                         }
                     else -> UnificationSuccess(pointAt(lLookup.typeVar, rType))
                 }
@@ -72,7 +72,7 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
                         result.typeVar
                     }
                     is TypeMapping -> {
-                        val outType = apply(result.type, mapping)
+                        val outType = apply(result.outType, mapping)
                         mapping[outType.id] = type
                         outType
                     }
