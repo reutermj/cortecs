@@ -44,4 +44,21 @@ class UnaryExpressionTests {
             validateUnaryExpression("==", whitespace, "1.1")
         }
     }
+
+    @Test
+    fun testError() {
+        val iterator = ParserIterator()
+        iterator.add("+1()")
+        val expression = parseExpression(iterator)!!
+        assertIs<UnaryExpression>(expression)
+
+        val environment = expression.environment
+        assertIs<UnaryExpressionEnvironment>(environment)
+        assertIs<Invalid>(environment.expressionType)
+        assertIs<Invalid>(environment.opType)
+        assertNull(environment.requirements[OperatorToken("+")])
+
+        assertEquals(1, environment.errors.errors.size)
+        assertEquals(Span(0, 1), environment.errors.errors.first().offset)
+    }
 }

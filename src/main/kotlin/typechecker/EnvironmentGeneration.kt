@@ -76,11 +76,22 @@ fun generateUnaryExpressionEnvironment(
     expressionSpan: Span
 ): ExpressionEnvironment {
     val environment = expression.environment
-    val retType = freshUnificationVariable()
-    val opType = ArrowType(getNextId(), environment.expressionType, retType)
-    val requirements = environment.requirements.addRequirement(op, opType)
+    val retType: Type
+    val opType: Type
+    val requirements: Requirements
+    if(environment.expressionType is Invalid) {
+        retType = environment.expressionType
+        opType = environment.expressionType
+        requirements = environment.requirements
+    } else {
+        retType = freshUnificationVariable()
+        opType = ArrowType(getNextId(), environment.expressionType, retType)
+        requirements = environment.requirements.addRequirement(op, opType)
+    }
+    val errors = environment.errors.addOffset(expressionSpan)
+
     val subordinate = Subordinate(expressionSpan, environment)
-    return UnaryExpressionEnvironment(retType, opType, requirements, subordinate, CortecsErrors.empty)
+    return UnaryExpressionEnvironment(retType, opType, requirements, subordinate, errors)
 }
 
 fun generateBinaryExpressionEnvironment(
