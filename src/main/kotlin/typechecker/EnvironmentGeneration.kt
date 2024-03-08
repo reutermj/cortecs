@@ -66,7 +66,8 @@ fun generateFunctionCallExpressionEnvironment(
 fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
     val environment = expression.environment
     val subordinate = Subordinate(expressionSpan, environment)
-    return GroupingExpressionEnvironment(environment.expressionType, environment.requirements, subordinate)
+    val errors = environment.errors.addOffset(expressionSpan)
+    return GroupingExpressionEnvironment(environment.expressionType, environment.requirements, subordinate, errors)
 }
 
 fun generateUnaryExpressionEnvironment(
@@ -79,7 +80,7 @@ fun generateUnaryExpressionEnvironment(
     val opType = ArrowType(getNextId(), environment.expressionType, retType)
     val requirements = environment.requirements.addRequirement(op, opType)
     val subordinate = Subordinate(expressionSpan, environment)
-    return UnaryExpressionEnvironment(retType, opType, requirements, subordinate)
+    return UnaryExpressionEnvironment(retType, opType, requirements, subordinate, CortecsErrors.empty)
 }
 
 fun generateBinaryExpressionEnvironment(
@@ -98,7 +99,7 @@ fun generateBinaryExpressionEnvironment(
     val requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(op, opType)
     val lSubordinate = Subordinate(Span.zero, lEnvironment)
     val rSubordinate = Subordinate(rhsSpan, rEnvironment)
-    return BinaryExpressionEnvironment(retType, opType, opSpan, requirements, lSubordinate, rSubordinate)
+    return BinaryExpressionEnvironment(retType, opType, opSpan, requirements, lSubordinate, rSubordinate, CortecsErrors.empty)
 }
 
 fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =

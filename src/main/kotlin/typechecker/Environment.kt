@@ -41,6 +41,7 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
 sealed class ExpressionEnvironment : Environment() {
     abstract val expressionType: Type
     abstract val requirements: Requirements
+    abstract val errors: CortecsErrors
 }
 
 @Serializable
@@ -51,7 +52,7 @@ data class FunctionCallExpressionEnvironment(
     val substitution: Substitution,
     val functionSubordinate: Subordinate<ExpressionEnvironment>,
     val argumentSubordinates: List<Subordinate<ExpressionEnvironment>>,
-    val errors: CortecsErrors
+    override val errors: CortecsErrors
 ) : ExpressionEnvironment() {
     override fun getSpansForId(id: Long) =
         when (id) {
@@ -75,7 +76,8 @@ data class BinaryExpressionEnvironment(
     val opSpan: Span,
     override val requirements: Requirements,
     val lhsSubordinate: Subordinate<ExpressionEnvironment>,
-    val rhsSubordinate: Subordinate<ExpressionEnvironment>
+    val rhsSubordinate: Subordinate<ExpressionEnvironment>,
+    override val errors: CortecsErrors
 ) : ExpressionEnvironment() {
     override fun getSpansForId(id: Long) =
         when (id) {
@@ -93,7 +95,8 @@ data class UnaryExpressionEnvironment(
     override val expressionType: Type,
     val opType: Type,
     override val requirements: Requirements,
-    val subordinate: Subordinate<ExpressionEnvironment>
+    val subordinate: Subordinate<ExpressionEnvironment>,
+    override val errors: CortecsErrors
 ) : ExpressionEnvironment() {
     override fun getSpansForId(id: Long) =
         when (id) {
@@ -109,7 +112,8 @@ data class UnaryExpressionEnvironment(
 data class GroupingExpressionEnvironment(
     override val expressionType: Type,
     override val requirements: Requirements,
-    val subordinate: Subordinate<ExpressionEnvironment>
+    val subordinate: Subordinate<ExpressionEnvironment>,
+    override val errors: CortecsErrors
 ) : ExpressionEnvironment() {
     override fun getSpansForId(id: Long) = subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
     override fun applySubstitution(type: Type) = type
@@ -122,12 +126,15 @@ data class AtomicExpressionEnvironment(override val expressionType: Type, overri
         if (id == expressionType.id) listOf(Span.zero)
         else emptyList()
     override fun applySubstitution(type: Type) = type
+    override val errors: CortecsErrors
+        get() = CortecsErrors.empty
 }
 
 @Serializable
 data object EmptyExpressionEnvironment : ExpressionEnvironment() {
     override val expressionType = Invalid(getNextId())
     override val requirements = Requirements.empty
+    override val errors: CortecsErrors = CortecsErrors.empty
     override fun getSpansForId(id: Long) = emptyList<Span>()
     override fun applySubstitution(type: Type) = type
 }

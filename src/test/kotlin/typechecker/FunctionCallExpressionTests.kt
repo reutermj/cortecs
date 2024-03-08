@@ -69,7 +69,7 @@ class FunctionCallExpressionTests {
         assertIs<Invalid>(environment.functionType)
 
         assertEquals(1, environment.errors.errors.size)
-        assertEquals(Span.zero, environment.errors.errors.first().span)
+        assertEquals(Span.zero, environment.errors.errors.first().offset)
 
     }
 }

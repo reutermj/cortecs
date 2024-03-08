@@ -35,4 +35,19 @@ class GroupingExpressionTests {
             validateGroupingExpression("($whitespace", "1.1", ")")
         }
     }
+
+    @Test
+    fun testError() {
+        val iterator = ParserIterator()
+        iterator.add("(1())")
+        val expression = parseExpression(iterator)!!
+        assertIs<GroupingExpression>(expression)
+
+        val environment = expression.environment
+        assertIs<GroupingExpressionEnvironment>(environment)
+        assertIs<Invalid>(environment.expressionType)
+
+        assertEquals(1, environment.errors.errors.size)
+        assertEquals(Span(0, 1), environment.errors.errors.first().offset)
+    }
 }
