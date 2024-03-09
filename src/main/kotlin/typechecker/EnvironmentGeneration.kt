@@ -103,14 +103,26 @@ fun generateBinaryExpressionEnvironment(
 ): ExpressionEnvironment {
     val lEnvironment = lhs.environment
     val rEnvironment = rhs.environment
-    val retType = freshUnificationVariable()
     val typeId = getNextId()
-    val productType = ProductType(typeId, listOf(lEnvironment.expressionType, rEnvironment.expressionType))
-    val opType = ArrowType(typeId, productType, retType)
-    val requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(op, opType)
+
+    val retType: Type
+    val opType: Type
+    val requirements: Requirements
+    if(lEnvironment.expressionType is Invalid || rEnvironment.expressionType is Invalid) {
+        retType = Invalid(getNextId())
+        opType = Invalid(typeId)
+        requirements = lEnvironment.requirements + rEnvironment.requirements
+    } else {
+        retType = freshUnificationVariable()
+        val productType = ProductType(typeId, listOf(lEnvironment.expressionType, rEnvironment.expressionType))
+        opType = ArrowType(typeId, productType, retType)
+        requirements = (lEnvironment.requirements + rEnvironment.requirements).addRequirement(op, opType)
+    }
+
     val lSubordinate = Subordinate(Span.zero, lEnvironment)
     val rSubordinate = Subordinate(rhsSpan, rEnvironment)
-    return BinaryExpressionEnvironment(retType, opType, opSpan, requirements, lSubordinate, rSubordinate, CortecsErrors.empty)
+    val errors = lEnvironment.errors + rEnvironment.errors.addOffset(rhsSpan)
+    return BinaryExpressionEnvironment(retType, opType, opSpan, requirements, lSubordinate, rSubordinate, errors)
 }
 
 fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =

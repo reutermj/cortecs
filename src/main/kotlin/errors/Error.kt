@@ -12,4 +12,5 @@ data class CortecsErrors(val errorSpan: Span?, val errors: List<CortecsError>) {
     }
 
     fun addOffset(offset: Span) = copy(errors = errors.map { it.copy(offset = offset + it.offset) })
+    operator fun plus(other: CortecsErrors) = CortecsErrors(errorSpan, errors + other.errors)
 }

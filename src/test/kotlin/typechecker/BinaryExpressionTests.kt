@@ -52,4 +52,26 @@ class BinaryExpressionTests {
             validateBinaryExpression("1.1", whitespace, "==", whitespace, "2.2")
         }
     }
+
+    fun testInvalid(text: String, offset: Span) {
+        val iterator = ParserIterator()
+        iterator.add(text)
+        val expression = parseExpression(iterator)!!
+        assertIs<BinaryExpression>(expression)
+
+        val environment = expression.environment
+        assertIs<BinaryExpressionEnvironment>(environment)
+        assertIs<Invalid>(environment.expressionType)
+        assertIs<Invalid>(environment.opType)
+        assertNull(environment.requirements[OperatorToken("+")])
+
+        assertEquals(1, environment.errors.errors.size)
+        assertEquals(offset, environment.errors.errors.first().offset)
+    }
+
+    @Test
+    fun testInvalid() {
+        testInvalid("1() + x", Span.zero)
+        testInvalid("x + 1()", Span(0, 4))
+    }
 }
