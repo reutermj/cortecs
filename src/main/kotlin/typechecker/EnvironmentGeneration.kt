@@ -11,43 +11,56 @@ fun generateFunctionCallExpressionEnvironment(
 ): ExpressionEnvironment {
     val argumentTypes = mutableListOf<Type>()
     val argumentSubordinates = mutableListOf<Subordinate<ExpressionEnvironment>>()
+    val errors = mutableListOf<CortecsError>()
+    var anyInvalid = false
     var argumentSpan = argumentsSpan
     var requirements = Requirements.empty
     arguments.inOrder {
         val environment = it.expression().environment
+        errors.addAll(environment.errors.addOffset(argumentSpan).errors)
+        if(environment.expressionType is Invalid) {
+            anyInvalid = true
+        }
         argumentTypes.add(environment.expressionType)
         argumentSubordinates.add(Subordinate(argumentSpan, environment))
         argumentSpan += it.span
         requirements += environment.requirements
     }
 
-    val errors = mutableListOf<CortecsError>()
-
-    val returnType = freshUnificationVariable()
-    val rhsType = typesToType(argumentTypes)
-    val arrowType = ArrowType(rhsType.id, rhsType, returnType)
-
-    val mappings = mutableMapOf<Long, Type>()
-    val substitution: Substitution
-
+    val fEnvironment = function.environment
+    errors.addAll(fEnvironment.errors.errors)
     val outType: Type
     val outArrow: Type
+    val substitution: Substitution
 
-    when (val result = Substitution.empty.unify(function.environment.expressionType, arrowType)) {
-        is UnificationSuccess -> {
-            substitution = result.substitution
-            requirements += function.environment.requirements.applySubstitution(substitution, mappings)
-            outType = returnType
-            outArrow = arrowType
-        }
-        is UnificationError -> {
-            val spans = function.environment.getSpansForId(function.environment.expressionType.id)
-            for (span in spans) {
-                errors.add(CortecsError("Unification error", span, Span.zero))
+    if(fEnvironment.expressionType is Invalid) anyInvalid = true
+
+    if(anyInvalid) {
+        substitution = Substitution.empty
+        outType = Invalid(getNextId())
+        outArrow = Invalid(getNextId())
+    } else {
+        val returnType = freshUnificationVariable()
+        val rhsType = typesToType(argumentTypes)
+        val arrowType = ArrowType(rhsType.id, rhsType, returnType)
+
+        val mappings = mutableMapOf<Long, Type>()
+        when (val result = Substitution.empty.unify(fEnvironment.expressionType, arrowType)) {
+            is UnificationSuccess -> {
+                substitution = result.substitution
+                requirements += fEnvironment.requirements.applySubstitution(substitution, mappings)
+                outType = returnType
+                outArrow = arrowType
             }
-            substitution = Substitution.empty
-            outType = Invalid(returnType.id)
-            outArrow = Invalid(arrowType.id)
+            is UnificationError -> {
+                val spans = fEnvironment.getSpansForId(fEnvironment.expressionType.id)
+                for (span in spans) {
+                    errors.add(CortecsError("Unification error", span, Span.zero))
+                }
+                substitution = Substitution.empty
+                outType = Invalid(returnType.id)
+                outArrow = Invalid(arrowType.id)
+            }
         }
     }
 

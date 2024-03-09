@@ -56,10 +56,9 @@ class FunctionCallExpressionTests {
         validate("x", listOf("1", "1.1", "\"hello world\""))
     }
 
-    @Test
-    fun testInvalid() {
+    fun testInvalid(text: String, span: Span) {
         val iterator = ParserIterator()
-        iterator.add("1(x, y, z)")
+        iterator.add(text)
         val expression = parseExpression(iterator)!!
         assertIs<FunctionCallExpression>(expression)
 
@@ -69,7 +68,14 @@ class FunctionCallExpressionTests {
         assertIs<Invalid>(environment.functionType)
 
         assertEquals(1, environment.errors.errors.size)
-        assertEquals(Span.zero, environment.errors.errors.first().offset)
+        assertEquals(span, environment.errors.errors.first().offset)
+    }
 
+    @Test
+    fun testInvalid() {
+        testInvalid("1(x, y, z)", Span.zero)
+        testInvalid("f(1(), y, z)", Span(0, 2))
+        testInvalid("f(x, 1(), z)", Span(0, 5))
+        testInvalid("f(x, y, 1())", Span(0, 8))
     }
 }
