@@ -3,7 +3,7 @@ package parser
 import kotlin.test.*
 
 class AtomicExpressionTests {
-    private inline fun <reified T: AtomicExpressionToken>testParseAtomType(text: String) {
+    private inline fun <reified T : AtomicExpressionToken> testParseAtomType(text: String) {
         testParse(text, ::parseExpression) {
             assertIs<AtomicExpression>(it)
             assertIs<T>(it.atom())
@@ -25,7 +25,7 @@ class AtomicExpressionTests {
 
     @Test
     fun testParseWhitespaceAfterAtom() {
-        for(whitespace in whitespaceCombos) {
+        for (whitespace in whitespaceCombos) {
             testParse("a$whitespace", ::parseExpression) {}
             testParse("'a'$whitespace", ::parseExpression) {}
             testParse("1$whitespace", ::parseExpression) {}

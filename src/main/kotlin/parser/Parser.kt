@@ -97,7 +97,7 @@ fun parseTopLevel(iterator: ParserIterator): StarBuildingInstruction<TopLevelAst
 }
 
 fun parseGarbageTopLevel(iterator: ParserIterator): StarBuildingInstruction<Ast> =
-    when(val token = iterator.peekToken()) {
+    when (val token = iterator.peekToken()) {
         is TopLevelKeyword, null -> StarStopBuilding
         else -> {
             iterator.nextToken()
@@ -141,7 +141,7 @@ fun parseFunction(iterator: ParserIterator): FunctionAst {
         else {
             consumeWhitespace(builder)
             val returnTypeIndex = builder.consume<TypeAnnotationToken>()
-            if(returnTypeIndex == -1) {
+            if (returnTypeIndex == -1) {
                 builder.emitError("Expected type annotation", Span.zero)
                 return FunctionAst(builder.nodes(), builder.errors(), nameIndex, parametersIndex, -1, -1)
             }
@@ -236,7 +236,7 @@ fun parseLet(iterator: ParserIterator): LetAst {
         else {
             consumeWhitespace(builder)
             val typeAnnotationIndex = builder.consume<TypeAnnotationToken>()
-            if(typeAnnotationIndex == -1) {
+            if (typeAnnotationIndex == -1) {
                 builder.emitError("Expected type annotation", Span.zero)
                 return LetAst(builder.nodes(), builder.errors(), nameIndex, -1, -1)
             }
@@ -320,7 +320,7 @@ fun parseIf(iterator: ParserIterator): IfAst {
 }
 
 fun parseGarbageBody(iterator: ParserIterator): StarBuildingInstruction<Ast> =
-    when(val token = iterator.peekToken()) {
+    when (val token = iterator.peekToken()) {
         is Keyword, is CloseCurlyToken, null -> StarStopBuilding
         else -> {
             iterator.nextToken()
@@ -386,7 +386,7 @@ fun parseBaseExpression(iterator: ParserIterator): Expression? {
         is OperatorToken -> parseUnaryExpression(iterator)
         else -> null
     }
-    if(expression == null) return null
+    if (expression == null) return null
     return parsePostfix(iterator, expression)
 }
 

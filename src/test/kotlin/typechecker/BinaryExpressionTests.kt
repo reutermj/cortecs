@@ -31,7 +31,10 @@ class BinaryExpressionTests {
         assertIs<ArrowType>(opReq)
         val lhsType = opReq.lhs
         assertIs<ProductType>(lhsType)
-        assertEquals(lhsType.types, listOf(lhsSubordinate.environment.expressionType, rhsSubordinate.environment.expressionType))
+        assertEquals(
+            lhsType.types,
+            listOf(lhsSubordinate.environment.expressionType, rhsSubordinate.environment.expressionType)
+        )
         assertEquals(opReq.rhs, environment.expressionType)
 
         assertEquals(listOf(Span.zero), environment.getSpansForId(lhsSubordinate.environment.expressionType.id))
@@ -46,7 +49,7 @@ class BinaryExpressionTests {
         validateBinaryExpression("x", "", "+", "", "y")
         validateBinaryExpression("1", "", "-", "", "2")
         validateBinaryExpression("1.1", "", "==", "", "2.2")
-        for(whitespace in whitespaceCombos) {
+        for (whitespace in whitespaceCombos) {
             validateBinaryExpression("x", whitespace, "+", whitespace, "y")
             validateBinaryExpression("1", whitespace, "-", whitespace, "2")
             validateBinaryExpression("1.1", whitespace, "==", whitespace, "2.2")

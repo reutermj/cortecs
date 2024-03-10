@@ -34,7 +34,7 @@ class GroupingExpressionTests {
 
     @Test
     fun testParseWhitespace() {
-        for(whitespace in whitespaceCombos) {
+        for (whitespace in whitespaceCombos) {
             testParseWhitespace("a", whitespace)
             testParseWhitespace("1", whitespace)
             testParseWhitespace("1.1", whitespace)

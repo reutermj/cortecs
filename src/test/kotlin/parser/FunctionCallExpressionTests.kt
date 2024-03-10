@@ -26,6 +26,7 @@ class FunctionCallExpressionTests {
         val text = "$functionNameText(${argTexts.joinToString(separator = ",")})"
         validate(text, functionNameText, argTexts)
     }
+
     @Test
     fun testParse() {
         testParse("f", listOf())
@@ -47,12 +48,14 @@ class FunctionCallExpressionTests {
     }
 
     fun testParseWhitespace(functionNameText: String, argTexts: List<String>, whitespace: String) {
-        val text = "$functionNameText$whitespace($whitespace${argTexts.joinToString(separator = ",$whitespace")}$whitespace)$whitespace"
+        val text =
+            "$functionNameText$whitespace($whitespace${argTexts.joinToString(separator = ",$whitespace")}$whitespace)$whitespace"
         validate(text, functionNameText, argTexts)
     }
+
     @Test
     fun testParseWhitespace() {
-        for(whitespace in whitespaceCombos) {
+        for (whitespace in whitespaceCombos) {
             testParseWhitespace("f", listOf(), whitespace)
             testParseWhitespace("f", listOf("a"), whitespace)
             testParseWhitespace("f", listOf("a", "b"), whitespace)

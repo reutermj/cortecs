@@ -5,7 +5,7 @@ import org.eclipse.lsp4j.jsonrpc.messages.*
 import org.eclipse.lsp4j.services.*
 import java.util.concurrent.*
 
-interface TextDocumentServiceImpl: TextDocumentService {
+interface TextDocumentServiceImpl : TextDocumentService {
     override fun completion(position: CompletionParams): CompletableFuture<Either<List<CompletionItem>, CompletionList>> {
         println("Called unimplemented completion")
         throw UnsupportedOperationException()

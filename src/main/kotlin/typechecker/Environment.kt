@@ -34,7 +34,8 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
         return copy(requirements = requirements + (token to requirement))
     }
 
-    fun applySubstitution(substitution: Substitution, mapping: MutableMap<Long, Type>) = Requirements(requirements.mapValues { kv -> kv.value.map { substitution.apply(it, mapping) }} )
+    fun applySubstitution(substitution: Substitution, mapping: MutableMap<Long, Type>) =
+        Requirements(requirements.mapValues { kv -> kv.value.map { substitution.apply(it, mapping) } })
 }
 
 @Serializable
@@ -60,6 +61,7 @@ data class FunctionCallExpressionEnvironment(
                 val environment = functionSubordinate.environment
                 environment.getSpansForId(environment.expressionType.id).map { functionSubordinate.offset + it }
             }
+
             else -> functionSubordinate.environment.getSpansForId(id).map { functionSubordinate.offset + it } +
                     argumentSubordinates.flatMap { subordinate ->
                         subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
@@ -125,6 +127,7 @@ data class AtomicExpressionEnvironment(override val expressionType: Type, overri
     override fun getSpansForId(id: Long) =
         if (id == expressionType.id) listOf(Span.zero)
         else emptyList()
+
     override fun applySubstitution(type: Type) = type
     override val errors: CortecsErrors
         get() = CortecsErrors.empty

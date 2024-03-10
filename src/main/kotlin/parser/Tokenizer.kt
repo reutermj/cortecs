@@ -1,7 +1,7 @@
 package parser
 
 fun nextToken(text: String, start: Int): TokenImpl =
-    when(text[start]) {
+    when (text[start]) {
         in initialNameOrType -> nextToken(text, start, allNameOrType, ::toKeywordOrNameOrTypeToken)
         in whiteSpace -> nextToken(text, start, whiteSpace, ::WhitespaceToken)
         in operatorChars -> nextToken(text, start, operatorChars, ::toOperatorToken)
@@ -29,36 +29,37 @@ val initialName = ('a'..'z').toSet() + setOf('_')
 val initialNameOrType = initialType + initialName
 val allNameOrType = initialNameOrType + ('0'..'9').toSet()
 val numbers = ('0'..'9').toSet()
-val valid = operatorChars + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
+val valid =
+    operatorChars + whiteSpace + allNameOrType + numbers + setOf('.', '"', '\'', '\n', ',', ':', '(', ')', '{', '}')
 
 private fun nextToken(s: String, start: Int, acceptableChars: Set<Char>, toToken: (String) -> TokenImpl): TokenImpl {
     var end = start + 1
-    while(end < s.length && s[end] in acceptableChars) end++
+    while (end < s.length && s[end] in acceptableChars) end++
     return toToken(s.substring(start, end))
 }
 
 private fun nextBadToken(s: String, start: Int): TokenImpl {
     var end = start + 1
-    while(end < s.length && s[end] !in valid) end++
+    while (end < s.length && s[end] !in valid) end++
     return BadToken(s.substring(start, end))
 }
 
 private fun nextString(text: String, start: Int): TokenImpl {
     var end = start + 1
     var isEscaped = false
-    while(end < text.length) {
+    while (end < text.length) {
         val c = text[end]
-        if(c == '\n') return BadStringToken(text.substring(start, end))
+        if (c == '\n') return BadStringToken(text.substring(start, end))
         end++
 
-        if(isEscaped) isEscaped = false // todo maybe validate escape sequences
-        else when(c) {
+        if (isEscaped) isEscaped = false // todo maybe validate escape sequences
+        else when (c) {
             '"' -> break
             '\\' -> isEscaped = true
         }
     }
 
-    return if(isEscaped || text[end - 1] != '\"') BadStringToken(text.substring(start, end))
+    return if (isEscaped || text[end - 1] != '\"') BadStringToken(text.substring(start, end))
     else StringToken(text.substring(start, end))
 }
 
@@ -66,29 +67,29 @@ private fun nextChar(text: String, start: Int): TokenImpl {
     var end = start + 1
     var numChars = 0
     var isEscaped = false
-    while(end < text.length) {
+    while (end < text.length) {
         val c = text[end]
-        if(c == '\n') return BadCharToken(text.substring(start, end))
+        if (c == '\n') return BadCharToken(text.substring(start, end))
         end++
 
-        if(isEscaped) { // todo maybe validate escape sequences
+        if (isEscaped) { // todo maybe validate escape sequences
             isEscaped = false
             numChars++
-        } else when(c) {
+        } else when (c) {
             '\'' -> break
             '\\' -> isEscaped = true
             else -> numChars++
         }
     }
 
-    return if(numChars != 1 || isEscaped || text[end - 1] != '\'') BadCharToken(text.substring(start, end))
+    return if (numChars != 1 || isEscaped || text[end - 1] != '\'') BadCharToken(text.substring(start, end))
     else CharToken(text.substring(start, end))
 }
 
 private fun nextIntOrFloatToken(text: String, start: Int): TokenImpl {
     var end = start + 1
-    while(end < text.length) {
-        when(text[end]) {
+    while (end < text.length) {
+        when (text[end]) {
             in numbers -> end++
             '.' -> return nextFloatToken(text, start, end + 1)
             'u', 'U' -> return nextUintToken(text, start, end + 1)
@@ -96,10 +97,12 @@ private fun nextIntOrFloatToken(text: String, start: Int): TokenImpl {
                 end++
                 break
             }
+
             'f', 'F', 'd', 'D' -> {
                 end++
                 return FloatToken(text.substring(start, end))
             }
+
             else -> break
         }
     }
@@ -107,8 +110,8 @@ private fun nextIntOrFloatToken(text: String, start: Int): TokenImpl {
 }
 
 private fun nextUintToken(text: String, start: Int, end: Int): TokenImpl {
-    if(end == text.length) return IntToken(text.substring(start, end))
-    return when(text[end]) {
+    if (end == text.length) return IntToken(text.substring(start, end))
+    return when (text[end]) {
         'l', 'L', 'b', 'B', 's', 'S' -> IntToken(text.substring(start, end + 1))
         else -> IntToken(text.substring(start, end))
     }
@@ -116,13 +119,14 @@ private fun nextUintToken(text: String, start: Int, end: Int): TokenImpl {
 
 private fun nextFloatToken(text: String, start: Int, end: Int): TokenImpl {
     var end = end
-    while(end < text.length) {
-        when(text[end]) {
+    while (end < text.length) {
+        when (text[end]) {
             in numbers -> end++
             'f', 'F', 'd', 'D' -> {
                 end++
                 break
             }
+
             else -> break
         }
     }
@@ -131,23 +135,23 @@ private fun nextFloatToken(text: String, start: Int, end: Int): TokenImpl {
 
 private fun nextDotOrFloatToken(text: String, start: Int): TokenImpl {
     val end = start + 1
-    return if(end < text.length && text[end] in numbers) nextFloatToken(text, start, end + 1)
+    return if (end < text.length && text[end] in numbers) nextFloatToken(text, start, end + 1)
     else DotToken
 }
 
 private fun toKeywordOrNameOrTypeToken(value: String) =
-    when(value) {
+    when (value) {
         "let" -> LetToken
         "if" -> IfToken
         "function" -> FunctionToken
         "return" -> ReturnToken
         else ->
-            if(value[0].isUpperCase()) TypeToken(value)
+            if (value[0].isUpperCase()) TypeToken(value)
             else NameToken(value)
     }
 
 private fun toOperatorToken(value: String): TokenImpl =
-    when(value) {
-        "=" ->  EqualSignToken
+    when (value) {
+        "=" -> EqualSignToken
         else -> OperatorToken(value)
     }

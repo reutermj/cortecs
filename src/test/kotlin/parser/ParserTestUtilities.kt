@@ -8,27 +8,27 @@ val whitespaceCombos: List<String> = run {
     val whitespaceCharacters = listOf(" ", "\n")
     whitespaceCombos.addAll(whitespaceCharacters)
 
-    for(i in whitespaceCharacters)
-        for(j in whitespaceCharacters) {
-            if(i == " " && j == " ") continue
+    for (i in whitespaceCharacters)
+        for (j in whitespaceCharacters) {
+            if (i == " " && j == " ") continue
             whitespaceCombos.add("$i$j")
         }
 
-    for(i in whitespaceCharacters)
-        for(j in whitespaceCharacters)
-            for(k in whitespaceCharacters) {
-                if(i == " " && j == " ") continue
-                if(j == " " && k == " ") continue
+    for (i in whitespaceCharacters)
+        for (j in whitespaceCharacters)
+            for (k in whitespaceCharacters) {
+                if (i == " " && j == " ") continue
+                if (j == " " && k == " ") continue
                 whitespaceCombos.add("$i$j$k")
             }
 
-    for(i in whitespaceCharacters)
-        for(j in whitespaceCharacters)
-            for(k in whitespaceCharacters)
-                for(l in whitespaceCharacters) {
-                    if(i == " " && j == " ") continue
-                    if(j == " " && k == " ") continue
-                    if(k == " " && l == " ") continue
+    for (i in whitespaceCharacters)
+        for (j in whitespaceCharacters)
+            for (k in whitespaceCharacters)
+                for (l in whitespaceCharacters) {
+                    if (i == " " && j == " ") continue
+                    if (j == " " && k == " ") continue
+                    if (k == " " && l == " ") continue
                     whitespaceCombos.add("$i$j$k$l")
                 }
 
@@ -41,7 +41,7 @@ val operators = listOf("|", "^", "&", "==", "!", ">", "<", "+", "-", "~", "*", "
 fun generateGoldText(inString: String, change: Change): String {
     val lines = inString.lines()
     val withNewLines = lines.mapIndexed { i, s ->
-        if(i == lines.size - 1) s
+        if (i == lines.size - 1) s
         else "$s\n"
     }
 
@@ -54,7 +54,7 @@ fun generateGoldText(inString: String, change: Change): String {
     return preStart + startLine + change.text + endLine + postEnd
 }
 
-inline fun <reified T: Ast?>testParse(inString: String, parse: (ParserIterator) -> T, asserts: (T) -> Unit) {
+inline fun <reified T : Ast?> testParse(inString: String, parse: (ParserIterator) -> T, asserts: (T) -> Unit) {
     val iterator = ParserIterator()
     iterator.add(inString)
     val node = parse(iterator)
@@ -63,7 +63,7 @@ inline fun <reified T: Ast?>testParse(inString: String, parse: (ParserIterator) 
         try {
             iterator.nextToken()
             println()
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             throw e
         }
     }
@@ -79,7 +79,7 @@ inline fun <reified T: Ast?>testParse(inString: String, parse: (ParserIterator) 
     asserts(node)
 }
 
-fun <T: Ast>testReparse(inString: String, change: Change, parse: (ParserIterator) -> T) {
+fun <T : Ast> testReparse(inString: String, change: Change, parse: (ParserIterator) -> T) {
     val inIterator = ParserIterator()
     inIterator.add(inString)
     val inExpression = parse(inIterator)
@@ -112,13 +112,19 @@ fun testAppendToBeginning(inText: String, beginningText: String) {
     testReparse(inText, change) { parseExpression(it)!! }
 }
 
-fun <T: Ast>testAppendToEnd(inText: String, endText: String, parse: (ParserIterator) -> T) {
+fun <T : Ast> testAppendToEnd(inText: String, endText: String, parse: (ParserIterator) -> T) {
     val span = getSpan(inText)
     val change = Change(endText, span, span)
     testReparse(inText, change, parse)
 }
 
-fun <T: Ast>testReplaceMiddle(left: String, middle: String, right: String, replace: String, parse: (ParserIterator) -> T) {
+fun <T : Ast> testReplaceMiddle(
+    left: String,
+    middle: String,
+    right: String,
+    replace: String,
+    parse: (ParserIterator) -> T
+) {
     val inText = "$left$middle$right"
     val start = getSpan(left)
     val end = start + getSpan(middle)
@@ -133,18 +139,21 @@ fun getSpan(text: String): Span {
 }
 
 fun randomExpression(fuel: Int = 5): String {
-    if(fuel == 0) return randomAtomicExpression()
-    return when((0..2).random()) {
+    if (fuel == 0) return randomAtomicExpression()
+    return when ((0..2).random()) {
         0 -> randomBinaryExpression(fuel)
         else -> randomBaseExpression(fuel)
     }
 }
 
-fun randomBinaryExpression(fuel: Int) = randomExpression(fuel - 1) + whitespaceCombos.random() + operators.random() + whitespaceCombos.random() + randomExpression(fuel - 1)
+fun randomBinaryExpression(fuel: Int) =
+    randomExpression(fuel - 1) + whitespaceCombos.random() + operators.random() + whitespaceCombos.random() + randomExpression(
+        fuel - 1
+    )
 
 fun randomBaseExpression(fuel: Int): String {
-    if(fuel == 0) return randomAtomicExpression()
-    return when((0..2).random()) {
+    if (fuel == 0) return randomAtomicExpression()
+    return when ((0..2).random()) {
         0 -> randomAtomicExpression()
         1 -> randomUnaryExpression(fuel)
         2 -> randomGroupingExpression(fuel)

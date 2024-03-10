@@ -49,7 +49,7 @@ class BinaryExpressionTests {
 
     @Test
     fun testWhitespace() {
-        for(whitespace in whitespaceCombos) {
+        for (whitespace in whitespaceCombos) {
             testWhitespace("a", "*", "b", whitespace)
             testWhitespace("1", "+", "b", whitespace)
             testWhitespace("a", "/", "1", whitespace)
@@ -84,7 +84,13 @@ class BinaryExpressionTests {
         testParseNoRhs("'a'", "^%=")
     }
 
-    fun testParseLeftLowerPrecedence(lhsText: String, lopText: String, mhsText: String, ropText: String, rhsText: String) {
+    fun testParseLeftLowerPrecedence(
+        lhsText: String,
+        lopText: String,
+        mhsText: String,
+        ropText: String,
+        rhsText: String
+    ) {
         val text = "$lhsText $lopText $mhsText $ropText $rhsText"
         testParse(text, ::parseExpression) {
             assertIs<BinaryExpression>(it)
@@ -194,7 +200,13 @@ class BinaryExpressionTests {
         testParseLeftLowerPrecedence("a", "~", "b", "%", "c")
     }
 
-    fun testParseRightLowerPrecedence(lhsText: String, lopText: String, mhsText: String, ropText: String, rhsText: String) {
+    fun testParseRightLowerPrecedence(
+        lhsText: String,
+        lopText: String,
+        mhsText: String,
+        ropText: String,
+        rhsText: String
+    ) {
         val text = "$lhsText $lopText $mhsText $ropText $rhsText"
         testParse(text, ::parseExpression) {
             assertIs<BinaryExpression>(it)

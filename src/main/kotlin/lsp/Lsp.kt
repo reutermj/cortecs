@@ -11,7 +11,7 @@ import java.util.concurrent.*
 import kotlin.system.*
 
 
-object CortecsServer: LanguageServer, LanguageClientAware {
+object CortecsServer : LanguageServer, LanguageClientAware {
     var hasConfigurationCapability = false
     var hasWorkspaceFolderCapability = false
     var hasDiagnosticRelatedInformationCapability = false
@@ -27,15 +27,16 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         dotCortecsRoot = workspaceRoot.resolve(".cortecs")
         crashDumpRoot = dotCortecsRoot.resolve("crash-dumps")
         val crashDumpRootFile = crashDumpRoot.toFile()
-        if(!crashDumpRootFile.exists()) crashDumpRootFile.mkdirs()
+        if (!crashDumpRootFile.exists()) crashDumpRootFile.mkdirs()
 
         hasConfigurationCapability = params?.capabilities?.workspace?.configuration ?: false
         hasWorkspaceFolderCapability = params?.capabilities?.workspace?.configuration ?: false
-        hasDiagnosticRelatedInformationCapability = params?.capabilities?.textDocument?.publishDiagnostics?.relatedInformation ?: false
+        hasDiagnosticRelatedInformationCapability =
+            params?.capabilities?.textDocument?.publishDiagnostics?.relatedInformation ?: false
         val capabilities = ServerCapabilities()
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental)
         capabilities.completionProvider = CompletionOptions(true, null)
-        if(hasWorkspaceFolderCapability) {
+        if (hasWorkspaceFolderCapability) {
             val options = WorkspaceFoldersOptions()
             options.supported = true
             capabilities.workspace = WorkspaceServerCapabilities(options)
@@ -157,7 +158,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         fun generateGoldText(inString: String, change: String, start: Span, end: Span): String {
             val lines = inString.lines()
             val withNewLines = lines.mapIndexed { i, s ->
-                if(i == lines.size - 1) s
+                if (i == lines.size - 1) s
                 else "$s\n"
             }
 
@@ -192,8 +193,8 @@ object CortecsServer: LanguageServer, LanguageClientAware {
             val (doc, text) = documents[uri] ?: return
             var last = doc
             var lastText = text
-            for(contentChange in params.contentChanges) {
-                if(contentChange.range != null) {
+            for (contentChange in params.contentChanges) {
+                if (contentChange.range != null) {
                     val start = Span(contentChange.range.start.line, contentChange.range.start.character)
                     val end = Span(contentChange.range.end.line, contentChange.range.end.character)
                     val change = Change(contentChange.text, start, end)
@@ -210,7 +211,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
                         goldIterator.add(goldText)
                         val goldProgram = parseProgram(goldIterator)
 
-                        if(outProgram != goldProgram) {
+                        if (outProgram != goldProgram) {
                             crashDump.dump(crashDumpRoot)
                         }
                         crashDump.put(goldProgram)
@@ -259,9 +260,9 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         override fun didChangeConfiguration(params: DidChangeConfigurationParams?) {
             println("enter didChangeConfiguration")
             val settings = params?.settings
-            if(settings !is Map<*, *>) return
+            if (settings !is Map<*, *>) return
             val languageServerExample = settings["languageServerExample"] ?: return
-            if(languageServerExample !is Map<*, *>) return
+            if (languageServerExample !is Map<*, *>) return
             maxNumberOfProblems = (languageServerExample["languageServerExample"] ?: languageServerExample) as Double
             println("exit didChangeConfiguration")
             //for((_, doc) in TextDocumentServiceLsp.documents) validateDocument(doc)
@@ -274,6 +275,7 @@ object CortecsServer: LanguageServer, LanguageClientAware {
         }
 
     }
+
     override fun getWorkspaceService() = WorkspaceServiceLsp
 
     override fun connect(client: LanguageClient) {

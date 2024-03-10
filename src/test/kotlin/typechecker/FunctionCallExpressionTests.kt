@@ -26,15 +26,16 @@ class FunctionCallExpressionTests {
         val functionRequirement = functionRequirements.first()
         assertEquals(functionType, functionRequirement)
 
-        when(args.size) {
+        when (args.size) {
             0 -> assertIs<UnitType>(lhs)
             1 -> {
                 val subordinate = environment.argumentSubordinates.first()
                 assertEquals(subordinate.environment.expressionType, lhs)
             }
+
             else -> {
                 assertIs<ProductType>(lhs)
-                for(i in args.indices) {
+                for (i in args.indices) {
                     val expressionType = lhs.types[i]
                     val subordinate = environment.argumentSubordinates[i]
                     assertEquals(subordinate.environment.expressionType, expressionType)

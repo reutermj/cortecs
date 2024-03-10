@@ -9,9 +9,9 @@ class AstBuilder(val iterator: ParserIterator) {
     private var _nodes = mutableListOf<Ast>()
     private var _errors = mutableListOf<CortecsError>()
 
-    inline fun <reified T: Token>consume(): Int {
+    inline fun <reified T : Token> consume(): Int {
         val token = iterator.peekToken()
-        if(token is T) {
+        if (token is T) {
             iterator.nextToken()
             return addSubnode(token)
         }
@@ -19,7 +19,7 @@ class AstBuilder(val iterator: ParserIterator) {
     }
 
     fun addSubnode(node: Ast?): Int {
-        if(node == null) return -1
+        if (node == null) return -1
 
         _nodes.add(node)
         node.errors.errorSpan?.let {

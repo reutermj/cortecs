@@ -18,7 +18,7 @@ fun generateFunctionCallExpressionEnvironment(
     arguments.inOrder {
         val environment = it.expression().environment
         errors.addAll(environment.errors.addOffset(argumentSpan).errors)
-        if(environment.expressionType is Invalid) {
+        if (environment.expressionType is Invalid) {
             anyInvalid = true
         }
         argumentTypes.add(environment.expressionType)
@@ -33,9 +33,9 @@ fun generateFunctionCallExpressionEnvironment(
     val outArrow: Type
     val substitution: Substitution
 
-    if(fEnvironment.expressionType is Invalid) anyInvalid = true
+    if (fEnvironment.expressionType is Invalid) anyInvalid = true
 
-    if(anyInvalid) {
+    if (anyInvalid) {
         substitution = Substitution.empty
         outType = Invalid(getNextId())
         outArrow = Invalid(getNextId())
@@ -52,6 +52,7 @@ fun generateFunctionCallExpressionEnvironment(
                 outType = returnType
                 outArrow = arrowType
             }
+
             is UnificationError -> {
                 val spans = fEnvironment.getSpansForId(fEnvironment.expressionType.id)
                 for (span in spans) {
@@ -92,7 +93,7 @@ fun generateUnaryExpressionEnvironment(
     val retType: Type
     val opType: Type
     val requirements: Requirements
-    if(environment.expressionType is Invalid) {
+    if (environment.expressionType is Invalid) {
         retType = environment.expressionType
         opType = environment.expressionType
         requirements = environment.requirements
@@ -121,7 +122,7 @@ fun generateBinaryExpressionEnvironment(
     val retType: Type
     val opType: Type
     val requirements: Requirements
-    if(lEnvironment.expressionType is Invalid || rEnvironment.expressionType is Invalid) {
+    if (lEnvironment.expressionType is Invalid || rEnvironment.expressionType is Invalid) {
         retType = Invalid(getNextId())
         opType = Invalid(typeId)
         requirements = lEnvironment.requirements + rEnvironment.requirements

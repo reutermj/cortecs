@@ -16,6 +16,7 @@ class UnaryExpressionTests {
         val text = "$opText$atomText"
         validate(text, atomText)
     }
+
     @Test
     fun testParse() {
         testParse("+", "a")
@@ -29,9 +30,10 @@ class UnaryExpressionTests {
         val text = "$opText$whitespace$atomText$whitespace"
         validate(text, atomText)
     }
+
     @Test
     fun testParseWhitespace() {
-        for(whitespace in whitespaceCombos) {
+        for (whitespace in whitespaceCombos) {
             testParseWhitespace("+", "a", whitespace)
             testParseWhitespace("*", "1", whitespace)
             testParseWhitespace("|", "1.1", whitespace)

@@ -25,7 +25,7 @@ class ReturnTests {
         testParse("f(y)")
         testParse("f(y, z)")
 
-        for(whitespace in whitespaceCombos) {
+        for (whitespace in whitespaceCombos) {
             testParse("y", whitespace)
             testParse("y + z", whitespace)
             testParse("+y", whitespace)
