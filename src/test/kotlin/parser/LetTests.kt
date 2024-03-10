@@ -4,15 +4,14 @@ import kotlin.test.*
 
 class LetTests {
     fun testParse(name: String, annotation: String?, expression: String, whitespace: String = "") {
-        val text =
-            if (annotation == null) "let $whitespace$name$whitespace=$whitespace $expression$whitespace"
-            else "let $whitespace$name$whitespace:$whitespace$annotation$whitespace=$whitespace $expression$whitespace"
+        val text = if(annotation == null) "let $whitespace$name$whitespace=$whitespace $expression$whitespace"
+        else "let $whitespace$name$whitespace:$whitespace$annotation$whitespace=$whitespace $expression$whitespace"
 
         testParse(text, ::parseLet) {
             assertIs<LetAst>(it)
             assertEquals("x", it.name().value)
 
-            if (annotation == null) assertFails { it.typeAnnotation() }
+            if(annotation == null) assertFails {it.typeAnnotation()}
             else assertEquals(annotation, it.typeAnnotation().value)
 
             val expressionIterator = ParserIterator()
@@ -45,7 +44,7 @@ class LetTests {
         testParse("x", "U32", "f(y)")
         testParse("x", "U32", "f(y, z)")
 
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             testParse("x", null, "y", whitespace)
             testParse("x", null, "y + z", whitespace)
             testParse("x", "t", "+y", whitespace)
@@ -59,9 +58,9 @@ class LetTests {
     fun testParseMissingEverything() {
         testParse("let", ::parseLet) {
             assertIs<LetAst>(it)
-            assertFails { it.name() }
-            assertFails { it.typeAnnotation() }
-            assertFails { it.expression() }
+            assertFails {it.name()}
+            assertFails {it.typeAnnotation()}
+            assertFails {it.expression()}
         }
     }
 
@@ -70,8 +69,8 @@ class LetTests {
         testParse("let x", ::parseLet) {
             assertIs<LetAst>(it)
             assertEquals("x", it.name().value)
-            assertFails { it.typeAnnotation() }
-            assertFails { it.expression() }
+            assertFails {it.typeAnnotation()}
+            assertFails {it.expression()}
         }
     }
 
@@ -80,8 +79,8 @@ class LetTests {
         testParse("let x:", ::parseLet) {
             assertIs<LetAst>(it)
             assertEquals("x", it.name().value)
-            assertFails { it.typeAnnotation() }
-            assertFails { it.expression() }
+            assertFails {it.typeAnnotation()}
+            assertFails {it.expression()}
         }
     }
 
@@ -90,8 +89,8 @@ class LetTests {
         testParse("let x =", ::parseLet) {
             assertIs<LetAst>(it)
             assertEquals("x", it.name().value)
-            assertFails { it.typeAnnotation() }
-            assertFails { it.expression() }
+            assertFails {it.typeAnnotation()}
+            assertFails {it.expression()}
         }
     }
 
@@ -101,7 +100,7 @@ class LetTests {
             assertIs<LetAst>(it)
             assertEquals("x", it.name().value)
             assertEquals("t", it.typeAnnotation().value)
-            assertFails { it.expression() }
+            assertFails {it.expression()}
         }
     }
 

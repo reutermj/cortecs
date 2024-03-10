@@ -5,20 +5,17 @@ import errors.CortecsErrors
 import parser.*
 
 fun generateFunctionCallExpressionEnvironment(
-    function: Expression,
-    arguments: ArgumentsAst,
-    argumentsSpan: Span
-): ExpressionEnvironment {
+    function: Expression, arguments: ArgumentsAst, argumentsSpan: Span): ExpressionEnvironment {
     val argumentTypes = mutableListOf<Type>()
     val argumentSubordinates = mutableListOf<Subordinate<ExpressionEnvironment>>()
-    val errors = mutableListOf<CortecsError>()
+    var errors = CortecsErrors.empty
     var anyInvalid = false
     var argumentSpan = argumentsSpan
     var requirements = Requirements.empty
     arguments.inOrder {
         val environment = it.expression().environment
-        errors.addAll(environment.errors.addOffset(argumentSpan).errors)
-        if (environment.expressionType is Invalid) {
+        errors += environment.errors.addOffset(argumentSpan)
+        if(environment.expressionType is Invalid) {
             anyInvalid = true
         }
         argumentTypes.add(environment.expressionType)
@@ -28,14 +25,14 @@ fun generateFunctionCallExpressionEnvironment(
     }
 
     val fEnvironment = function.environment
-    errors.addAll(fEnvironment.errors.errors)
+    errors += fEnvironment.errors
     val outType: Type
     val outArrow: Type
     val substitution: Substitution
 
-    if (fEnvironment.expressionType is Invalid) anyInvalid = true
+    if(fEnvironment.expressionType is Invalid) anyInvalid = true
 
-    if (anyInvalid) {
+    if(anyInvalid) {
         substitution = Substitution.empty
         outType = Invalid(getNextId())
         outArrow = Invalid(getNextId())
@@ -45,7 +42,7 @@ fun generateFunctionCallExpressionEnvironment(
         val arrowType = ArrowType(rhsType.id, rhsType, returnType)
 
         val mappings = mutableMapOf<Long, Type>()
-        when (val result = Substitution.empty.unify(fEnvironment.expressionType, arrowType)) {
+        when(val result = Substitution.empty.unify(fEnvironment.expressionType, arrowType)) {
             is UnificationSuccess -> {
                 substitution = result.substitution
                 requirements += fEnvironment.requirements.applySubstitution(substitution, mappings)
@@ -55,8 +52,8 @@ fun generateFunctionCallExpressionEnvironment(
 
             is UnificationError -> {
                 val spans = fEnvironment.getSpansForId(fEnvironment.expressionType.id)
-                for (span in spans) {
-                    errors.add(CortecsError("Unification error", span, Span.zero))
+                for(span in spans) {
+                    errors += CortecsError("Unification error", span, Span.zero)
                 }
                 substitution = Substitution.empty
                 outType = Invalid(returnType.id)
@@ -66,15 +63,7 @@ fun generateFunctionCallExpressionEnvironment(
     }
 
     val functionSubordinate = Subordinate(Span.zero, function.environment)
-    return FunctionCallExpressionEnvironment(
-        outType,
-        outArrow,
-        requirements,
-        substitution,
-        functionSubordinate,
-        argumentSubordinates,
-        CortecsErrors(null, errors)
-    )
+    return FunctionCallExpressionEnvironment(outType, outArrow, requirements, substitution, functionSubordinate, argumentSubordinates, errors)
 }
 
 fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
@@ -85,15 +74,12 @@ fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan
 }
 
 fun generateUnaryExpressionEnvironment(
-    op: OperatorToken,
-    expression: Expression,
-    expressionSpan: Span
-): ExpressionEnvironment {
+    op: OperatorToken, expression: Expression, expressionSpan: Span): ExpressionEnvironment {
     val environment = expression.environment
     val retType: Type
     val opType: Type
     val requirements: Requirements
-    if (environment.expressionType is Invalid) {
+    if(environment.expressionType is Invalid) {
         retType = environment.expressionType
         opType = environment.expressionType
         requirements = environment.requirements
@@ -109,12 +95,7 @@ fun generateUnaryExpressionEnvironment(
 }
 
 fun generateBinaryExpressionEnvironment(
-    lhs: Expression,
-    op: OperatorToken,
-    opSpan: Span,
-    rhs: Expression,
-    rhsSpan: Span
-): ExpressionEnvironment {
+    lhs: Expression, op: OperatorToken, opSpan: Span, rhs: Expression, rhsSpan: Span): ExpressionEnvironment {
     val lEnvironment = lhs.environment
     val rEnvironment = rhs.environment
     val typeId = getNextId()
@@ -122,7 +103,7 @@ fun generateBinaryExpressionEnvironment(
     val retType: Type
     val opType: Type
     val requirements: Requirements
-    if (lEnvironment.expressionType is Invalid || rEnvironment.expressionType is Invalid) {
+    if(lEnvironment.expressionType is Invalid || rEnvironment.expressionType is Invalid) {
         retType = Invalid(getNextId())
         opType = Invalid(typeId)
         requirements = lEnvironment.requirements + rEnvironment.requirements
@@ -139,28 +120,27 @@ fun generateBinaryExpressionEnvironment(
     return BinaryExpressionEnvironment(retType, opType, opSpan, requirements, lSubordinate, rSubordinate, errors)
 }
 
-fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) =
-    when (atom) {
-        is NameToken -> {
-            val type = freshUnificationVariable()
-            val requirements = Requirements.empty.addRequirement(atom, type)
-            AtomicExpressionEnvironment(type, requirements)
-        }
-
-        is IntToken -> AtomicExpressionEnvironment(getIntType(atom), Requirements.empty)
-        is FloatToken -> AtomicExpressionEnvironment(getFloatType(atom), Requirements.empty)
-        is CharToken -> AtomicExpressionEnvironment(CharacterType(getNextId()), Requirements.empty)
-        is StringToken -> AtomicExpressionEnvironment(StringType(getNextId()), Requirements.empty)
-        is BadCharToken -> AtomicExpressionEnvironment(CharacterType(getNextId()), Requirements.empty) //todo should I??
-        is BadStringToken -> AtomicExpressionEnvironment(StringType(getNextId()), Requirements.empty) //todo should I??
+fun generateAtomicExpressionEnvironment(atom: AtomicExpressionToken) = when(atom) {
+    is NameToken -> {
+        val type = freshUnificationVariable()
+        val requirements = Requirements.empty.addRequirement(atom, type)
+        AtomicExpressionEnvironment(type, requirements)
     }
+
+    is IntToken -> AtomicExpressionEnvironment(getIntType(atom), Requirements.empty)
+    is FloatToken -> AtomicExpressionEnvironment(getFloatType(atom), Requirements.empty)
+    is CharToken -> AtomicExpressionEnvironment(CharacterType(getNextId()), Requirements.empty)
+    is StringToken -> AtomicExpressionEnvironment(StringType(getNextId()), Requirements.empty)
+    is BadCharToken -> AtomicExpressionEnvironment(CharacterType(getNextId()), Requirements.empty) //todo should I??
+    is BadStringToken -> AtomicExpressionEnvironment(StringType(getNextId()), Requirements.empty) //todo should I??
+}
 
 var typeId: Long = 0
 fun getNextId() = typeId++
 fun freshUnificationVariable() = UnificationTypeVariable(getNextId())
 
 fun typesToType(types: List<Type>) = //todo find better name for this
-    when (types.size) {
+    when(types.size) {
         0 -> UnitType(getNextId())  //should probably be empty type
         1 -> types.first()
         else -> ProductType(getNextId(), types)
@@ -168,16 +148,15 @@ fun typesToType(types: List<Type>) = //todo find better name for this
 
 fun getIntType(i: IntToken): Type {
     val isUnsigned = i.value.contains("u", true)
-    return when (i.value.last()) {
-        'b', 'B' -> if (isUnsigned) U8Type(getNextId()) else I8Type(getNextId())
-        's', 'S' -> if (isUnsigned) U16Type(getNextId()) else I16Type(getNextId())
-        'l', 'L' -> if (isUnsigned) U64Type(getNextId()) else I64Type(getNextId())
-        else -> if (isUnsigned) U32Type(getNextId()) else I32Type(getNextId())
+    return when(i.value.last()) {
+        'b', 'B' -> if(isUnsigned) U8Type(getNextId()) else I8Type(getNextId())
+        's', 'S' -> if(isUnsigned) U16Type(getNextId()) else I16Type(getNextId())
+        'l', 'L' -> if(isUnsigned) U64Type(getNextId()) else I64Type(getNextId())
+        else -> if(isUnsigned) U32Type(getNextId()) else I32Type(getNextId())
     }
 }
 
-fun getFloatType(i: FloatToken) =
-    when (i.value.last()) {
-        'd', 'D' -> F64Type(getNextId())
-        else -> F32Type(getNextId())
-    }
+fun getFloatType(i: FloatToken) = when(i.value.last()) {
+    'd', 'D' -> F64Type(getNextId())
+    else -> F32Type(getNextId())
+}

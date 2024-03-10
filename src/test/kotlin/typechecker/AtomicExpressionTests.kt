@@ -4,7 +4,7 @@ import parser.*
 import kotlin.test.*
 
 class AtomicExpressionTests {
-    inline fun <reified T : Type> validateAtom(text: String, shouldHaveRequirements: Boolean) {
+    inline fun <reified T: Type> validateAtom(text: String, shouldHaveRequirements: Boolean) {
         val iterator = ParserIterator()
         iterator.add(text)
         val expression = parseExpression(iterator)!!
@@ -12,7 +12,7 @@ class AtomicExpressionTests {
 
         val environment = expression.environment
         assertIs<T>(environment.expressionType)
-        if (shouldHaveRequirements) {
+        if(shouldHaveRequirements) {
             val requirements = environment.requirements[NameToken(text)]!!
             assertEquals(1, requirements.size)
             val requirement = requirements.first()

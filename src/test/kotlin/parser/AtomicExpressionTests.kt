@@ -3,7 +3,7 @@ package parser
 import kotlin.test.*
 
 class AtomicExpressionTests {
-    private inline fun <reified T : AtomicExpressionToken> testParseAtomType(text: String) {
+    private inline fun <reified T: AtomicExpressionToken> testParseAtomType(text: String) {
         testParse(text, ::parseExpression) {
             assertIs<AtomicExpression>(it)
             assertIs<T>(it.atom())
@@ -25,7 +25,7 @@ class AtomicExpressionTests {
 
     @Test
     fun testParseWhitespaceAfterAtom() {
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             testParse("a$whitespace", ::parseExpression) {}
             testParse("'a'$whitespace", ::parseExpression) {}
             testParse("1$whitespace", ::parseExpression) {}
@@ -36,7 +36,7 @@ class AtomicExpressionTests {
         val start = Span.zero
         val end = Span(0, inText.length)
         val change = Change(outText, start, end)
-        testReparse(inText, change) { parseExpression(it)!! }
+        testReparse(inText, change) {parseExpression(it)!!}
     }
 
     @Test
@@ -57,11 +57,11 @@ class AtomicExpressionTests {
 
     @Test
     fun testAppendToEnd() {
-        testAppendToEnd("a", "b") { parseExpression(it)!! }
-        testAppendToEnd("'a", "'") { parseExpression(it)!! }
-        testAppendToEnd("\"a", "\"") { parseExpression(it)!! }
-        testAppendToEnd("1", ".1") { parseExpression(it)!! }
-        testAppendToEnd("1", ".") { parseExpression(it)!! }
+        testAppendToEnd("a", "b") {parseExpression(it)!!}
+        testAppendToEnd("'a", "'") {parseExpression(it)!!}
+        testAppendToEnd("\"a", "\"") {parseExpression(it)!!}
+        testAppendToEnd("1", ".1") {parseExpression(it)!!}
+        testAppendToEnd("1", ".") {parseExpression(it)!!}
     }
 
     fun testNullParse(inString: String) {

@@ -33,7 +33,7 @@ class UnaryExpressionTests {
 
     @Test
     fun testParseWhitespace() {
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             testParseWhitespace("+", "a", whitespace)
             testParseWhitespace("*", "1", whitespace)
             testParseWhitespace("|", "1.1", whitespace)
@@ -45,7 +45,7 @@ class UnaryExpressionTests {
     fun testParseMissingExpression(opText: String) {
         testParse(opText, ::parseExpression) {
             assertIs<UnaryExpression>(it)
-            assertFails { it.expression() }
+            assertFails {it.expression()}
         }
     }
 
@@ -58,11 +58,11 @@ class UnaryExpressionTests {
 
     @Test
     fun testReplaceExpression() {
-        testReplaceMiddle("+", "a", "", "b") { parseExpression(it)!! }
-        testReplaceMiddle("*", "a", "", "1.1") { parseExpression(it)!! }
-        testReplaceMiddle("==", "1.1", "", "a") { parseExpression(it)!! }
-        testReplaceMiddle("^", "\"hello world\"", "", "a") { parseExpression(it)!! }
-        testReplaceMiddle("+a", "", "", "b") { parseExpression(it)!! }
+        testReplaceMiddle("+", "a", "", "b") {parseExpression(it)!!}
+        testReplaceMiddle("*", "a", "", "1.1") {parseExpression(it)!!}
+        testReplaceMiddle("==", "1.1", "", "a") {parseExpression(it)!!}
+        testReplaceMiddle("^", "\"hello world\"", "", "a") {parseExpression(it)!!}
+        testReplaceMiddle("+a", "", "", "b") {parseExpression(it)!!}
     }
 
     @Test

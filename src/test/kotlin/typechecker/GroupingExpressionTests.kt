@@ -29,7 +29,7 @@ class GroupingExpressionTests {
         validateGroupingExpression("(", "x", ")")
         validateGroupingExpression("(", "1", ")")
         validateGroupingExpression("(", "1.1", ")")
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             validateGroupingExpression("($whitespace", "x", ")")
             validateGroupingExpression("($whitespace", "1", ")")
             validateGroupingExpression("($whitespace", "1.1", ")")

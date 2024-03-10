@@ -48,14 +48,13 @@ class FunctionCallExpressionTests {
     }
 
     fun testParseWhitespace(functionNameText: String, argTexts: List<String>, whitespace: String) {
-        val text =
-            "$functionNameText$whitespace($whitespace${argTexts.joinToString(separator = ",$whitespace")}$whitespace)$whitespace"
+        val text = "$functionNameText$whitespace($whitespace${argTexts.joinToString(separator = ",$whitespace")}$whitespace)$whitespace"
         validate(text, functionNameText, argTexts)
     }
 
     @Test
     fun testParseWhitespace() {
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             testParseWhitespace("f", listOf(), whitespace)
             testParseWhitespace("f", listOf("a"), whitespace)
             testParseWhitespace("f", listOf("a", "b"), whitespace)
@@ -78,12 +77,12 @@ class FunctionCallExpressionTests {
 
     @Test
     fun testReplaceExpression() {
-        testReplaceMiddle("f(", "a", ")", "b") { parseExpression(it)!! }
-        testReplaceMiddle("f(", "a", ")", "b,") { parseExpression(it)!! }
-        testReplaceMiddle("f(a", "", ")", ", b") { parseExpression(it)!! }
-        testReplaceMiddle("f(a", "", ")", ", b,") { parseExpression(it)!! }
-        testReplaceMiddle("f(a", "", ")", ", b, c") { parseExpression(it)!! }
-        testReplaceMiddle("f(a", ", b, c", ")", "") { parseExpression(it)!! }
+        testReplaceMiddle("f(", "a", ")", "b") {parseExpression(it)!!}
+        testReplaceMiddle("f(", "a", ")", "b,") {parseExpression(it)!!}
+        testReplaceMiddle("f(a", "", ")", ", b") {parseExpression(it)!!}
+        testReplaceMiddle("f(a", "", ")", ", b,") {parseExpression(it)!!}
+        testReplaceMiddle("f(a", "", ")", ", b, c") {parseExpression(it)!!}
+        testReplaceMiddle("f(a", ", b, c", ")", "") {parseExpression(it)!!}
     }
 
     @Test
@@ -95,13 +94,13 @@ class FunctionCallExpressionTests {
 
     @Test
     fun testAppendToEnd() {
-        testAppendToEnd("f", "(a)") { parseExpression(it)!! }
-        testAppendToEnd("f(a", ")") { parseExpression(it)!! }
-        testAppendToEnd("f(a", ", b") { parseExpression(it)!! }
-        testAppendToEnd("f(a", ", b)") { parseExpression(it)!! }
-        testAppendToEnd("f(a, b", ", c") { parseExpression(it)!! }
-        testAppendToEnd("f(a, b", ", c)") { parseExpression(it)!! }
-        testAppendToEnd("f(a", ", b, c") { parseExpression(it)!! }
-        testAppendToEnd("f(a", ", b, c)") { parseExpression(it)!! }
+        testAppendToEnd("f", "(a)") {parseExpression(it)!!}
+        testAppendToEnd("f(a", ")") {parseExpression(it)!!}
+        testAppendToEnd("f(a", ", b") {parseExpression(it)!!}
+        testAppendToEnd("f(a", ", b)") {parseExpression(it)!!}
+        testAppendToEnd("f(a, b", ", c") {parseExpression(it)!!}
+        testAppendToEnd("f(a, b", ", c)") {parseExpression(it)!!}
+        testAppendToEnd("f(a", ", b, c") {parseExpression(it)!!}
+        testAppendToEnd("f(a", ", b, c)") {parseExpression(it)!!}
     }
 }

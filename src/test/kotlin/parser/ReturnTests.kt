@@ -25,7 +25,7 @@ class ReturnTests {
         testParse("f(y)")
         testParse("f(y, z)")
 
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             testParse("y", whitespace)
             testParse("y + z", whitespace)
             testParse("+y", whitespace)
@@ -39,7 +39,7 @@ class ReturnTests {
     fun testParseMissingExpression() {
         testParse("return", ::parseReturn) {
             assertIs<ReturnAst>(it)
-            assertFails { it.expression() }
+            assertFails {it.expression()}
         }
     }
 

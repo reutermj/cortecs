@@ -62,5 +62,5 @@ val astJsonFormat: Json by lazy {
             subclass(ReturnTypeToken::class)
         }
     }
-    Json { allowStructuredMapKeys = true; serializersModule = module }
+    Json {allowStructuredMapKeys = true; serializersModule = module}
 }

@@ -38,7 +38,7 @@ class UnaryExpressionTests {
         validateUnaryExpression("+", "", "x")
         validateUnaryExpression("-", "", "1")
         validateUnaryExpression("==", "", "1.1")
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             validateUnaryExpression("+", whitespace, "x")
             validateUnaryExpression("-", whitespace, "1")
             validateUnaryExpression("==", whitespace, "1.1")

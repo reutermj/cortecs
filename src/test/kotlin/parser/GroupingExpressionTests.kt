@@ -34,7 +34,7 @@ class GroupingExpressionTests {
 
     @Test
     fun testParseWhitespace() {
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             testParseWhitespace("a", whitespace)
             testParseWhitespace("1", whitespace)
             testParseWhitespace("1.1", whitespace)
@@ -47,7 +47,7 @@ class GroupingExpressionTests {
     fun testParseMissingExpression() {
         testParse("(", ::parseExpression) {
             assertIs<GroupingExpression>(it)
-            assertFails { it.expression() }
+            assertFails {it.expression()}
         }
     }
 
@@ -72,18 +72,18 @@ class GroupingExpressionTests {
 
     @Test
     fun testReplaceExpression() {
-        testReplaceMiddle("(", "a", ")", "b") { parseExpression(it)!! }
-        testReplaceMiddle("(", "a", ")", "1.1") { parseExpression(it)!! }
-        testReplaceMiddle("(", "1.1", ")", "a") { parseExpression(it)!! }
-        testReplaceMiddle("(", "\"hello world\"", ")", "a") { parseExpression(it)!! }
-        testReplaceMiddle("(a", "", ")", "b") { parseExpression(it)!! }
+        testReplaceMiddle("(", "a", ")", "b") {parseExpression(it)!!}
+        testReplaceMiddle("(", "a", ")", "1.1") {parseExpression(it)!!}
+        testReplaceMiddle("(", "1.1", ")", "a") {parseExpression(it)!!}
+        testReplaceMiddle("(", "\"hello world\"", ")", "a") {parseExpression(it)!!}
+        testReplaceMiddle("(a", "", ")", "b") {parseExpression(it)!!}
     }
 
     @Test
     fun testAppendToEnd() {
-        testAppendToEnd("(", "a") { parseExpression(it)!! }
-        testAppendToEnd("(a", ")") { parseExpression(it)!! }
-        testAppendToEnd("(", "a)") { parseExpression(it)!! }
+        testAppendToEnd("(", "a") {parseExpression(it)!!}
+        testAppendToEnd("(a", ")") {parseExpression(it)!!}
+        testAppendToEnd("(", "a)") {parseExpression(it)!!}
     }
 
     @Test

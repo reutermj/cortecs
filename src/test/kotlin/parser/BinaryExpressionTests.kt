@@ -49,7 +49,7 @@ class BinaryExpressionTests {
 
     @Test
     fun testWhitespace() {
-        for (whitespace in whitespaceCombos) {
+        for(whitespace in whitespaceCombos) {
             testWhitespace("a", "*", "b", whitespace)
             testWhitespace("1", "+", "b", whitespace)
             testWhitespace("a", "/", "1", whitespace)
@@ -70,7 +70,7 @@ class BinaryExpressionTests {
             val op = it.op()
             assertEquals(opText, op.value)
 
-            assertFails { it.rhs() }
+            assertFails {it.rhs()}
         }
     }
 
@@ -85,12 +85,7 @@ class BinaryExpressionTests {
     }
 
     fun testParseLeftLowerPrecedence(
-        lhsText: String,
-        lopText: String,
-        mhsText: String,
-        ropText: String,
-        rhsText: String
-    ) {
+        lhsText: String, lopText: String, mhsText: String, ropText: String, rhsText: String) {
         val text = "$lhsText $lopText $mhsText $ropText $rhsText"
         testParse(text, ::parseExpression) {
             assertIs<BinaryExpression>(it)
@@ -201,12 +196,7 @@ class BinaryExpressionTests {
     }
 
     fun testParseRightLowerPrecedence(
-        lhsText: String,
-        lopText: String,
-        mhsText: String,
-        ropText: String,
-        rhsText: String
-    ) {
+        lhsText: String, lopText: String, mhsText: String, ropText: String, rhsText: String) {
         val text = "$lhsText $lopText $mhsText $ropText $rhsText"
         testParse(text, ::parseExpression) {
             assertIs<BinaryExpression>(it)
@@ -384,48 +374,48 @@ class BinaryExpressionTests {
 
     @Test
     fun testAppendToEnd() {
-        testAppendToEnd("a", " + b") { parseExpression(it)!! }
-        testAppendToEnd("a +", " b") { parseExpression(it)!! }
-        testAppendToEnd("a + b +", " c") { parseExpression(it)!! }
-        testAppendToEnd("a + b + c +", " d") { parseExpression(it)!! }
+        testAppendToEnd("a", " + b") {parseExpression(it)!!}
+        testAppendToEnd("a +", " b") {parseExpression(it)!!}
+        testAppendToEnd("a + b +", " c") {parseExpression(it)!!}
+        testAppendToEnd("a + b + c +", " d") {parseExpression(it)!!}
 
-        testAppendToEnd("a + b", " + c") { parseExpression(it)!! }
-        testAppendToEnd("a + b", " * c") { parseExpression(it)!! }
-        testAppendToEnd("a + b", " | c") { parseExpression(it)!! }
-        testAppendToEnd("a * b", " + c") { parseExpression(it)!! }
-        testAppendToEnd("a * b", " * c") { parseExpression(it)!! }
-        testAppendToEnd("a * b", " | c") { parseExpression(it)!! }
-        testAppendToEnd("a | b", " + c") { parseExpression(it)!! }
-        testAppendToEnd("a | b", " * c") { parseExpression(it)!! }
-        testAppendToEnd("a | b", " | c") { parseExpression(it)!! }
+        testAppendToEnd("a + b", " + c") {parseExpression(it)!!}
+        testAppendToEnd("a + b", " * c") {parseExpression(it)!!}
+        testAppendToEnd("a + b", " | c") {parseExpression(it)!!}
+        testAppendToEnd("a * b", " + c") {parseExpression(it)!!}
+        testAppendToEnd("a * b", " * c") {parseExpression(it)!!}
+        testAppendToEnd("a * b", " | c") {parseExpression(it)!!}
+        testAppendToEnd("a | b", " + c") {parseExpression(it)!!}
+        testAppendToEnd("a | b", " * c") {parseExpression(it)!!}
+        testAppendToEnd("a | b", " | c") {parseExpression(it)!!}
 
-        testAppendToEnd("a + b + c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a + b + c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a + b + c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a * b + c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a * b + c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a * b + c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a | b + c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a | b + c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a | b + c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a + b * c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a + b * c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a + b * c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a * b * c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a * b * c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a * b * c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a | b * c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a | b * c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a | b * c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a + b | c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a + b | c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a + b | c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a * b | c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a * b | c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a * b | c", " | d") { parseExpression(it)!! }
-        testAppendToEnd("a | b | c", " + d") { parseExpression(it)!! }
-        testAppendToEnd("a | b | c", " * d") { parseExpression(it)!! }
-        testAppendToEnd("a | b | c", " | d") { parseExpression(it)!! }
+        testAppendToEnd("a + b + c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a + b + c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a + b + c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a * b + c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a * b + c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a * b + c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a | b + c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a | b + c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a | b + c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a + b * c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a + b * c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a + b * c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a * b * c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a * b * c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a * b * c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a | b * c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a | b * c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a | b * c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a + b | c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a + b | c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a + b | c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a * b | c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a * b | c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a * b | c", " | d") {parseExpression(it)!!}
+        testAppendToEnd("a | b | c", " + d") {parseExpression(it)!!}
+        testAppendToEnd("a | b | c", " * d") {parseExpression(it)!!}
+        testAppendToEnd("a | b | c", " | d") {parseExpression(it)!!}
     }
 
     @Test
@@ -473,70 +463,70 @@ class BinaryExpressionTests {
 
     @Test
     fun testReplaceOperator() {
-        testReplaceMiddle("a ", "+", " b", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b", ">") { parseExpression(it)!! }
+        testReplaceMiddle("a ", "+", " b", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b", ">") {parseExpression(it)!!}
 
-        testReplaceMiddle("a + b ", "+", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "+", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "+", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "/", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "/", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "/", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "<", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "<", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a + b ", "<", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "+", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "+", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "+", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "/", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "/", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "/", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "<", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "<", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a / b ", "<", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "+", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "+", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "+", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "/", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "/", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "/", " c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "<", " c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "<", " c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a < b ", "<", " c", ">") { parseExpression(it)!! }
+        testReplaceMiddle("a + b ", "+", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "+", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "+", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "/", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "/", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "/", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "<", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "<", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a + b ", "<", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "+", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "+", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "+", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "/", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "/", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "/", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "<", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "<", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a / b ", "<", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "+", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "+", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "+", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "/", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "/", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "/", " c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "<", " c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "<", " c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a < b ", "<", " c", ">") {parseExpression(it)!!}
 
-        testReplaceMiddle("a ", "+", " b + c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b + c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b + c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b + c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b + c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b + c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b + c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b + c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b + c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b / c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b / c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b / c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b / c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b / c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b / c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b / c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b / c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b / c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b < c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b < c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "+", " b < c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b < c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b < c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "/", " b < c", ">") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b < c", "-") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b < c", "*") { parseExpression(it)!! }
-        testReplaceMiddle("a ", "<", " b < c", ">") { parseExpression(it)!! }
+        testReplaceMiddle("a ", "+", " b + c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b + c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b + c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b + c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b + c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b + c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b + c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b + c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b + c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b / c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b / c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b / c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b / c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b / c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b / c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b / c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b / c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b / c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b < c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b < c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "+", " b < c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b < c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b < c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "/", " b < c", ">") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b < c", "-") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b < c", "*") {parseExpression(it)!!}
+        testReplaceMiddle("a ", "<", " b < c", ">") {parseExpression(it)!!}
     }
 }
