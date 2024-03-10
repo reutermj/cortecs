@@ -4,66 +4,86 @@ import errors.CortecsError
 import errors.CortecsErrors
 import parser.*
 
-fun generateFunctionCallExpressionEnvironment(
-    function: Expression, arguments: ArgumentsAst, argumentsSpan: Span): ExpressionEnvironment {
+sealed interface FunctionCallArgumentsResult {
+    val requirements: Requirements
+    val subordinates: List<Subordinate<ExpressionEnvironment>>
+    val errors: CortecsErrors
+}
+
+data class FunctionCallArgumentsGood(val argumentsType: Type, override val requirements: Requirements, override val subordinates: List<Subordinate<ExpressionEnvironment>>, override val errors: CortecsErrors): FunctionCallArgumentsResult
+data class FunctionCallArgumentsBad(override val requirements: Requirements, override val subordinates: List<Subordinate<ExpressionEnvironment>>, override val errors: CortecsErrors): FunctionCallArgumentsResult
+
+fun processFunctionCallArguments(arguments: ArgumentsAst, argumentsSpan: Span): FunctionCallArgumentsResult {
     val argumentTypes = mutableListOf<Type>()
-    val argumentSubordinates = mutableListOf<Subordinate<ExpressionEnvironment>>()
-    var errors = CortecsErrors.empty
-    var anyInvalid = false
+    val subordinates = mutableListOf<Subordinate<ExpressionEnvironment>>()
     var argumentSpan = argumentsSpan
+    var anyInvalid = false
     var requirements = Requirements.empty
+    var errors = CortecsErrors.empty
     arguments.inOrder {
         val environment = it.expression().environment
+        if(environment.expressionType is Invalid) anyInvalid = true
+
         errors += environment.errors.addOffset(argumentSpan)
-        if(environment.expressionType is Invalid) {
-            anyInvalid = true
-        }
         argumentTypes.add(environment.expressionType)
-        argumentSubordinates.add(Subordinate(argumentSpan, environment))
+        subordinates.add(Subordinate(argumentSpan, environment))
         argumentSpan += it.span
         requirements += environment.requirements
     }
 
-    val fEnvironment = function.environment
-    errors += fEnvironment.errors
+    return if(anyInvalid) FunctionCallArgumentsBad(requirements, subordinates, errors)
+    else FunctionCallArgumentsGood(typesToType(argumentTypes), requirements, subordinates, errors)
+}
+
+fun processGoodFunctionCall(fEnvironment: ExpressionEnvironment, arguments: FunctionCallArgumentsGood): ExpressionEnvironment {
+    val returnType = freshUnificationVariable()
+    val rhsType = arguments.argumentsType
+    val arrowType = ArrowType(rhsType.id, rhsType, returnType)
+
     val outType: Type
     val outArrow: Type
     val substitution: Substitution
+    var requirements = arguments.requirements
+    var errors = fEnvironment.errors + arguments.errors
+    val mappings = mutableMapOf<Long, Type>() //todo why is mappings not used
+    when(val result = Substitution.empty.unify(fEnvironment.expressionType, arrowType)) {
+        is UnificationSuccess -> {
+            substitution = result.substitution
+            requirements += fEnvironment.requirements.applySubstitution(substitution, mappings)
+            outType = returnType
+            outArrow = arrowType
+        }
 
-    if(fEnvironment.expressionType is Invalid) anyInvalid = true
-
-    if(anyInvalid) {
-        substitution = Substitution.empty
-        outType = Invalid(getNextId())
-        outArrow = Invalid(getNextId())
-    } else {
-        val returnType = freshUnificationVariable()
-        val rhsType = typesToType(argumentTypes)
-        val arrowType = ArrowType(rhsType.id, rhsType, returnType)
-
-        val mappings = mutableMapOf<Long, Type>()
-        when(val result = Substitution.empty.unify(fEnvironment.expressionType, arrowType)) {
-            is UnificationSuccess -> {
-                substitution = result.substitution
-                requirements += fEnvironment.requirements.applySubstitution(substitution, mappings)
-                outType = returnType
-                outArrow = arrowType
+        is UnificationError -> {
+            val spans = fEnvironment.getSpansForId(fEnvironment.expressionType.id)
+            for(span in spans) {
+                errors += CortecsError("Unification error", span, Span.zero)
             }
-
-            is UnificationError -> {
-                val spans = fEnvironment.getSpansForId(fEnvironment.expressionType.id)
-                for(span in spans) {
-                    errors += CortecsError("Unification error", span, Span.zero)
-                }
-                substitution = Substitution.empty
-                outType = Invalid(returnType.id)
-                outArrow = Invalid(arrowType.id)
-            }
+            substitution = Substitution.empty
+            outType = Invalid(returnType.id)
+            outArrow = Invalid(arrowType.id)
         }
     }
 
-    val functionSubordinate = Subordinate(Span.zero, function.environment)
-    return FunctionCallExpressionEnvironment(outType, outArrow, requirements, substitution, functionSubordinate, argumentSubordinates, errors)
+    return FunctionCallExpressionEnvironment(outType, outArrow, requirements, substitution, Subordinate(Span.zero, fEnvironment), arguments.subordinates, errors)
+}
+
+fun processBadFunctionCall(fEnvironment: ExpressionEnvironment, arguments: FunctionCallArgumentsResult): ExpressionEnvironment {
+    val outType = Invalid(getNextId())
+    val outArrow = Invalid(getNextId())
+    val requirements = fEnvironment.requirements + arguments.requirements
+    val errors = fEnvironment.errors + arguments.errors
+    return FunctionCallExpressionEnvironment(outType, outArrow, requirements, Substitution.empty, Subordinate(Span.zero, fEnvironment), arguments.subordinates, errors)
+}
+
+fun generateFunctionCallExpressionEnvironment(function: Expression, arguments: ArgumentsAst, argumentsSpan: Span): ExpressionEnvironment {
+    val fEnvironment = function.environment
+    return when(val result = processFunctionCallArguments(arguments, argumentsSpan)) {
+        is FunctionCallArgumentsGood -> if(fEnvironment.expressionType is Invalid) processBadFunctionCall(fEnvironment, result)
+        else processGoodFunctionCall(fEnvironment, result)
+
+        is FunctionCallArgumentsBad -> processBadFunctionCall(fEnvironment, result)
+    }
 }
 
 fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan: Span): ExpressionEnvironment {
@@ -73,8 +93,7 @@ fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan
     return GroupingExpressionEnvironment(environment.expressionType, environment.requirements, subordinate, errors)
 }
 
-fun generateUnaryExpressionEnvironment(
-    op: OperatorToken, expression: Expression, expressionSpan: Span): ExpressionEnvironment {
+fun generateUnaryExpressionEnvironment(op: OperatorToken, expression: Expression, expressionSpan: Span): ExpressionEnvironment {
     val environment = expression.environment
     val retType: Type
     val opType: Type
@@ -94,8 +113,7 @@ fun generateUnaryExpressionEnvironment(
     return UnaryExpressionEnvironment(retType, opType, requirements, subordinate, errors)
 }
 
-fun generateBinaryExpressionEnvironment(
-    lhs: Expression, op: OperatorToken, opSpan: Span, rhs: Expression, rhsSpan: Span): ExpressionEnvironment {
+fun generateBinaryExpressionEnvironment(lhs: Expression, op: OperatorToken, opSpan: Span, rhs: Expression, rhsSpan: Span): ExpressionEnvironment {
     val lEnvironment = lhs.environment
     val rEnvironment = rhs.environment
     val typeId = getNextId()
