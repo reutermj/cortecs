@@ -46,7 +46,7 @@ class UnaryExpressionTests {
     }
 
     @Test
-    fun testError() {
+    fun testInvalidSubordinate() {
         val iterator = ParserIterator()
         iterator.add("+1()")
         val expression = parseExpression(iterator)!!
@@ -60,5 +60,16 @@ class UnaryExpressionTests {
 
         assertEquals(1, environment.errors.errors.size)
         assertEquals(Span(0, 1), environment.errors.errors.first().offset)
+    }
+
+    @Test
+    fun testMissingSubordinate() {
+        val iterator = ParserIterator()
+        iterator.add("+")
+        val expression = parseExpression(iterator)!!
+        assertIs<UnaryExpression>(expression)
+
+        val environment = expression.environment
+        assertEquals(EmptyExpressionEnvironment, environment)
     }
 }

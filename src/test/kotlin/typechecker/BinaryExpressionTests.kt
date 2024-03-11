@@ -53,7 +53,7 @@ class BinaryExpressionTests {
         }
     }
 
-    fun testInvalid(text: String, offset: Span) {
+    fun testInvalidSubordinate(text: String, offset: Span) {
         val iterator = ParserIterator()
         iterator.add(text)
         val expression = parseExpression(iterator)!!
@@ -70,8 +70,24 @@ class BinaryExpressionTests {
     }
 
     @Test
-    fun testInvalid() {
-        testInvalid("1() + x", Span.zero)
-        testInvalid("x + 1()", Span(0, 4))
+    fun testInvalidSubordinate() {
+        testInvalidSubordinate("1() + x", Span.zero)
+        testInvalidSubordinate("x + 1()", Span(0, 4))
+    }
+
+    @Test
+    fun testMissingRhs() {
+        val iterator = ParserIterator()
+        iterator.add("x +")
+        val expression = parseExpression(iterator)!!
+        assertIs<BinaryExpression>(expression)
+
+        val environment = expression.environment
+        assertIs<BinaryExpressionEnvironment>(environment)
+        assertIs<Invalid>(environment.expressionType)
+        assertIs<Invalid>(environment.opType)
+        assertNull(environment.requirements[OperatorToken("+")])
+
+        assertEquals(0, environment.errors.errors.size)
     }
 }

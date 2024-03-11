@@ -93,7 +93,9 @@ fun generateGroupingExpressionEnvironment(expression: Expression, expressionSpan
     return GroupingExpressionEnvironment(environment.expressionType, environment.requirements, subordinate, errors)
 }
 
-fun generateUnaryExpressionEnvironment(op: OperatorToken, expression: Expression, expressionSpan: Span): ExpressionEnvironment {
+fun generateUnaryExpressionEnvironment(op: OperatorToken, expression: Expression?, expressionSpan: Span): ExpressionEnvironment {
+    if(expression == null) return EmptyExpressionEnvironment
+
     val environment = expression.environment
     val retType: Type
     val opType: Type
@@ -113,9 +115,9 @@ fun generateUnaryExpressionEnvironment(op: OperatorToken, expression: Expression
     return UnaryExpressionEnvironment(retType, opType, requirements, subordinate, errors)
 }
 
-fun generateBinaryExpressionEnvironment(lhs: Expression, op: OperatorToken, opSpan: Span, rhs: Expression, rhsSpan: Span): ExpressionEnvironment {
+fun generateBinaryExpressionEnvironment(lhs: Expression, op: OperatorToken, opSpan: Span, rhs: Expression?, rhsSpan: Span): ExpressionEnvironment {
     val lEnvironment = lhs.environment
-    val rEnvironment = rhs.environment
+    val rEnvironment = rhs?.environment ?: EmptyExpressionEnvironment
     val typeId = getNextId()
 
     val retType: Type

@@ -111,8 +111,7 @@ data class GarbageAst(override val nodes: List<Ast>, override val height: Int): 
 sealed class TopLevelAst: AstImpl()
 
 @Serializable
-data class FunctionAst(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val parametersIndex: Int, val returnTypeIndex: Int, val blockIndex: Int): TopLevelAst() {
+data class FunctionAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val parametersIndex: Int, val returnTypeIndex: Int, val blockIndex: Int): TopLevelAst() {
     fun name(): NameToken = if(nameIndex == -1) throw Exception("Name not available")
     else nodes[nameIndex] as NameToken
 
@@ -145,8 +144,7 @@ data class ParametersAst(override val nodes: List<Ast>, override val height: Int
 }
 
 @Serializable
-data class ParameterAst(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int): AstImpl() {
+data class ParameterAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int): AstImpl() {
     fun name(): NameToken = if(nameIndex == -1) throw Exception("Name not available")
     else nodes[nameIndex] as NameToken
 
@@ -175,8 +173,7 @@ data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
 }
 
 @Serializable
-data class LetAst(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val expressionIndex: Int): BodyAst() {
+data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val expressionIndex: Int): BodyAst() {
     fun name(): NameToken = if(nameIndex == -1) throw Exception("Name not available")
     else nodes[nameIndex] as NameToken
 
@@ -194,8 +191,7 @@ data class ReturnAst(override val nodes: List<Ast>, override val errors: Cortecs
 }
 
 @Serializable
-data class IfAst(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, val conditionIndex: Int, val blockIndex: Int): BodyAst() {
+data class IfAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val conditionIndex: Int, val blockIndex: Int): BodyAst() {
     fun condition(): Expression = if(conditionIndex == -1) throw Exception("Expression not available")
     else nodes[conditionIndex] as Expression
 
@@ -234,8 +230,7 @@ data class AtomicExpression(override val nodes: List<Ast>, override val errors: 
 }
 
 @Serializable
-data class GroupingExpression(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int, val expressionSpan: Span): BaseExpression() {
+data class GroupingExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int, val expressionSpan: Span): BaseExpression() {
     override val environment = if(expressionIndex == -1) EmptyExpressionEnvironment
     else generateGroupingExpressionEnvironment(expression(), expressionSpan)
 
@@ -244,16 +239,10 @@ data class GroupingExpression(
 }
 
 @Serializable
-data class UnaryExpression(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, val opIndex: Int, val expressionIndex: Int, val expressionSpan: Span): BaseExpression() {
-    override val environment = if(expressionIndex == -1) EmptyExpressionEnvironment
-    else generateUnaryExpressionEnvironment(op(), expression(), expressionSpan)
-
-    fun op(): OperatorToken = if(opIndex == -1) throw Exception("op not available")
-    else nodes[opIndex] as OperatorToken
-
-    fun expression(): Expression = if(expressionIndex == -1) throw Exception("Name not available")
-    else nodes[expressionIndex] as Expression
+data class UnaryExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val opIndex: Int, val expressionIndex: Int, val expressionSpan: Span): BaseExpression() {
+    override val environment = generateUnaryExpressionEnvironment(op(), expression(), expressionSpan)
+    fun op() = nodes[opIndex] as OperatorToken
+    fun expression() = if(expressionIndex == -1) null else nodes[expressionIndex] as Expression
 }
 
 @Serializable
@@ -272,8 +261,7 @@ data class ArgumentAst(override val nodes: List<Ast>, override val errors: Corte
 }
 
 @Serializable
-data class FunctionCallExpression(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, val functionIndex: Int, val argumentsIndex: Int, val argumentsSpan: Span): BaseExpression() {
+data class FunctionCallExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val functionIndex: Int, val argumentsIndex: Int, val argumentsSpan: Span): BaseExpression() {
     override val environment = if(argumentsIndex == -1) EmptyExpressionEnvironment
     else generateFunctionCallExpressionEnvironment(function(), arguments(), argumentsSpan)
 
@@ -292,61 +280,49 @@ sealed class BinaryExpression: Expression() {
     abstract val opIndex: Int
     abstract val opSpan: Span
 
-    fun lhs(): Expression = if(lhsIndex == -1) throw Exception("lhs not available")
-    else nodes[lhsIndex] as Expression
-
-    fun rhs(): Expression = if(rhsIndex == -1) throw Exception("rhs not available")
-    else nodes[rhsIndex] as Expression
-
-    fun op(): OperatorToken = if(opIndex == -1) throw Exception("op not available")
-    else nodes[opIndex] as OperatorToken
+    fun lhs() = nodes[lhsIndex] as Expression
+    fun rhs() = if(rhsIndex == -1) null else nodes[rhsIndex] as Expression
+    fun op() = nodes[opIndex] as OperatorToken
 }
 
 @Serializable
-data class BinaryExpressionP1(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span): BinaryExpression() {
-    override val environment: ExpressionEnvironment = if(rhsIndex == -1 || opIndex == -1) EmptyExpressionEnvironment
-    else generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
+data class BinaryExpressionP1(override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span):
+    BinaryExpression() {
+    override val environment = generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
 }
 
 @Serializable
-data class BinaryExpressionP2(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span): BinaryExpression() {
-    override val environment: ExpressionEnvironment = if(rhsIndex == -1 || opIndex == -1) EmptyExpressionEnvironment
-    else generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
+data class BinaryExpressionP2(override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span):
+    BinaryExpression() {
+    override val environment = generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
 }
 
 @Serializable
-data class BinaryExpressionP3(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span): BinaryExpression() {
-    override val environment: ExpressionEnvironment = if(rhsIndex == -1 || opIndex == -1) EmptyExpressionEnvironment
-    else generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
+data class BinaryExpressionP3(override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span):
+    BinaryExpression() {
+    override val environment = generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
 }
 
 @Serializable
-data class BinaryExpressionP4(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span): BinaryExpression() {
-    override val environment: ExpressionEnvironment = if(rhsIndex == -1 || opIndex == -1) EmptyExpressionEnvironment
-    else generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
+data class BinaryExpressionP4(override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span):
+    BinaryExpression() {
+    override val environment = generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
 }
 
 @Serializable
-data class BinaryExpressionP5(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span): BinaryExpression() {
-    override val environment: ExpressionEnvironment = if(rhsIndex == -1 || opIndex == -1) EmptyExpressionEnvironment
-    else generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
+data class BinaryExpressionP5(override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span):
+    BinaryExpression() {
+    override val environment = generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
 }
 
 @Serializable
-data class BinaryExpressionP6(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span): BinaryExpression() {
-    override val environment: ExpressionEnvironment = if(rhsIndex == -1 || opIndex == -1) EmptyExpressionEnvironment
-    else generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
+data class BinaryExpressionP6(override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span):
+    BinaryExpression() {
+    override val environment = generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
 }
 
 @Serializable
-data class BinaryExpressionP7(
-    override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span): BinaryExpression() {
-    override val environment: ExpressionEnvironment = if(rhsIndex == -1 || opIndex == -1) EmptyExpressionEnvironment
-    else generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
+data class BinaryExpressionP7(override val nodes: List<Ast>, override val errors: CortecsErrors, override val lhsIndex: Int, override val opIndex: Int, override val opSpan: Span, override val rhsIndex: Int, override val rhsSpan: Span):
+    BinaryExpression() {
+    override val environment = generateBinaryExpressionEnvironment(lhs(), op(), opSpan, rhs(), rhsSpan)
 }
