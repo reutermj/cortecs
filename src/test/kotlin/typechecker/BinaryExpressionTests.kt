@@ -20,6 +20,7 @@ class BinaryExpressionTests {
         val lhsSubordinate = environment.lhsSubordinate
         assertEquals(Span.zero, lhsSubordinate.offset)
         val rhsSubordinate = environment.rhsSubordinate
+        assertNotNull(rhsSubordinate)
         assertEquals(rhsSpan, rhsSubordinate.offset)
 
         val retType = environment.expressionType
@@ -91,6 +92,7 @@ class BinaryExpressionTests {
         val xReq = environment.requirements[NameToken("x")]!!
         assertEquals(1, xReq.size)
         assertIs<UnificationTypeVariable>(xReq.first())
+        assertNull(environment.rhsSubordinate)
 
         assertEquals(0, environment.errors.errors.size)
     }

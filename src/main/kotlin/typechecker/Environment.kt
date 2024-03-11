@@ -73,11 +73,18 @@ data class BinaryExpressionEnvironment(
     val opSpan: Span,
     override val requirements: Requirements,
     val lhsSubordinate: Subordinate<ExpressionEnvironment>,
-    val rhsSubordinate: Subordinate<ExpressionEnvironment>,
+    val rhsSubordinate: Subordinate<ExpressionEnvironment>?,
     override val errors: CortecsErrors): ExpressionEnvironment() {
     override fun getSpansForId(id: Long) = when(id) { //todo do these ids need to be different?
         expressionType.id, opType.id -> listOf(opSpan)
-        else -> lhsSubordinate.environment.getSpansForId(id).map {lhsSubordinate.offset + it} + rhsSubordinate.environment.getSpansForId(id).map {rhsSubordinate.offset + it}
+        else -> {
+            val lhsSpans = lhsSubordinate.environment.getSpansForId(id).map {lhsSubordinate.offset + it}
+            if(rhsSubordinate == null) lhsSpans
+            else {
+                val rhsSpans = rhsSubordinate.environment.getSpansForId(id).map {rhsSubordinate.offset + it}
+                lhsSpans + rhsSpans
+            }
+        }
     }
 
     override fun applySubstitution(type: Type) = type

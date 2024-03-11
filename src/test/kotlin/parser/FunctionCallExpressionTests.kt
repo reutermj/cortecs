@@ -10,8 +10,11 @@ class FunctionCallExpressionTests {
             assertIs<AtomicExpression>(functionName)
             assertEquals(functionNameText, functionName.atom().value)
 
+            val arguments = it.arguments()
+            assertNotNull(arguments)
+
             var i = 0
-            it.arguments().inOrder {
+            arguments.inOrder {
                 val argument = it.expression()
                 assertIs<AtomicExpression>(argument)
                 assertEquals(argTexts[i], argument.atom().value)

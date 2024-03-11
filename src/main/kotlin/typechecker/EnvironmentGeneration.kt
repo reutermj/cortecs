@@ -117,7 +117,13 @@ fun generateUnaryExpressionEnvironment(op: OperatorToken, expression: Expression
 
 fun generateBinaryExpressionEnvironment(lhs: Expression, op: OperatorToken, opSpan: Span, rhs: Expression?, rhsSpan: Span): ExpressionEnvironment {
     val lEnvironment = lhs.environment
-    val rEnvironment = rhs?.environment ?: EmptyExpressionEnvironment
+    val rEnvironment = rhs?.environment
+    if(rEnvironment == null) {
+        val retType = Invalid(getNextId())
+        val opType = Invalid(getNextId())
+        val lSubordinate = Subordinate(Span.zero, lEnvironment)
+        return BinaryExpressionEnvironment(retType, opType, opSpan, lEnvironment.requirements, lSubordinate, null, lEnvironment.errors)
+    }
     val typeId = getNextId()
 
     val retType: Type

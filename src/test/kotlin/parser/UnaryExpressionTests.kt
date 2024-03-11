@@ -45,7 +45,7 @@ class UnaryExpressionTests {
     fun testParseMissingExpression(opText: String) {
         testParse(opText, ::parseExpression) {
             assertIs<UnaryExpression>(it)
-            assertFails {it.expression()}
+            assertNull(it.expression())
         }
     }
 

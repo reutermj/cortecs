@@ -70,7 +70,7 @@ class BinaryExpressionTests {
             val op = it.op()
             assertEquals(opText, op.value)
 
-            assertFails {it.rhs()}
+            assertNull(it.rhs())
         }
     }
 
