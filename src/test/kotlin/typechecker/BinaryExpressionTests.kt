@@ -72,6 +72,7 @@ class BinaryExpressionTests {
     @Test
     fun testInvalidSubordinate() {
         testInvalidSubordinate("1() + x", Span.zero)
+        testInvalidSubordinate("1() +", Span.zero)
         testInvalidSubordinate("x + 1()", Span(0, 4))
     }
 
@@ -87,6 +88,9 @@ class BinaryExpressionTests {
         assertIs<Invalid>(environment.expressionType)
         assertIs<Invalid>(environment.opType)
         assertNull(environment.requirements[OperatorToken("+")])
+        val xReq = environment.requirements[NameToken("x")]!!
+        assertEquals(1, xReq.size)
+        assertIs<UnificationTypeVariable>(xReq.first())
 
         assertEquals(0, environment.errors.errors.size)
     }
