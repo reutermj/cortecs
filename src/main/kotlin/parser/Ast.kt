@@ -262,14 +262,9 @@ data class ArgumentAst(override val nodes: List<Ast>, override val errors: Corte
 
 @Serializable
 data class FunctionCallExpression(override val nodes: List<Ast>, override val errors: CortecsErrors, val functionIndex: Int, val argumentsIndex: Int, val argumentsSpan: Span): BaseExpression() {
-    override val environment = if(argumentsIndex == -1) EmptyExpressionEnvironment
-    else generateFunctionCallExpressionEnvironment(function(), arguments(), argumentsSpan)
-
-    fun function(): Expression = if(functionIndex == -1) throw Exception("Name not available")
-    else nodes[functionIndex] as Expression
-
-    fun arguments(): ArgumentsAst = if(argumentsIndex == -1) throw Exception("Name not available")
-    else nodes[argumentsIndex] as ArgumentsAst
+    override val environment = generateFunctionCallExpressionEnvironment(function(), arguments(), argumentsSpan)
+    fun function() = nodes[functionIndex] as Expression
+    fun arguments() = nodes[argumentsIndex] as ArgumentsAst
 }
 
 @Serializable
