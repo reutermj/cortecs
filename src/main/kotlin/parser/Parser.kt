@@ -249,13 +249,14 @@ fun parseReturn(iterator: ParserIterator): ReturnAst {
     builder.consume<ReturnToken>()
     consumeWhitespace(builder)
 
+    val expressionSpan = builder.getCurrentLocation()
     val expressionIndex = builder.addSubnode(parseExpression(iterator))
     if(expressionIndex == -1) {
         builder.emitError("Expected expression", Span.zero)
         consumeRemainingWhitespace(builder)
     }
 
-    return ReturnAst(builder.nodes(), builder.errors(), expressionIndex)
+    return ReturnAst(builder.nodes(), builder.errors(), expressionIndex, expressionSpan)
 }
 
 fun parseIf(iterator: ParserIterator): IfAst {

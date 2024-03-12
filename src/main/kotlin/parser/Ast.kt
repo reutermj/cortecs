@@ -185,8 +185,9 @@ data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErr
 }
 
 @Serializable
-data class ReturnAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int): BodyAst() {
-    fun expression(): Expression = if(expressionIndex == -1) throw Exception("Expression not available")
+data class ReturnAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int, val expressionSpan: Span): BodyAst() {
+    val environment = generateReturnEnvironment(expression(), expressionSpan)
+    fun expression() = if(expressionIndex == -1) null
     else nodes[expressionIndex] as Expression
 }
 

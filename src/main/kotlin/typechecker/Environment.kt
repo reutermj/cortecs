@@ -1,6 +1,6 @@
 package typechecker
 
-import errors.CortecsErrors
+import errors.*
 import kotlinx.serialization.*
 import parser.*
 
@@ -12,6 +12,36 @@ sealed class Environment {
 
 @Serializable
 data class Subordinate<out T: Environment>(val offset: Span, val environment: T)
+
+@Serializable
+data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
+    companion object {
+        val empty = Bindings(emptyMap())
+    }
+
+    //todo handle multiple bindings
+    operator fun plus(other: Bindings) = Bindings(bindings + other.bindings)
+
+    operator fun get(token: BindableToken) = bindings[token]
+
+    fun contains(token: BindableToken) = bindings.containsKey(token)
+
+    fun addBinding(token: BindableToken, typeScheme: TypeScheme) =
+        Bindings(bindings + (token to typeScheme))
+
+    fun <T>fold(init: T, f: (T, BindableToken, TypeScheme) -> T): T {
+        var acc = init
+        for((key, value) in bindings) acc = f(acc, key, value)
+        return acc
+    }
+
+    //todo figure out if these are right. do we need to map passed in?
+    fun applySubstitution(substitution: Substitution, mappings: MutableMap<Long, Type>) = Bindings(bindings.mapValues {
+        val outType = substitution.apply(it.value, mappings)
+        if(outType is TypeScheme) outType
+        else TODO()
+    })
+}
 
 @Serializable
 data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
@@ -34,6 +64,22 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
     }
 
     fun applySubstitution(substitution: Substitution, mapping: MutableMap<Long, Type>) = Requirements(requirements.mapValues {kv -> kv.value.map {substitution.apply(it, mapping)}})
+}
+
+@Serializable
+sealed class BlockEnvironment: Environment() {
+    abstract val bindings: Bindings
+    abstract val requirements: Requirements
+    abstract val errors: CortecsErrors
+}
+
+@Serializable
+data class ReturnEnvironment(val subordinate: Subordinate<ExpressionEnvironment>, override val requirements: Requirements, override val errors: CortecsErrors): BlockEnvironment() {
+    override val bindings: Bindings
+        get() = Bindings.empty
+
+    override fun getSpansForId(id: Long) = subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
+    override fun applySubstitution(type: Type) = type
 }
 
 @Serializable

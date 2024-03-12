@@ -4,6 +4,19 @@ import errors.CortecsError
 import errors.CortecsErrors
 import parser.*
 
+fun generateReturnEnvironment(expression: Expression?, expressionSpan: Span): ReturnEnvironment {
+    if(expression == null) {
+        return ReturnEnvironment(Subordinate(expressionSpan, EmptyExpressionEnvironment), Requirements.empty, CortecsErrors.empty)
+    }
+
+    val environment = expression.environment
+    val errors = environment.errors.addOffset(expressionSpan)
+    val requirements =
+        if(environment.expressionType is Invalid) environment.requirements
+        else environment.requirements.addRequirement(ReturnTypeToken, environment.expressionType)
+    return ReturnEnvironment(Subordinate(expressionSpan, environment), requirements, errors)
+}
+
 sealed interface FunctionCallArgumentsResult {
     val requirements: Requirements
     val subordinates: List<Subordinate<ExpressionEnvironment>>
