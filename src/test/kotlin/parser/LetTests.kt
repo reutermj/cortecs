@@ -9,10 +9,10 @@ class LetTests {
 
         testParse(text, ::parseLet) {
             assertIs<LetAst>(it)
-            assertEquals("x", it.name().value)
+            assertEquals("x", it.name()?.value)
 
-            if(annotation == null) assertFails {it.typeAnnotation()}
-            else assertEquals(annotation, it.typeAnnotation().value)
+            if(annotation == null) assertNull(it.typeAnnotation())
+            else assertEquals(annotation, it.typeAnnotation()?.value)
 
             val expressionIterator = ParserIterator()
             expressionIterator.add("$expression$whitespace")
@@ -58,9 +58,9 @@ class LetTests {
     fun testParseMissingEverything() {
         testParse("let", ::parseLet) {
             assertIs<LetAst>(it)
-            assertFails {it.name()}
-            assertFails {it.typeAnnotation()}
-            assertFails {it.expression()}
+            assertNull(it.name())
+            assertNull(it.typeAnnotation())
+            assertNull(it.expression())
         }
     }
 
@@ -68,9 +68,9 @@ class LetTests {
     fun testParseOnlyName() {
         testParse("let x", ::parseLet) {
             assertIs<LetAst>(it)
-            assertEquals("x", it.name().value)
-            assertFails {it.typeAnnotation()}
-            assertFails {it.expression()}
+            assertEquals("x", it.name()?.value)
+            assertNull(it.typeAnnotation())
+            assertNull(it.expression())
         }
     }
 
@@ -78,9 +78,9 @@ class LetTests {
     fun testParseColonMissingAnnotation() {
         testParse("let x:", ::parseLet) {
             assertIs<LetAst>(it)
-            assertEquals("x", it.name().value)
-            assertFails {it.typeAnnotation()}
-            assertFails {it.expression()}
+            assertEquals("x", it.name()?.value)
+            assertNull(it.typeAnnotation())
+            assertNull(it.expression())
         }
     }
 
@@ -88,9 +88,9 @@ class LetTests {
     fun testParseMissingExpression() {
         testParse("let x =", ::parseLet) {
             assertIs<LetAst>(it)
-            assertEquals("x", it.name().value)
-            assertFails {it.typeAnnotation()}
-            assertFails {it.expression()}
+            assertEquals("x", it.name()?.value)
+            assertNull(it.typeAnnotation())
+            assertNull(it.expression())
         }
     }
 
@@ -98,9 +98,9 @@ class LetTests {
     fun testParseAnnotationMissingExpression() {
         testParse("let x:t =", ::parseLet) {
             assertIs<LetAst>(it)
-            assertEquals("x", it.name().value)
-            assertEquals("t", it.typeAnnotation().value)
-            assertFails {it.expression()}
+            assertEquals("x", it.name()?.value)
+            assertEquals("t", it.typeAnnotation()?.value)
+            assertNull(it.expression())
         }
     }
 

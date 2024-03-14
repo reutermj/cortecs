@@ -173,14 +173,15 @@ data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
 }
 
 @Serializable
-data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val expressionIndex: Int): BodyAst() {
-    fun name(): NameToken = if(nameIndex == -1) throw Exception("Name not available")
+data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val typeAnnotationSpan: Span, val expressionIndex: Int, val expressionSpan: Span): BodyAst() {
+    val environment = generateLetEnvironment(name(), expression(), expressionSpan)
+    fun name() = if(nameIndex == -1) null
     else nodes[nameIndex] as NameToken
 
-    fun typeAnnotation(): TypeAnnotationToken = if(typeAnnotationIndex == -1) throw Exception("TypeAnnotation not available")
+    fun typeAnnotation() = if(typeAnnotationIndex == -1) null
     else nodes[typeAnnotationIndex] as TypeAnnotationToken
 
-    fun expression(): Expression = if(expressionIndex == -1) throw Exception("Expression not available")
+    fun expression() = if(expressionIndex == -1) null
     else nodes[expressionIndex] as Expression
 }
 

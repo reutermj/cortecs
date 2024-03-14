@@ -4,16 +4,24 @@ import errors.CortecsError
 import errors.CortecsErrors
 import parser.*
 
+fun generateLetEnvironment(name: NameToken?, expression: Expression?, expressionSpan: Span): LetEnvironment {
+    if(name == null || expression == null) return LetEnvironment(null, Span.zero, Subordinate(expressionSpan, EmptyExpressionEnvironment), Substitution.empty, Bindings.empty, Requirements.empty, CortecsErrors.empty)
+
+    val environment = expression.environment
+    val subordinate = Subordinate(expressionSpan, environment)
+    val bindings = Bindings.empty.addBinding(name, environment.expressionType)
+    val requirements = environment.requirements
+    val errors = environment.errors.addOffset(expressionSpan)
+    return LetEnvironment(null, Span.zero, subordinate, Substitution.empty, bindings, requirements, errors)
+}
+
 fun generateReturnEnvironment(expression: Expression?, expressionSpan: Span): ReturnEnvironment {
-    if(expression == null) {
-        return ReturnEnvironment(Subordinate(expressionSpan, EmptyExpressionEnvironment), Requirements.empty, CortecsErrors.empty)
-    }
+    if(expression == null) return ReturnEnvironment(Subordinate(expressionSpan, EmptyExpressionEnvironment), Requirements.empty, CortecsErrors.empty)
 
     val environment = expression.environment
     val errors = environment.errors.addOffset(expressionSpan)
-    val requirements =
-        if(environment.expressionType is Invalid) environment.requirements
-        else environment.requirements.addRequirement(ReturnTypeToken, environment.expressionType)
+    val requirements = if(environment.expressionType is Invalid) environment.requirements
+    else environment.requirements.addRequirement(ReturnTypeToken, environment.expressionType)
     return ReturnEnvironment(Subordinate(expressionSpan, environment), requirements, errors)
 }
 

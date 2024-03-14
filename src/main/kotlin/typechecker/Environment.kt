@@ -14,7 +14,7 @@ sealed class Environment {
 data class Subordinate<out T: Environment>(val offset: Span, val environment: T)
 
 @Serializable
-data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
+data class Bindings(val bindings: Map<BindableToken, Type>) {
     companion object {
         val empty = Bindings(emptyMap())
     }
@@ -26,10 +26,10 @@ data class Bindings(val bindings: Map<BindableToken, TypeScheme>) {
 
     fun contains(token: BindableToken) = bindings.containsKey(token)
 
-    fun addBinding(token: BindableToken, typeScheme: TypeScheme) =
-        Bindings(bindings + (token to typeScheme))
+    fun addBinding(token: BindableToken, type: Type) =
+        Bindings(bindings + (token to type))
 
-    fun <T>fold(init: T, f: (T, BindableToken, TypeScheme) -> T): T {
+    fun <T>fold(init: T, f: (T, BindableToken, Type) -> T): T {
         var acc = init
         for((key, value) in bindings) acc = f(acc, key, value)
         return acc
@@ -71,6 +71,16 @@ sealed class BlockEnvironment: Environment() {
     abstract val bindings: Bindings
     abstract val requirements: Requirements
     abstract val errors: CortecsErrors
+}
+
+@Serializable
+data class LetEnvironment(val annotation: Type?, val annotationOffset: Span, val subordinate: Subordinate<ExpressionEnvironment>, val substitution: Substitution, override val bindings: Bindings, override val requirements: Requirements, override val errors: CortecsErrors): BlockEnvironment() {
+    override fun getSpansForId(id: Long) =
+        if(annotation?.id == id) listOf(annotationOffset)
+        else subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
+
+    //todo why do I need this mutable map here?
+    override fun applySubstitution(type: Type) = substitution.apply(type, mutableMapOf())
 }
 
 @Serializable

@@ -39,7 +39,7 @@ class ReturnTests {
     fun testParseMissingExpression() {
         testParse("return", ::parseReturn) {
             assertIs<ReturnAst>(it)
-            assertFails {it.expression()}
+            assertNull(it.expression())
         }
     }
 
