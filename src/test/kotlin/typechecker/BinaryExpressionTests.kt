@@ -35,11 +35,11 @@ class BinaryExpressionTests {
         assertEquals(lhsType.types, listOf(lhsSubordinate.environment.expressionType, rhsSubordinate.environment.expressionType))
         assertEquals(opReq.rhs, environment.expressionType)
 
-        assertEquals(listOf(Span.zero), environment.getSpansForId(lhsSubordinate.environment.expressionType.id))
-        assertEquals(listOf(rhsSpan), environment.getSpansForId(rhsSubordinate.environment.expressionType.id))
-        assertEquals(listOf(opSpan), environment.getSpansForId(opReq.id))
-        assertEquals(listOf(opSpan), environment.getSpansForId(lhsType.id))
-        assertEquals(listOf(opSpan), environment.getSpansForId(environment.expressionType.id))
+        assertEquals(listOf(Span.zero), environment.getSpansForType(lhsSubordinate.environment.expressionType))
+        assertEquals(listOf(rhsSpan), environment.getSpansForType(rhsSubordinate.environment.expressionType))
+        assertEquals(listOf(opSpan), environment.getSpansForType(opReq))
+        assertEquals(listOf(opSpan), environment.getSpansForType(lhsType))
+        assertEquals(listOf(opSpan), environment.getSpansForType(environment.expressionType))
     }
 
     @Test

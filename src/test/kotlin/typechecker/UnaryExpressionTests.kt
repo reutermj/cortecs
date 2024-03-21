@@ -28,9 +28,9 @@ class UnaryExpressionTests {
         assertEquals(opReq.lhs, subordinate.environment.expressionType)
         assertEquals(opReq.rhs, environment.expressionType)
 
-        assertEquals(listOf(prefixSpan), environment.getSpansForId(subordinate.environment.expressionType.id))
-        assertEquals(listOf(Span.zero), environment.getSpansForId(opReq.id))
-        assertEquals(listOf(Span.zero), environment.getSpansForId(environment.expressionType.id))
+        assertEquals(listOf(prefixSpan), environment.getSpansForType(subordinate.environment.expressionType))
+        assertEquals(listOf(Span.zero), environment.getSpansForType(opReq))
+        assertEquals(listOf(Span.zero), environment.getSpansForType(environment.expressionType))
     }
 
     @Test

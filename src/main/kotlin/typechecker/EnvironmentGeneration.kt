@@ -76,7 +76,7 @@ fun processGoodFunctionCall(fEnvironment: ExpressionEnvironment, arguments: Func
         }
 
         is UnificationError -> {
-            val spans = fEnvironment.getSpansForId(fEnvironment.expressionType.id)
+            val spans = fEnvironment.getSpansForType(fEnvironment.expressionType)
             for(span in spans) {
                 errors += CortecsError("Unification error", span, Span.zero)
             }

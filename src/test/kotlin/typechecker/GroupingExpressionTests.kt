@@ -19,7 +19,7 @@ class GroupingExpressionTests {
         assertEquals(subordinate.environment.expressionType, environment.expressionType)
         assertEquals(subordinate.environment.requirements, environment.requirements)
 
-        val spans = environment.getSpansForId(environment.expressionType.id)
+        val spans = environment.getSpansForType(environment.expressionType)
         assertEquals(1, spans.size)
         assertEquals(span, spans.first())
     }

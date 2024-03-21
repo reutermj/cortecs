@@ -6,7 +6,7 @@ import parser.*
 
 @Serializable
 sealed class Environment {
-    abstract fun getSpansForId(id: Long): List<Span>
+    abstract fun getSpansForType(type: Type): List<Span>
     abstract fun applySubstitution(type: Type): Type
 }
 
@@ -75,9 +75,9 @@ sealed class BlockEnvironment: Environment() {
 
 @Serializable
 data class LetEnvironment(val annotation: Type?, val annotationOffset: Span, val subordinate: Subordinate<ExpressionEnvironment>, val substitution: Substitution, override val bindings: Bindings, override val requirements: Requirements, override val errors: CortecsErrors): BlockEnvironment() {
-    override fun getSpansForId(id: Long) =
-        if(annotation?.id == id) listOf(annotationOffset)
-        else subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
+    override fun getSpansForType(type: Type) =
+        if(annotation?.id == type.id) listOf(annotationOffset)
+        else subordinate.environment.getSpansForType(type).map {subordinate.offset + it }
 
     //todo why do I need this mutable map here?
     override fun applySubstitution(type: Type) = substitution.apply(type, mutableMapOf())
@@ -88,7 +88,7 @@ data class ReturnEnvironment(val subordinate: Subordinate<ExpressionEnvironment>
     override val bindings: Bindings
         get() = Bindings.empty
 
-    override fun getSpansForId(id: Long) = subordinate.environment.getSpansForId(id).map { subordinate.offset + it }
+    override fun getSpansForType(type: Type) = subordinate.environment.getSpansForType(type).map {subordinate.offset + it }
     override fun applySubstitution(type: Type) = type
 }
 
@@ -108,14 +108,14 @@ data class FunctionCallExpressionEnvironment(
     val functionSubordinate: Subordinate<ExpressionEnvironment>,
     val argumentSubordinates: List<Subordinate<ExpressionEnvironment>>,
     override val errors: CortecsErrors): ExpressionEnvironment() {
-    override fun getSpansForId(id: Long) = when(id) {
+    override fun getSpansForType(type: Type) = when(type.id) {
         expressionType.id, functionType.id -> {
             val environment = functionSubordinate.environment
-            environment.getSpansForId(environment.expressionType.id).map {functionSubordinate.offset + it}
+            environment.getSpansForType(environment.expressionType).map {functionSubordinate.offset + it}
         }
 
-        else -> functionSubordinate.environment.getSpansForId(id).map {functionSubordinate.offset + it} + argumentSubordinates.flatMap {subordinate ->
-            subordinate.environment.getSpansForId(id).map {subordinate.offset + it}
+        else -> functionSubordinate.environment.getSpansForType(type).map {functionSubordinate.offset + it} + argumentSubordinates.flatMap {subordinate ->
+            subordinate.environment.getSpansForType(type).map {subordinate.offset + it}
         }
     }
 
@@ -131,13 +131,13 @@ data class BinaryExpressionEnvironment(
     val lhsSubordinate: Subordinate<ExpressionEnvironment>,
     val rhsSubordinate: Subordinate<ExpressionEnvironment>?,
     override val errors: CortecsErrors): ExpressionEnvironment() {
-    override fun getSpansForId(id: Long) = when(id) { //todo do these ids need to be different?
+    override fun getSpansForType(type: Type) = when(type.id) { //todo do these ids need to be different?
         expressionType.id, opType.id -> listOf(opSpan)
         else -> {
-            val lhsSpans = lhsSubordinate.environment.getSpansForId(id).map {lhsSubordinate.offset + it}
+            val lhsSpans = lhsSubordinate.environment.getSpansForType(type).map {lhsSubordinate.offset + it}
             if(rhsSubordinate == null) lhsSpans
             else {
-                val rhsSpans = rhsSubordinate.environment.getSpansForId(id).map {rhsSubordinate.offset + it}
+                val rhsSpans = rhsSubordinate.environment.getSpansForType(type).map {rhsSubordinate.offset + it}
                 lhsSpans + rhsSpans
             }
         }
@@ -149,9 +149,9 @@ data class BinaryExpressionEnvironment(
 @Serializable
 data class UnaryExpressionEnvironment(
     override val expressionType: Type, val opType: Type, override val requirements: Requirements, val subordinate: Subordinate<ExpressionEnvironment>, override val errors: CortecsErrors): ExpressionEnvironment() {
-    override fun getSpansForId(id: Long) = when(id) { //todo do these ids need to be different?
+    override fun getSpansForType(type: Type) = when(type.id) { //todo do these ids need to be different?
         expressionType.id, opType.id -> listOf(Span.zero)
-        else -> subordinate.environment.getSpansForId(id).map {subordinate.offset + it}
+        else -> subordinate.environment.getSpansForType(type).map {subordinate.offset + it}
     }
 
     override fun applySubstitution(type: Type) = type
@@ -160,13 +160,13 @@ data class UnaryExpressionEnvironment(
 @Serializable
 data class GroupingExpressionEnvironment(
     override val expressionType: Type, override val requirements: Requirements, val subordinate: Subordinate<ExpressionEnvironment>, override val errors: CortecsErrors): ExpressionEnvironment() {
-    override fun getSpansForId(id: Long) = subordinate.environment.getSpansForId(id).map {subordinate.offset + it}
+    override fun getSpansForType(type: Type) = subordinate.environment.getSpansForType(type).map {subordinate.offset + it}
     override fun applySubstitution(type: Type) = type
 }
 
 @Serializable
 data class AtomicExpressionEnvironment(override val expressionType: Type, override val requirements: Requirements): ExpressionEnvironment() {
-    override fun getSpansForId(id: Long) = if(id == expressionType.id) listOf(Span.zero)
+    override fun getSpansForType(type: Type) = if(type.id == expressionType.id) listOf(Span.zero)
     else emptyList()
 
     override fun applySubstitution(type: Type) = type
@@ -179,6 +179,6 @@ data object EmptyExpressionEnvironment: ExpressionEnvironment() {
     override val expressionType = Invalid(getNextId())
     override val requirements = Requirements.empty
     override val errors: CortecsErrors = CortecsErrors.empty
-    override fun getSpansForId(id: Long) = emptyList<Span>()
+    override fun getSpansForType(type: Type) = emptyList<Span>()
     override fun applySubstitution(type: Type) = type
 }
