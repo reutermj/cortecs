@@ -5,7 +5,7 @@ import kotlin.test.*
 
 class AtomicExpressionTests {
     private fun validateAtomicExpressionEnvironment(text: String): AtomicExpressionEnvironment {
-        //Requirement: atomic expression nodes produce atomic expression environments
+        // Requirement: atomic expression nodes produce atomic expression environments
         val iterator = ParserIterator()
         iterator.add(text)
         val expression = parseExpression(iterator)
@@ -14,7 +14,7 @@ class AtomicExpressionTests {
     }
 
     private fun validateZeroRelativeOffset(environment: AtomicExpressionEnvironment) {
-        //Requirement: the relative offset of the produced type is always (0,0)
+        // Requirement: the relative offset of the produced type is always (0,0)
         val spans = environment.getSpansForType(environment.expressionType)
         assertEquals(1, spans.size)
         assertEquals(Span.zero, spans.first())
@@ -25,18 +25,18 @@ class AtomicExpressionTests {
         // Tests the variable production rule
         // x is a Variable, U is fresh
         // ---------------------------
-        // x: U | x: [U]
+        //        x: U | x: [U]
         val text = "x"
         val environment = validateAtomicExpressionEnvironment(text)
 
-        //Requirement: variables produce a fresh unification type variable
+        // Requirement: variables produce a fresh unification type variable
         assertIs<UnificationTypeVariable>(environment.expressionType)
 
-        //Requirement: variables produce a single requirement on the variable
+        // Requirement: variables produce a single requirement on the variable
         val requirements = environment.requirements[NameToken(text)]!!
         assertEquals(1, requirements.size)
 
-        //Requirement: the produced unification type variable and the produced requirement are equal
+        // Requirement: the produced unification type variable and the produced requirement are equal
         val requirement = requirements.first()
         assertEquals(environment.expressionType, requirement)
 
@@ -59,8 +59,8 @@ class AtomicExpressionTests {
     fun testConstant() {
         // Tests the constant production rule
         // c is a Constant of type T
-        // ---------------------------------------
-        // c: T | (/)
+        // -------------------------
+        //        c: T | (/)
 
         validateConstant<I8Type>("0b")
         validateConstant<I16Type>("0s")

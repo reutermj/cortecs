@@ -8,10 +8,15 @@ import parser.*
 sealed class Environment {
     abstract fun getSpansForType(type: Type): List<Span>
     abstract fun applySubstitution(type: Type): Type
+    abstract fun equalsUpToId(other: Environment): Boolean
 }
 
 @Serializable
-data class Subordinate<out T: Environment>(val offset: Span, val environment: T)
+data class Subordinate<T: Environment>(val offset: Span, val environment: T) {
+    fun equalsUpToId(other: Subordinate<T>): Boolean {
+        return offset == other.offset && environment.equalsUpToId(other.environment)
+    }
+}
 
 @Serializable
 data class Bindings(val bindings: Map<BindableToken, Type>) {
@@ -64,6 +69,17 @@ data class Requirements(val requirements: Map<BindableToken, List<Type>>) {
     }
 
     fun applySubstitution(substitution: Substitution, mapping: MutableMap<Long, Type>) = Requirements(requirements.mapValues {kv -> kv.value.map {substitution.apply(it, mapping)}})
+
+    fun equalsUpToId(other: Requirements, mapping: MutableMap<Long, Long>): Boolean {
+        for((name, types) in requirements) {
+            val otherTypes = other[name] ?: return false
+            if(types.size != otherTypes.size) return false
+            for(i in types.indices) {
+                if(!types[i].equalsUpToId(otherTypes[i], mapping)) return false
+            }
+        }
+        return true
+    }
 }
 
 @Serializable
@@ -81,6 +97,9 @@ data class LetEnvironment(val annotation: Type?, val annotationOffset: Span, val
 
     //todo why do I need this mutable map here?
     override fun applySubstitution(type: Type) = substitution.apply(type, mutableMapOf())
+    override fun equalsUpToId(other: Environment): Boolean {
+        TODO("Not yet implemented")
+    }
 }
 
 @Serializable
@@ -90,6 +109,9 @@ data class ReturnEnvironment(val subordinate: Subordinate<ExpressionEnvironment>
 
     override fun getSpansForType(type: Type) = subordinate.environment.getSpansForType(type).map {subordinate.offset + it }
     override fun applySubstitution(type: Type) = type
+    override fun equalsUpToId(other: Environment): Boolean {
+        TODO("Not yet implemented")
+    }
 }
 
 @Serializable
@@ -120,6 +142,9 @@ data class FunctionCallExpressionEnvironment(
     }
 
     override fun applySubstitution(type: Type) = substitution.apply(type, mutableMapOf())
+    override fun equalsUpToId(other: Environment): Boolean {
+        TODO("Not yet implemented")
+    }
 }
 
 @Serializable
@@ -144,6 +169,9 @@ data class BinaryExpressionEnvironment(
     }
 
     override fun applySubstitution(type: Type) = type
+    override fun equalsUpToId(other: Environment): Boolean {
+        TODO("Not yet implemented")
+    }
 }
 
 @Serializable
@@ -155,6 +183,9 @@ data class UnaryExpressionEnvironment(
     }
 
     override fun applySubstitution(type: Type) = type
+    override fun equalsUpToId(other: Environment): Boolean {
+        TODO("Not yet implemented")
+    }
 }
 
 @Serializable
@@ -162,6 +193,13 @@ data class GroupingExpressionEnvironment(
     override val expressionType: Type, override val requirements: Requirements, val subordinate: Subordinate<ExpressionEnvironment>, override val errors: CortecsErrors): ExpressionEnvironment() {
     override fun getSpansForType(type: Type) = subordinate.environment.getSpansForType(type).map {subordinate.offset + it}
     override fun applySubstitution(type: Type) = type
+
+    override fun equalsUpToId(other: Environment): Boolean {
+        if(other !is GroupingExpressionEnvironment) return false
+        val mapping = mutableMapOf<Long, Long>()
+
+        return expressionType.equalsUpToId(other.expressionType, mapping) && requirements.equalsUpToId(other.requirements, mapping) && subordinate.equalsUpToId(other.subordinate) && errors == other.errors
+    }
 }
 
 @Serializable
@@ -172,6 +210,11 @@ data class AtomicExpressionEnvironment(override val expressionType: Type, overri
     override fun applySubstitution(type: Type) = type
     override val errors: CortecsErrors
         get() = CortecsErrors.empty
+    override fun equalsUpToId(other: Environment): Boolean {
+        if(other !is AtomicExpressionEnvironment) return false
+        val mapping = mutableMapOf<Long, Long>()
+        return expressionType.equalsUpToId(other.expressionType, mapping) && requirements.equalsUpToId(other.requirements, mapping)
+    }
 }
 
 @Serializable
@@ -181,4 +224,5 @@ data object EmptyExpressionEnvironment: ExpressionEnvironment() {
     override val errors: CortecsErrors = CortecsErrors.empty
     override fun getSpansForType(type: Type) = emptyList<Span>()
     override fun applySubstitution(type: Type) = type
+    override fun equalsUpToId(other: Environment) = other is EmptyExpressionEnvironment
 }

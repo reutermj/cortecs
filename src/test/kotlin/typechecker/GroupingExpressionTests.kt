@@ -4,50 +4,114 @@ import parser.*
 import kotlin.test.*
 
 class GroupingExpressionTests {
-    fun validateGroupingExpression(prefix: String, expressionText: String, postfix: String) {
-        val span = getSpan(prefix)
-        val text = "$prefix$expressionText$postfix"
+    fun validateGroupingExpression(whitespace: String, expressionText: String) {
+        val prefix = "($whitespace"
+        val text = "$prefix$expressionText)"
         val iterator = ParserIterator()
         iterator.add(text)
+        val expression = parseExpression(iterator)
+        assertIs<GroupingExpression>(expression)
 
+        // Requirement: grouping expression nodes produce grouping expression environments
+        val environment = expression.environment
+        assertIs<GroupingExpressionEnvironment>(environment)
+
+        val subordinate = environment.subordinate
+
+        // Requirement: grouping expressions produce the same type as the subordinate expression
+        assertEquals(subordinate.environment.expressionType, environment.expressionType)
+
+        // Requirement: grouping expressions produce the same requirements as the subordinate expression
+        assertEquals(subordinate.environment.requirements, environment.requirements)
+
+        // Requirement: the relative offset to the subordinate expression is the span containing the
+        // open paren and whitespace prior to the start of the subordinate expression
+        val span = getSpan(prefix)
+        assertEquals(span, subordinate.offset)
+    }
+
+    @Test
+    fun testGroupingExpressionProductionRule() {
+        // Tests the grouping expression production rule
+        //  e: T | R
+        // ----------
+        // (e): T | R
+        for(whitespace in whitespaceCombos) {
+            validateGroupingExpression(whitespace, "x")
+            validateGroupingExpression(whitespace, "1")
+            validateGroupingExpression(whitespace, "1.1")
+        }
+    }
+
+    fun validateErrorRelativeOffset(whitespace: String, expressionText: String) {
+        val text = "($whitespace$expressionText)"
+        val iterator = ParserIterator()
+        iterator.add(text)
         val expression = parseExpression(iterator)
         assertIs<GroupingExpression>(expression)
         val environment = expression.environment
         assertIs<GroupingExpressionEnvironment>(environment)
-        val subordinate = environment.subordinate
-        assertEquals(span, subordinate.offset)
-        assertEquals(subordinate.environment.expressionType, environment.expressionType)
-        assertEquals(subordinate.environment.requirements, environment.requirements)
+        val subordinate = environment.subordinate.environment
 
-        val spans = environment.getSpansForType(environment.expressionType)
-        assertEquals(1, spans.size)
-        assertEquals(span, spans.first())
-    }
+        // Requirement: grouping expressions produce the same number of errors as the subordinate
+        assertEquals(subordinate.errors.errors.size, environment.errors.errors.size)
 
-    @Test
-    fun test() {
-        validateGroupingExpression("(", "x", ")")
-        validateGroupingExpression("(", "1", ")")
-        validateGroupingExpression("(", "1.1", ")")
-        for(whitespace in whitespaceCombos) {
-            validateGroupingExpression("($whitespace", "x", ")")
-            validateGroupingExpression("($whitespace", "1", ")")
-            validateGroupingExpression("($whitespace", "1.1", ")")
+        // Requirement: errors produced by grouping expressions have a relative offset
+        // equal to the error produced by the subordinate expression plus the relative
+        // offset to the subordinate expression
+        val offset = environment.subordinate.offset
+        for(i in 0 until environment.errors.errors.size) {
+            val subordinateError = subordinate.errors.errors[i]
+            val expressionError = environment.errors.errors[i]
+
+            assertEquals(offset + subordinateError.offset, expressionError.offset)
         }
     }
 
     @Test
-    fun testError() {
+    fun testErrorRelativeOffset() {
+        for(whitespace in whitespaceCombos) {
+            validateErrorRelativeOffset(whitespace, "1()")
+            validateErrorRelativeOffset(whitespace, "(1())")
+            validateErrorRelativeOffset(whitespace, "((1()))")
+        }
+    }
+
+    @Test
+    fun testGroupingExpressionWithNoSubordinate() {
         val iterator = ParserIterator()
-        iterator.add("(1())")
-        val expression = parseExpression(iterator)!!
+        iterator.add("(")
+        val expression = parseExpression(iterator)
         assertIs<GroupingExpression>(expression)
 
+        // Requirement: grouping expressions with no subordinate produce an empty expression environment
         val environment = expression.environment
-        assertIs<GroupingExpressionEnvironment>(environment)
-        assertIs<Invalid>(environment.expressionType)
+        assertIs<EmptyExpressionEnvironment>(environment)
+    }
 
-        assertEquals(1, environment.errors.errors.size)
-        assertEquals(Span(0, 1), environment.errors.errors.first().offset)
+    fun validateGroupingExpressionWithNoClosingParen(whitespace: String, expressionText: String) {
+        val prefix = "($whitespace$expressionText"
+
+        val iterator = ParserIterator()
+        iterator.add(prefix)
+        val expression = parseExpression(iterator)
+        assertIs<GroupingExpression>(expression)
+
+        val goldIterator = ParserIterator()
+        goldIterator.add("$prefix)")
+        val goldExpression = parseExpression(goldIterator)
+        assertIs<GroupingExpression>(goldExpression)
+
+        // Requirement: grouping expressions missing the close paren produce the same environment
+        // as if it had the closing paren up to id substitution.
+        assertTrue { expression.environment.equalsUpToId(goldExpression.environment) }
+    }
+
+    @Test
+    fun testGroupingExpressionWithNoClosingParen() {
+        for(whitespace in whitespaceCombos) {
+            validateGroupingExpressionWithNoClosingParen(whitespace, "x")
+            validateGroupingExpressionWithNoClosingParen(whitespace, "(x)")
+        }
     }
 }
