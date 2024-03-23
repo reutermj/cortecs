@@ -27,25 +27,20 @@ class UnaryExpressionTests {
         assertIs<UnificationTypeVariable>(retType)
 
         // Requirement: Unary expressions produce all requirements of the subordinate
-        for((name, types) in subordinate.environment.requirements.requirements) {
-            val requirements = environment.requirements[name]!!
-            for(type in types) {
-                assertContains(requirements, type)
-            }
-        }
+        assertContainsAllRequirements(environment.requirements, subordinate.environment.requirements)
 
         // Requirement: Unary expressions produce a single additional requirement on the operator
         val opRequirements = environment.requirements[OperatorToken(op)]!!
-        val subordinateRequirements = environment.subordinate.environment.requirements[OperatorToken(op)] ?: emptyList()
-        assertEquals(subordinateRequirements.size + 1, opRequirements.size)
-        val opReq = opRequirements.first { !subordinateRequirements.contains(it) }
+        val subordinateOpRequirements = environment.subordinate.environment.requirements[OperatorToken(op)] ?: emptyList()
+        assertEquals(subordinateOpRequirements.size + 1, opRequirements.size)
+        val opReq = opRequirements.first { !subordinateOpRequirements.contains(it) }
 
         // Requirement: The produced additional requirement is an arrow type where:
         //   * the lhs is the type produced by the subordinate
         //   * the rhs is the fresh type variable produced by the unary expression
         assertIs<ArrowType>(opReq)
-        assertEquals(opReq.lhs, subordinate.environment.expressionType)
-        assertEquals(opReq.rhs, environment.expressionType)
+        assertEquals(subordinate.environment.expressionType, opReq.lhs)
+        assertEquals(environment.expressionType, opReq.rhs)
 
         // Requirement: The relative offset of the additional requirement is (0,0)
         assertEquals(listOf(Span.zero), environment.getSpansForType(opReq))
