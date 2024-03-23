@@ -18,7 +18,7 @@ class GroupingExpressionTests {
 
         val subordinate = environment.subordinate
 
-        // Requirement: grouping expressions produce the same type as the subordinate expression
+        // Requirement: grouping expressions produce as its type the same type as the subordinate expression
         assertEquals(subordinate.environment.expressionType, environment.expressionType)
 
         // Requirement: grouping expressions produce the same requirements as the subordinate expression
@@ -54,11 +54,12 @@ class GroupingExpressionTests {
         val subordinate = environment.subordinate.environment
 
         // Requirement: grouping expressions produce the same number of errors as the subordinate
+        // TODO: Requirement: The error message/kind should be checked in this test
         assertEquals(subordinate.errors.errors.size, environment.errors.errors.size)
 
         // Requirement: errors produced by grouping expressions have a relative offset
-        // equal to the error produced by the subordinate expression plus the relative
-        // offset to the subordinate expression
+        // equal to the relative offset of the error produced by the subordinate expression
+        // plus the relative offset to the subordinate expression
         val offset = environment.subordinate.offset
         for(i in 0 until environment.errors.errors.size) {
             val subordinateError = subordinate.errors.errors[i]
