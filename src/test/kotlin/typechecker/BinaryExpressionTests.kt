@@ -12,8 +12,6 @@ class BinaryExpressionTests {
         iterator.add(text)
         val expression = parseExpression(iterator)
         assertIs<BinaryExpression>(expression)
-
-        // Requirement: binary expressions produce binary expression environments
         val environment = expression.environment
         assertIs<BinaryExpressionEnvironment>(environment)
 
@@ -28,7 +26,7 @@ class BinaryExpressionTests {
         val rhsSpan = getSpan(preRhs)
         assertEquals(rhsSpan, rhsSubordinate.offset)
 
-        // Requirement: binary expressions produce as its type a fresh unification type variable
+        // Requirement: binary expressions produce as their type a fresh unification type variable
         val retType = environment.expressionType
         assertIs<UnificationTypeVariable>(retType)
 
@@ -45,12 +43,11 @@ class BinaryExpressionTests {
         assertEquals(lhsSubordinateOpRequirements.size + rhsSubordinateOpRequirements.size + 1, opRequirements.size)
         val opReq = opRequirements.first { !lhsSubordinateOpRequirements.contains(it) && !rhsSubordinateOpRequirements.contains(it) }
 
-
         // Requirement: The produced additional requirement is an arrow type where:
         //   * the lhs is a two place product type where:
         //     * the first place is the type produced by the left subordinate
         //     * the second place is the type produced by the right subordinate
-        //   * the rhs is the fresh type variable produced by the unary expression
+        //   * the rhs is the fresh type variable produced by the binary expression
         assertIs<ArrowType>(opReq)
         val lhsType = opReq.lhs
         assertIs<ProductType>(lhsType)
