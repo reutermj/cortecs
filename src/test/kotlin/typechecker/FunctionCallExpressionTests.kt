@@ -4,9 +4,10 @@ import parser.*
 import kotlin.test.*
 
 class FunctionCallExpressionTests {
-    fun validate(function: String, args: List<String>) {
+    fun validate(function: String, args: List<String>, whitespace: String) {
         val iterator = ParserIterator()
-        iterator.add("$function(${args.joinToString(separator = ",")})")
+        val prefix = "$function$whitespace($whitespace"
+        iterator.add("$prefix${args.joinToString(separator = ",$whitespace")})")
         val expression = parseExpression(iterator)
         assertIs<FunctionCallExpression>(expression)
         val environment = expression.environment
@@ -22,10 +23,10 @@ class FunctionCallExpressionTests {
 
         // Requirement: the relative offset of each argument subordinate is equal to the span containing
         // the function expression, the open parenthesis, all whitespace, all prior arguments, and all prior commas
-        var accString = "$function("
+        var accString = prefix
         for(i in args.indices) {
             assertEquals(getSpan(accString), argumentSubordinates[i].offset)
-            accString += args[i] + (if(i == args.size - 1) "" else ",")
+            accString += "${args[i]},$whitespace"
         }
 
         // Requirement: function call expressions produce as their type a fresh unification type variable
@@ -34,6 +35,25 @@ class FunctionCallExpressionTests {
         // Requirement: function call expressions unify the type of the function subordinate with an arrow type
         val functionType = environment.applySubstitution(functionSubordinate.environment.expressionType)
         assertIs<ArrowType>(functionType)
+
+        // Requirement: Function call expressions produce no additional requirements
+        val numSubordinateRequirements = argumentSubordinates.fold(numRequirements(functionSubordinate.environment.requirements)) { acc, sub -> acc + numRequirements(sub.environment.requirements)}
+        assertEquals(numSubordinateRequirements, numRequirements(environment.requirements))
+        
+        // Requirement: Function call expressions contain all function subordinate requirements after applying
+        // the substitution to them
+        for((k, v) in functionSubordinate.environment.requirements.requirements) {
+            val requirements = environment.requirements[k]!!
+            for(requirement in v) {
+                val applied = environment.applySubstitution(requirement)
+                assertContains(requirements, applied)
+            }
+        }
+
+        // Requirement: function call expressions produce all argument subordinate requirements as is
+        for(subordinate in argumentSubordinates) {
+            assertContainsAllRequirements(environment.requirements, subordinate.environment.requirements)
+        }
 
         val lhs = functionType.lhs
         when(args.size) {
@@ -69,37 +89,124 @@ class FunctionCallExpressionTests {
         // ---------------------------------------------------
         //         f(e0, ..., en): U | R, R0, ..., Rn
 
-        validate("x", listOf())
-        validate("x", listOf("y"))
-        validate("x", listOf("y", "z"))
-        validate("x", listOf("y", "z", "w"))
+        for(whitespace in whitespaceCombos) {
+            validate("x", listOf(), whitespace)
+            validate("x", listOf("y"), whitespace)
+            validate("(x)", listOf("y"), whitespace)
+            validate("(+x)", listOf("y"), whitespace)
+            validate("(x + y)", listOf("y"), whitespace)
+            validate("(x + y * z)", listOf("y"), whitespace)
+            validate("(x + y * z)", listOf("y", "z"), whitespace)
+            validate("(x + y * z)", listOf("y", "z", "1"), whitespace)
+            validate("x", listOf("y", "z"), whitespace)
+            validate("x", listOf("y", "z", "w"), whitespace)
 
-        validate("x", listOf())
-        validate("x", listOf("1"))
-        validate("x", listOf("1", "1.1"))
-        validate("x", listOf("1", "1.1", "\"hello world\""))
+            validate("x", listOf(), whitespace)
+            validate("x", listOf("1"), whitespace)
+            validate("x", listOf("1", "1.1"), whitespace)
+            validate("x", listOf("1", "1.1", "\"hello world\""), whitespace)
+        }
     }
 
-    fun testInvalid(text: String, span: Span) {
+    private fun validateErrorPassthrough(function: String, args: List<String>, whitespace: String) {
         val iterator = ParserIterator()
-        iterator.add(text)
-        val expression = parseExpression(iterator)!!
+        val prefix = "$function$whitespace($whitespace"
+        iterator.add("$prefix${args.joinToString(separator = ",$whitespace")})")
+        val expression = parseExpression(iterator)
         assertIs<FunctionCallExpression>(expression)
-
         val environment = expression.environment
         assertIs<FunctionCallExpressionEnvironment>(environment)
-        assertIs<Invalid>(environment.expressionType)
-        assertIs<Invalid>(environment.functionType)
 
-        assertEquals(1, environment.errors.errors.size)
-        assertEquals(span, environment.errors.errors.first().offset)
+        // Requirement: function call expressions produce an invalid type if any subordinate is invalid
+        // todo this requirement may need to be reworked. Kotlin can figure out the type of baz in
+        // fun foo(i: Int): Float = ...
+        // fun bar() { val baz = foo(1()) }
+        // but it cant figure out the type in cases like this
+        // val baz = (1())(1, 2, 3)
+        assertIs<Invalid>(environment.expressionType)
+
+        // Requirement: function call expressions produce the same number of errors as the subordinates combined
+        val numSubordinateErrors = environment.argumentSubordinates.fold(environment.functionSubordinate.environment.errors.errors.size) { acc, sub ->
+            acc + sub.environment.errors.errors.size
+        }
+        assertEquals(numSubordinateErrors, environment.errors.errors.size)
+
+        // Requirement: function call expressions produce the same errors as the function subordinate
+        assertContainsAllErrors(environment.errors, environment.functionSubordinate.environment.errors)
+
+        // Requirement: function call expressions produce the same errors as the argument subordinates
+        // with the span containing the function expression, the open parenthesis, all whitespace, all prior arguments, and all prior commas
+        // added to the relative offset
+        var accString = prefix
+        val argumentSubordinates = environment.argumentSubordinates
+        for(i in args.indices) {
+            val argumentErrors = argumentSubordinates[i].environment.errors.addOffset(getSpan(accString))
+            assertContainsAllErrors(environment.errors, argumentErrors)
+            accString += "${args[i]},$whitespace"
+        }
     }
 
     @Test
     fun testInvalid() {
-        testInvalid("1(x, y, z)", Span.zero)
-        testInvalid("f(1(), y, z)", Span(0, 2))
-        testInvalid("f(x, 1(), z)", Span(0, 5))
-        testInvalid("f(x, y, 1())", Span(0, 8))
+        for(whitespace in whitespaceCombos) {
+            validateErrorPassthrough("x", listOf("1()", "y", "z"), whitespace)
+            validateErrorPassthrough("(1())", listOf("1()", "y", "z"), whitespace)
+            validateErrorPassthrough("x", listOf("1()", "y", "1()"), whitespace)
+            validateErrorPassthrough("x", listOf("1()", "1()", "z"), whitespace)
+            validateErrorPassthrough("x", listOf("(1() + 1())", "1()", "z"), whitespace)
+            validateErrorPassthrough("x", listOf("1()", "1()", "1()"), whitespace)
+            validateErrorPassthrough("x", listOf("1()", "(1() + 1() * 1())", "1()"), whitespace)
+            validateErrorPassthrough("x", listOf("x", "1()", "z"), whitespace)
+            validateErrorPassthrough("x", listOf("x", "1()", "1()"), whitespace)
+            validateErrorPassthrough("x", listOf("x", "y", "1()"), whitespace)
+        }
+    }
+
+    private fun validateUnificationError(function: String, args: List<String>, whitespace: String) {
+        val iterator = ParserIterator()
+        val prefix = "$function$whitespace($whitespace"
+        iterator.add("$prefix${args.joinToString(separator = ",$whitespace")})")
+        val expression = parseExpression(iterator)
+        assertIs<FunctionCallExpression>(expression)
+        val environment = expression.environment
+        assertIs<FunctionCallExpressionEnvironment>(environment)
+
+        // Requirement: function call expressions produce an invalid type on unification errors
+        assertIs<Invalid>(environment.expressionType)
+
+        // Requirement: on unification error, function call expressions produce the one more error than the subordinates combined
+        val functionSubordinate = environment.functionSubordinate.environment
+        val numSubordinateErrors = environment.argumentSubordinates.fold(functionSubordinate.errors.errors.size) { acc, sub ->
+            acc + sub.environment.errors.errors.size
+        }
+        assertEquals(numSubordinateErrors + 1, environment.errors.errors.size)
+
+        val subordinateErrors = functionSubordinate.errors.errors.toMutableList()
+        var accString = prefix
+        val argumentSubordinates = environment.argumentSubordinates
+        for(i in args.indices) {
+            val argumentErrors = argumentSubordinates[i].environment.errors.addOffset(getSpan(accString))
+            subordinateErrors.addAll(argumentErrors.errors)
+            accString += "${args[i]},$whitespace"
+        }
+
+        val additionalError = environment.errors.errors.first { !subordinateErrors.contains(it) }
+        val spans = functionSubordinate.getSpansForType(functionSubordinate.expressionType)
+        assertEquals(1, spans.size)
+        val span = spans.first()
+        assertEquals(span, additionalError.offset)
+    }
+
+    @Test
+    fun testUnificationErrors() {
+        // currently, (1())(x, y) will skip the unification step in the outer function call expression because
+        // it sees the 1() as producing an invalid type and short circuits the generation of the environment.
+        // TODO figure out if this is the desired behavior
+        for(whitespace in whitespaceCombos) {
+            validateUnificationError("1", listOf("x"), whitespace)
+            validateUnificationError("(1)", listOf("x"), whitespace)
+            validateUnificationError("((1))", listOf("x"), whitespace)
+            validateUnificationError("(((1)))", listOf("x"), whitespace)
+        }
     }
 }

@@ -12,6 +12,20 @@ fun assertContainsAllRequirements(superset: Requirements, subset: Requirements) 
     }
 }
 
+fun numRequirements(requirements: Requirements): Int {
+    //return loop(0, iterate(requirements.requirements)) { i, it ->
+    //  if isDone(it) { break i }
+    //  let (_, types), nit = next(it)
+    //  continue i + size(types), nit
+    //}
+
+    var i = 0
+    for((_, types) in requirements.requirements) {
+        i += types.size
+    }
+    return i
+}
+
 fun assertContainsAllErrors(superset: CortecsErrors, subset: CortecsErrors) {
     for(error in subset.errors) assertContains(superset.errors, error)
 }
