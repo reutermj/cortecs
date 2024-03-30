@@ -209,4 +209,113 @@ class FunctionCallExpressionTests {
             validateUnificationError("(((1)))", listOf("x"), whitespace)
         }
     }
+
+    fun validateRequirements(function: String, functionName: String, args: List<String>, whitespace: String) {
+        val iterator = ParserIterator()
+        val prefix = "$function$whitespace($whitespace"
+        iterator.add("$prefix${args.joinToString(separator = ",$whitespace")})")
+        val expression = parseExpression(iterator)
+        assertIs<FunctionCallExpression>(expression)
+        val environment = expression.environment
+        assertIs<FunctionCallExpressionEnvironment>(environment)
+
+        val functionEnvironment = environment.functionSubordinate.environment
+        val functionTypeSpans = functionEnvironment.getSpansForType(functionEnvironment.expressionType)
+
+        // Requirement: applying the substitution to the type produced by the function subordinate
+        // produces an arrow type
+        val functionTypeApplied = environment.applySubstitution(functionEnvironment.expressionType)
+        assertIs<ArrowType>(functionTypeApplied)
+
+        // Requirement: the produced arrow type produce the same spans as the type produced by the
+        // function call expression
+        val functionTypeAppliedSpans = environment.getSpansForType(functionTypeApplied)
+        assertContainsSameSpans(functionTypeSpans, functionTypeAppliedSpans)
+
+        if(functionName != "") {
+            // Requirement: function call expressions update the requirement of function names to be
+            // the arrow type
+            val functionRequirements = environment.requirements[NameToken(functionName)]!!
+            assertEquals(1, functionRequirements.size)
+            val functionRequirement = functionRequirements.first()
+            assertIs<ArrowType>(functionRequirement)
+            assertEquals(functionTypeApplied, functionRequirement)
+
+            // Requirement: the spans produced by the requirement are the same spans as
+            // the type produced by the function call expression
+            val functionRequirementSpans = environment.getSpansForType(functionRequirement)
+            assertContainsSameSpans(functionTypeSpans, functionRequirementSpans)
+        }
+
+        when(args.size) {
+            0 -> {
+                // Requirement: the spans produced by the unit type are the same spans as
+                // the type produced by the function call expression
+                val unit = functionTypeApplied.lhs
+                assertIs<UnitType>(unit)
+                val unitSpans = environment.getSpansForType(unit)
+                assertContainsSameSpans(functionTypeSpans, unitSpans)
+            }
+            1 -> {
+                // Requirement: the spans produced by a single type is the same as the spans
+                // produced by the single argument subordinate offset by the span containing the function expression,
+                // the open parenthesis, all whitespace, all prior arguments, and all prior commas
+                // added to the relative offset
+                val argumentSubordinate = environment.argumentSubordinates.first().environment
+                val offset = getSpan(prefix)
+                val argumentSpans = argumentSubordinate.getSpansForType(argumentSubordinate.expressionType).map { offset + it }
+                val productSpans = environment.getSpansForType(functionTypeApplied.lhs)
+                assertContainsSameSpans(argumentSpans, productSpans)
+            }
+            2 -> {
+                val product = functionTypeApplied.lhs
+                assertIs<ProductType>(product)
+                val productTypeSpans = environment.getSpansForType(product)
+
+                // Requirement: the spans produced by the product type are the same spans as
+                // the type produced by the function call expression
+                assertContainsSameSpans(functionTypeSpans, productTypeSpans)
+
+                val argumentSubordinates = environment.argumentSubordinates
+                var accString = prefix
+                for(i in args.indices) {
+                    // Requirement: the spans produced by each argument type is the same as the spans
+                    // produced by the argument subordinate offset by the span containing the function expression,
+                    // the open parenthesis, all whitespace, all prior arguments, and all prior commas
+                    // added to the relative offset
+                    val argumentSubordinate = argumentSubordinates[i].environment
+                    val offset = getSpan(accString)
+                    val argumentSpans = argumentSubordinate.getSpansForType(argumentSubordinate.expressionType).map { offset + it }
+                    val productSpans = environment.getSpansForType(product.types[i])
+                    assertContainsSameSpans(argumentSpans, productSpans)
+                    accString += "${args[i]},$whitespace"
+                }
+            }
+        }
+    }
+
+    @Test
+    fun requirement() {
+        for(whitespace in whitespaceCombos) {
+            validateRequirements("f", "f", listOf(), whitespace)
+            validateRequirements("f", "f", listOf("1"), whitespace)
+            validateRequirements("f", "f", listOf("1", "x"), whitespace)
+
+            validateRequirements("(${whitespace}f)", "f", listOf(), whitespace)
+            validateRequirements("(${whitespace}f)", "f", listOf("1"), whitespace)
+            validateRequirements("(${whitespace}f)", "f", listOf("1", "x"), whitespace)
+
+            validateRequirements("((${whitespace}f))", "f", listOf(), whitespace)
+            validateRequirements("((${whitespace}f))", "f", listOf("1"), whitespace)
+            validateRequirements("((${whitespace}f))", "f", listOf("1", "x"), whitespace)
+
+            validateRequirements("(+x)", "", listOf(), whitespace)
+            validateRequirements("(+x)", "", listOf("1"), whitespace)
+            validateRequirements("(+x)", "", listOf("1", "x"), whitespace)
+
+            validateRequirements("(x+y)", "", listOf(), whitespace)
+            validateRequirements("(x+y)", "", listOf("1"), whitespace)
+            validateRequirements("(x+y)", "", listOf("1", "x"), whitespace)
+        }
+    }
 }

@@ -31,7 +31,7 @@ sealed interface FunctionCallArgumentsResult {
     val errors: CortecsErrors
 }
 
-data class FunctionCallArgumentsGood(val argumentsType: Type, override val requirements: Requirements, override val subordinates: List<Subordinate<ExpressionEnvironment>>, override val errors: CortecsErrors): FunctionCallArgumentsResult
+data class FunctionCallArgumentsGood(val argumentsTypes: List<Type>, override val requirements: Requirements, override val subordinates: List<Subordinate<ExpressionEnvironment>>, override val errors: CortecsErrors): FunctionCallArgumentsResult
 data class FunctionCallArgumentsBad(override val requirements: Requirements, override val subordinates: List<Subordinate<ExpressionEnvironment>>, override val errors: CortecsErrors): FunctionCallArgumentsResult
 
 fun processFunctionCallArguments(arguments: ArgumentsAst, argumentsSpan: Span): FunctionCallArgumentsResult {
@@ -53,13 +53,13 @@ fun processFunctionCallArguments(arguments: ArgumentsAst, argumentsSpan: Span): 
     }
 
     return if(anyInvalid) FunctionCallArgumentsBad(requirements, subordinates, errors)
-    else FunctionCallArgumentsGood(typesToType(argumentTypes), requirements, subordinates, errors)
+    else FunctionCallArgumentsGood(argumentTypes, requirements, subordinates, errors)
 }
 
 fun processGoodFunctionCall(fEnvironment: ExpressionEnvironment, arguments: FunctionCallArgumentsGood): ExpressionEnvironment {
     val returnType = freshUnificationVariable()
-    val rhsType = arguments.argumentsType
-    val arrowType = ArrowType(rhsType.id, rhsType, returnType)
+    val lhsType = typesToType(arguments.argumentsTypes, returnType.id)
+    val arrowType = ArrowType(returnType.id, lhsType, returnType)
 
     val outType: Type
     val outArrow: Type
@@ -186,11 +186,11 @@ var typeId: Long = 0
 fun getNextId() = typeId++
 fun freshUnificationVariable() = UnificationTypeVariable(getNextId())
 
-fun typesToType(types: List<Type>) = //todo find better name for this
+fun typesToType(types: List<Type>, id: Long) = //todo find better name for this
     when(types.size) {
-        0 -> UnitType(getNextId())  //should probably be empty type
+        0 -> UnitType(id)
         1 -> types.first()
-        else -> ProductType(getNextId(), types)
+        else -> ProductType(id, types)
     }
 
 fun getIntType(i: IntToken): Type {

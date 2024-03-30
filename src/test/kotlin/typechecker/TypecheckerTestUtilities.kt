@@ -1,6 +1,7 @@
 package typechecker
 
 import errors.CortecsErrors
+import parser.Span
 import kotlin.test.assertContains
 
 fun assertContainsAllRequirements(superset: Requirements, subset: Requirements) {
@@ -28,4 +29,13 @@ fun numRequirements(requirements: Requirements): Int {
 
 fun assertContainsAllErrors(superset: CortecsErrors, subset: CortecsErrors) {
     for(error in subset.errors) assertContains(superset.errors, error)
+}
+
+fun assertContainsAllSpans(superset: List<Span>, subset: List<Span>) {
+    for(span in subset) assertContains(superset, span)
+}
+
+fun assertContainsSameSpans(first: List<Span>, second: List<Span>) {
+    assertContainsAllSpans(first, second)
+    assertContainsAllSpans(second, first)
 }
