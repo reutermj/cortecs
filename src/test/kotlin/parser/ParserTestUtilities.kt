@@ -3,8 +3,8 @@ package parser
 import kotlinx.serialization.*
 import kotlin.test.*
 
-val whitespaceCombos: List<String> = run {
-    val whitespaceCombos = mutableListOf("")
+val nonEmptyWhitespaceCombos: List<String> = run {
+    val whitespaceCombos = mutableListOf<String>()
     val whitespaceCharacters = listOf(" ", "\n")
     whitespaceCombos.addAll(whitespaceCharacters)
 
@@ -29,7 +29,7 @@ val whitespaceCombos: List<String> = run {
     whitespaceCombos
 }
 
-val whitespaceCombosStartingWithNewLine = whitespaceCombos.filter {it.firstOrNull() != ' '}
+val whitespaceCombos = nonEmptyWhitespaceCombos + ""
 val operators = listOf("|", "^", "&", "==", "!", ">", "<", "+", "-", "~", "*", "/", "%")
 
 fun generateGoldText(inString: String, change: Change): String {
