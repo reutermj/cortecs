@@ -5,7 +5,14 @@ import errors.CortecsErrors
 import parser.*
 
 fun generateLetEnvironment(name: NameToken?, expression: Expression?, expressionSpan: Span): LetEnvironment {
-    if(name == null || expression == null) return LetEnvironment(null, Span.zero, Subordinate(expressionSpan, EmptyExpressionEnvironment), Substitution.empty, Bindings.empty, Requirements.empty, CortecsErrors.empty)
+    if(name == null) {
+        return LetEnvironment(null, Span.zero, Subordinate(expressionSpan, EmptyExpressionEnvironment), Substitution.empty, Bindings.empty, Requirements.empty, CortecsErrors.empty)
+    }
+
+    if(expression == null) {
+        val bindings = Bindings.empty.addBinding(name, Invalid(getNextId()))
+        return LetEnvironment(null, Span.zero, Subordinate(expressionSpan, EmptyExpressionEnvironment), Substitution.empty, bindings, Requirements.empty, CortecsErrors.empty)
+    }
 
     val environment = expression.environment
     val subordinate = Subordinate(expressionSpan, environment)
