@@ -39,8 +39,8 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
 
     fun unify(lType: Type, rType: Type): UnificationResult = when {
         lType is ConcreteType && rType is ConcreteType && lType::class == rType::class -> UnificationSuccess(this)
-        lType is UnificationTypeVariable -> unifyUnificationTypeVariable(lType, rType)
-        rType is UnificationTypeVariable -> unifyUnificationTypeVariable(rType, lType)
+        lType is UnificationTypeVariable -> unifyUnificationTypeVariableL(lType, rType)
+        rType is UnificationTypeVariable -> unifyUnificationTypeVariableR(lType, rType)
         lType is ArrowType && rType is ArrowType -> unify(lType.lhs, rType.lhs).map {
             it.unify(lType.rhs, rType.rhs)
         }
@@ -58,8 +58,8 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
     }
 
 
-    fun unifyUnificationTypeVariable(lType: UnificationTypeVariable, rType: Type): UnificationResult = when(val lLookup = find(lType)) {
-        is TypeMapping -> unify(rType, lLookup.outType)
+    fun unifyUnificationTypeVariableL(lType: UnificationTypeVariable, rType: Type): UnificationResult = when(val lLookup = find(lType)) {
+        is TypeMapping -> unify(lLookup.outType, rType)
         is Representative -> when(rType) {
             is UnificationTypeVariable -> when(val rLookup = find(rType)) {
                 is Representative -> UnificationSuccess(pointAt(lLookup.typeVar, rLookup.typeVar))
@@ -67,6 +67,18 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
             }
 
             else -> UnificationSuccess(pointAt(lLookup.typeVar, rType))
+        }
+    }
+
+    fun unifyUnificationTypeVariableR(lType: Type, rType: UnificationTypeVariable): UnificationResult = when(val rLookup = find(rType)) {
+        is TypeMapping -> unify(lType, rLookup.outType)
+        is Representative -> when(lType) {
+            is UnificationTypeVariable -> when(val lLookup = find(lType)) {
+                is Representative -> UnificationSuccess(pointAt(lLookup.typeVar, rLookup.typeVar))
+                is TypeMapping -> UnificationSuccess(pointAt(rLookup.typeVar, lLookup.outType))
+            }
+
+            else -> UnificationSuccess(pointAt(rLookup.typeVar, lType))
         }
     }
 

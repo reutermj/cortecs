@@ -174,7 +174,7 @@ data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
 
 @Serializable
 data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val typeAnnotationSpan: Span, val expressionIndex: Int, val expressionSpan: Span): BodyAst() {
-    val environment = generateLetEnvironment(name(), expression(), expressionSpan)
+    val environment = generateLetEnvironment(name(), typeAnnotation(), typeAnnotationSpan, expression(), expressionSpan)
     fun name() = if(nameIndex == -1) null
     else nodes[nameIndex] as NameToken
 

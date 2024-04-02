@@ -111,4 +111,26 @@ class LetTests {
         // Requirement: Let statements without a name produce an empty environment subordinate
         assertEquals(EmptyExpressionEnvironment, subordinate)
     }
+
+    @Test
+    fun testAnnotation() {
+        val iterator = ParserIterator()
+        val prefix = "let x: U32 = "
+        val name = "y"
+        iterator.add("$prefix$name")
+        val letAst = parseLet(iterator)
+        val environment = letAst.environment
+        val subordinate = environment.subordinate.environment
+
+        val binding = environment.bindings[NameToken("x")]!!
+        val requirements = environment.requirements[NameToken(name)]!!
+        assertEquals(1, requirements.size)
+        val requirement = requirements.first()
+        assertEquals(binding, requirement)
+
+        val prefixSpan = getSpan(prefix)
+        val subordinateSpans = subordinate.getSpansForType(subordinate.expressionType).map {prefixSpan + it}
+        val requirementSpans = environment.getSpansForType(requirement)
+        assertContainsSameSpans(subordinateSpans, requirementSpans)
+    }
 }
