@@ -112,25 +112,37 @@ class LetTests {
         assertEquals(EmptyExpressionEnvironment, subordinate)
     }
 
-    @Test
-    fun testAnnotation() {
+    fun validateAnnotation(name: String, annotation: String, expression: String, whitespace: String) {
+        val prefix = "let $whitespace$name:$whitespace$annotation$whitespace= $whitespace"
+        val text = "$prefix$expression"
         val iterator = ParserIterator()
-        val prefix = "let x: U32 = "
-        val name = "y"
-        iterator.add("$prefix$name")
+        iterator.add(text)
         val letAst = parseLet(iterator)
         val environment = letAst.environment
         val subordinate = environment.subordinate.environment
 
-        val binding = environment.bindings[NameToken("x")]!!
-        val requirements = environment.requirements[NameToken(name)]!!
-        assertEquals(1, requirements.size)
-        val requirement = requirements.first()
-        assertEquals(binding, requirement)
+        // Requirement: Applying the substitution to the type produced by the subordinate should
+        // equal the type bound to name
+        val binding = environment.bindings[NameToken(name)]!!
+        val appliedType = environment.applySubstitution(subordinate.expressionType)
+        assertEquals(binding, appliedType)
 
+        // Requirement: the spans produced by the type bound to name are the same spans for the type
+        // produced by the subordinate with the relative offset to the subordinate added to them
         val prefixSpan = getSpan(prefix)
         val subordinateSpans = subordinate.getSpansForType(subordinate.expressionType).map {prefixSpan + it}
-        val requirementSpans = environment.getSpansForType(requirement)
+        val requirementSpans = environment.getSpansForType(binding)
         assertContainsSameSpans(subordinateSpans, requirementSpans)
+    }
+
+    @Test
+    fun testAnnotation() {
+        for(whitespace in whitespaceCombos) {
+            validateAnnotation("x", "U32", "y", whitespace)
+            validateAnnotation("x", "U32", "(y)", whitespace)
+            validateAnnotation("x", "U32", "+y", whitespace)
+            validateAnnotation("x", "U32", "y + z", whitespace)
+            validateAnnotation("x", "U32", "f(y)", whitespace)
+        }
     }
 }
