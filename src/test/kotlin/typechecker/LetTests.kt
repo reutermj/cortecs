@@ -145,4 +145,9 @@ class LetTests {
             validateAnnotation("x", "U32", "f(y)", whitespace)
         }
     }
+
+    @Test
+    fun testInvalidAnnotation() {
+        TODO()
+    }
 }

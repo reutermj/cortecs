@@ -154,6 +154,7 @@ data class ParameterAst(override val nodes: List<Ast>, override val errors: Cort
 
 @Serializable
 data class BlockAst(override val nodes: List<Ast>, override val height: Int): StarAst<BodyAst>() {
+    val environment = generateBlockEnvironment(nodes)
     companion object {
         val empty = BlockAst(emptyList(), 0)
     }
@@ -161,10 +162,15 @@ data class BlockAst(override val nodes: List<Ast>, override val height: Int): St
     override fun ctor(nodes: List<Ast>, height: Int) = BlockAst(nodes, height)
 }
 
-sealed class BodyAst: AstImpl()
+sealed class BodyAst: AstImpl() {
+    abstract val environment: BlockEnvironment
+}
 
 @Serializable
 data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
+    override val environment: BlockEnvironment
+        get() = EmptyBlockEnvironmnt
+
     override val nodes: List<Ast>
         get() = garbageAst.nodes
 
@@ -174,7 +180,7 @@ data class GarbageBodyAst(val garbageAst: GarbageAst): BodyAst() {
 
 @Serializable
 data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val nameIndex: Int, val typeAnnotationIndex: Int, val typeAnnotationSpan: Span, val expressionIndex: Int, val expressionSpan: Span): BodyAst() {
-    val environment = generateLetEnvironment(name(), typeAnnotation(), typeAnnotationSpan, expression(), expressionSpan)
+    override val environment = generateLetEnvironment(name(), typeAnnotation(), typeAnnotationSpan, expression(), expressionSpan)
     fun name() = if(nameIndex == -1) null
     else nodes[nameIndex] as NameToken
 
@@ -187,13 +193,14 @@ data class LetAst(override val nodes: List<Ast>, override val errors: CortecsErr
 
 @Serializable
 data class ReturnAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val expressionIndex: Int, val expressionSpan: Span): BodyAst() {
-    val environment = generateReturnEnvironment(expression(), expressionSpan)
+    override val environment = generateReturnEnvironment(expression(), expressionSpan)
     fun expression() = if(expressionIndex == -1) null
     else nodes[expressionIndex] as Expression
 }
 
 @Serializable
 data class IfAst(override val nodes: List<Ast>, override val errors: CortecsErrors, val conditionIndex: Int, val blockIndex: Int): BodyAst() {
+    override val environment = EmptyBlockEnvironmnt
     fun condition(): Expression = if(conditionIndex == -1) throw Exception("Expression not available")
     else nodes[conditionIndex] as Expression
 

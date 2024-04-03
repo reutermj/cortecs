@@ -4,6 +4,52 @@ import errors.CortecsError
 import errors.CortecsErrors
 import parser.*
 
+fun generateBlockEnvironment(nodes: List<Ast>): BlockEnvironment {
+    if(nodes.isEmpty()) return EmptyBlockEnvironmnt
+
+    var subordinateOffset = Span.zero
+    val outSubordinates = nodes.map {
+        val subordinate: Subordinate<BlockEnvironment> = when(it) {
+            is BodyAst -> Subordinate(subordinateOffset, it.environment)
+            is BlockAst -> Subordinate(subordinateOffset, it.environment)
+            else -> throw Exception()
+        }
+        subordinateOffset += it.span
+        subordinate
+    }
+
+    val errors = mutableListOf<CortecsError>()
+    var substitution = Substitution.empty
+    var outBindings = Bindings.empty
+    var outRequirements = Requirements.empty
+    for(subordinate in outSubordinates) {
+        val environment = subordinate.environment
+        for((token, requirements) in environment.requirements.requirements) {
+            val binding = outBindings[token] ?: continue
+            for(requirement in requirements) {
+                when(val result = substitution.unify(binding, requirement)) {
+                    is UnificationSuccess -> substitution = result.substitution
+                    is UnificationError -> {
+                        val spans = environment.getSpansForType(result.rType)
+                        for(span in spans) {
+                            errors.add(CortecsError("Unification error", span, Span.zero))
+                        }
+                    }
+                }
+            }
+        }
+
+        outBindings += environment.bindings
+        outRequirements += environment.requirements.filter { token, _ -> !outBindings.contains(token) }
+    }
+
+    val mappings = mutableMapOf<Long, Type>()
+    outBindings = outBindings.applySubstitution(substitution, mappings)
+    outRequirements = outRequirements.applySubstitution(substitution, mappings)
+
+    return BlockEnv(outSubordinates, substitution, mappings, outBindings, outRequirements, CortecsErrors(null, errors))
+}
+
 fun generateLetEnvironment(
     name: NameToken?,
     annotation: TypeAnnotationToken?,
@@ -51,7 +97,7 @@ fun generateLetEnvironment(
 
             is UnificationError -> {
                 val unificationErrors = environment.getSpansForType(result.rType).map {
-                    CortecsError("Unification error", it, Span.zero)
+                    CortecsError("Unification error", expressionSpan + it, Span.zero)
                 }
                 val outErrors = errors + CortecsErrors(null, unificationErrors)
                 return LetEnvironment(
