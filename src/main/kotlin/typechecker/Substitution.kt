@@ -83,6 +83,7 @@ data class Substitution(val mapping: Map<TypeVariable, LookupIntermediate>) {
     }
 
     fun apply(type: Type, mapping: MutableMap<Long, Type>): Type = when(type) {
+        is Invalid -> type
         is ConcreteType -> type //todo should I be copying the old id or creating a new one???
         is ArrowType -> ArrowType(type.id, apply(type.lhs, mapping), apply(type.rhs, mapping))
         is ProductType -> ProductType(type.id, type.types.map {apply(it, mapping)})

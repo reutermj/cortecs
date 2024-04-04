@@ -146,8 +146,50 @@ class LetTests {
         }
     }
 
+    fun validateInvalidAnnotation(name: String, annotation: String, expression: String, whitespace: String) {
+        val prefix = "let $whitespace$name:$whitespace$annotation$whitespace= $whitespace"
+        val text = "$prefix$expression"
+        val iterator = ParserIterator()
+        iterator.add(text)
+        val letAst = parseLet(iterator)
+        val environment = letAst.environment
+        val subordinate = environment.subordinate.environment
+
+        // Requirement: the let statement's produced binding is equal to the annotation type
+        val binding = environment.bindings[NameToken(name)]!!
+        val annotationType = tokenToType(TypeToken(annotation), getNextId())
+        assertTrue { binding.equalsUpToId(annotationType, mutableMapOf()) }
+
+        // Requirement: no substitution is formed for the subordinate type
+        val appliedType = environment.applySubstitution(subordinate.expressionType)
+        assertFalse { binding.equalsUpToId(appliedType, mutableMapOf()) }
+
+        // Requirement: all subordinate errors are produced with the prefix offsets added to them
+        val prefixSpan = getSpan(prefix)
+        val subordinateErrors = subordinate.errors.addOffset(prefixSpan)
+        assertContainsAllErrors(environment.errors, subordinateErrors)
+
+        // Requirement: annotation unification errors produce a single additional error
+        val unificationErrors = environment.errors.errors.filter { !subordinateErrors.errors.contains(it) }
+        assertEquals(1, unificationErrors.size)
+
+        // Requirement: The relative offset of the additional error is the relative offset of the
+        // type produced by the subordinate plus the prefix span
+        val unificationError = unificationErrors.first()
+        val spans = subordinate.getSpansForType(subordinate.expressionType)
+        assertEquals(1, spans.size)
+        val span = prefixSpan + spans.first()
+        assertEquals(span, unificationError.offset)
+    }
+
     @Test
     fun testInvalidAnnotation() {
-        TODO()
+        for(whitespace in whitespaceCombos) {
+            validateInvalidAnnotation("x", "U32", "1.1", whitespace)
+            //TODO this case puts two errors on the same location in the document. This is probably not desired
+            validateInvalidAnnotation("x", "U32", "1()", whitespace)
+            validateInvalidAnnotation("x", "String", "'a'", whitespace)
+            validateInvalidAnnotation("x", "Boolean", "\"hello world\"", whitespace)
+        }
     }
 }

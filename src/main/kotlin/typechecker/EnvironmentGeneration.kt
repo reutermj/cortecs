@@ -86,7 +86,7 @@ fun generateLetEnvironment(
     if(annotation != null) {
         val expressionType = tokenToType(annotation, getNextId())
         val bindings = Bindings.empty.addBinding(name, expressionType)
-        when(val result = Substitution.empty.unify(environment.expressionType, expressionType)) {
+        when(val result = Substitution.empty.unify(expressionType, environment.expressionType)) {
             is UnificationSuccess -> {
                 val mapping = mutableMapOf<Long, Type>()
                 val requirements = environment.requirements.applySubstitution(result.substitution, mapping)
@@ -97,7 +97,7 @@ fun generateLetEnvironment(
 
             is UnificationError -> {
                 val unificationErrors = environment.getSpansForType(result.rType).map {
-                    CortecsError("Unification error", expressionSpan + it, Span.zero)
+                    CortecsError("Annotation unification error", expressionSpan + it, Span.zero)
                 }
                 val outErrors = errors + CortecsErrors(null, unificationErrors)
                 return LetEnvironment(
