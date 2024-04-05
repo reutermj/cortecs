@@ -22,7 +22,9 @@ fun generateBlockEnvironment(nodes: List<Ast>): BlockEnvironment {
     var substitution = Substitution.empty
     var outBindings = Bindings.empty
     var outRequirements = Requirements.empty
-    for(subordinate in outSubordinates) {
+    var offset = Span.zero
+    for(i in outSubordinates.indices) {
+        val subordinate = outSubordinates[i]
         val environment = subordinate.environment
         for((token, requirements) in environment.requirements.requirements) {
             val binding = outBindings[token] ?: continue
@@ -30,7 +32,7 @@ fun generateBlockEnvironment(nodes: List<Ast>): BlockEnvironment {
                 when(val result = substitution.unify(binding, requirement)) {
                     is UnificationSuccess -> substitution = result.substitution
                     is UnificationError -> {
-                        val spans = environment.getSpansForType(result.rType)
+                        val spans = environment.getSpansForType(result.rType).map { offset + it }
                         for(span in spans) {
                             errors.add(CortecsError("Unification error", span, Span.zero))
                         }
@@ -41,6 +43,7 @@ fun generateBlockEnvironment(nodes: List<Ast>): BlockEnvironment {
 
         outBindings += environment.bindings
         outRequirements += environment.requirements.filter { token, _ -> !outBindings.contains(token) }
+        offset += nodes[i].span
     }
 
     val mappings = mutableMapOf<Long, Type>()

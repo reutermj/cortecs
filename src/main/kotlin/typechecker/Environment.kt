@@ -42,11 +42,7 @@ data class Bindings(val bindings: Map<BindableToken, Type>) {
 
     //todo figure out if these are right. do we need to map passed in?
     fun applySubstitution(substitution: Substitution, mappings: MutableMap<Long, Type>) =
-        Bindings(bindings.mapValues {
-            val outType = substitution.apply(it.value, mappings)
-            if(outType is TypeScheme) outType
-            else TODO()
-        })
+        Bindings(bindings.mapValues { substitution.apply(it.value, mappings) })
 }
 
 @Serializable
